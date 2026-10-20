@@ -2,7 +2,7 @@ import { InlineButton } from "../ui/button";
 import { useId, useState } from "react";
 
 import { cn } from "../../lib/utils";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 
 /**

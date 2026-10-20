@@ -3,7 +3,8 @@ import { Platform, Pressable, View, type StyleProp, type ViewStyle } from "react
 import { cn } from "../lib/cn";
 import { localizeMobileString } from "../i18n/mobileStrings";
 import type { DraftComposerFileAttachment } from "../lib/composerImages";
-import { useMediaActions, type MediaActionsSource } from "../lib/mediaActions";
+import { useMediaActions } from "../state/mediaActions";
+import { type MediaActionsSource } from "../lib/mediaActionsSource";
 import { SymbolView } from "./AppSymbol";
 import { AppText } from "./AppText";
 import { MediaActionsMenu } from "./MediaActionsMenu";

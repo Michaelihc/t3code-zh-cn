@@ -24,6 +24,38 @@ describe("mobile strings", () => {
     }
   });
 
+  it("translates repository publishing for each host without changing host names", () => {
+    for (const provider of [
+      "GitHub",
+      "GitLab",
+      "Forgejo",
+      "GitCafe",
+      "Azure DevOps",
+      "Bitbucket",
+    ]) {
+      expect(localizeMobileString(`Create private repository on ${provider}`, "zh-CN")).toBe(
+        `在 ${provider} 上创建私有仓库`,
+      );
+      expect(localizeMobileString(`Could not create the ${provider} repository`, "zh-CN")).toBe(
+        `无法创建 ${provider} 仓库`,
+      );
+      expect(localizeMobileString(`Create private repository on ${provider}`, "en")).toBe(
+        `Create private repository on ${provider}`,
+      );
+    }
+  });
+
+  it("translates incremental usage progress and preserves environment names and errors", () => {
+    expect(localizeMobileString("Updating Codex…", "zh-CN")).toBe("正在更新 Codex…");
+    expect(localizeMobileString("Updating 2 providers…", "zh-CN")).toBe("正在更新 2 个服务提供方…");
+    expect(localizeMobileString("Updating 3 environments…", "zh-CN")).toBe("正在更新 3 个环境…");
+    expect(localizeMobileString("Updating Work Mac…", "zh-CN")).toBe("正在更新 Work Mac…");
+    expect(localizeMobileString("EACCES: /private/usage. Showing saved totals.", "zh-CN")).toBe(
+      "EACCES: /private/usage. 正在显示已保存的总计。",
+    );
+    expect(localizeMobileString("Updating 2 providers…", "en")).toBe("Updating 2 providers…");
+  });
+
   it("localizes new-task alerts and preserves machine names", () => {
     expect(
       localizeAlertArguments(

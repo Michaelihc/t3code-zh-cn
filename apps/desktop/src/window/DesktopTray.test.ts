@@ -69,6 +69,7 @@ const dependencies = Layer.mergeAll(
   Layer.succeed(DesktopEnvironment.DesktopEnvironment, {
     platform: "win32",
     isPackaged: true,
+    displayName: "T3 Code (Beta)",
     resourcesPath: "C:\\Program Files\\T3 Code\\resources",
     path: {
       join: (...parts: readonly string[]) => parts.join("\\"),
@@ -113,12 +114,12 @@ describe("DesktopTray", () => {
           const trayInstance = electronMocks.trayInstances[0];
           assert.isDefined(trayInstance);
           assert.equal(trayInstance.iconPath, "C:\\Program Files\\T3 Code\\resources\\icon.ico");
-          assert.equal(trayInstance.tooltip, "T3 Code");
+          assert.equal(trayInstance.tooltip, "T3 Code (Beta)");
 
           const template = electronMocks.menuTemplates[0];
           assert.isDefined(template);
-          assert.equal(template[0]?.label, "打开 T3 Code");
-          assert.equal(template[2]?.label, "退出 T3 Code");
+          assert.equal(template[0]?.label, "打开 T3 Code (Beta)");
+          assert.equal(template[2]?.label, "退出 T3 Code (Beta)");
 
           trayInstance.listeners.get("click")?.();
           template[0]?.click?.(

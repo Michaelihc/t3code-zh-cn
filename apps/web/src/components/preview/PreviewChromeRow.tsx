@@ -19,7 +19,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "~/components/ui/input-group";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { cn } from "~/lib/utils";
 
 interface Props {

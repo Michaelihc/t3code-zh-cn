@@ -2,7 +2,7 @@ import { DownloadIcon, PlusIcon } from "lucide-react";
 import type { ChangeEvent, DragEvent, UIEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import {
   getCustomThemes,
   installCustomTheme,
@@ -112,7 +112,7 @@ function ThemeJsonEditor({
   }, []);
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-input bg-background shadow-xs/5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/24">
+    <div className="relative overflow-hidden rounded-xl border border-input bg-background shadow-xs/5 focus-within:border-ring focus-within:ring-3 focus-within:ring-inset focus-within:ring-ring/24">
       {isPlainText ? null : (
         <pre
           ref={highlightRef}

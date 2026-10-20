@@ -699,6 +699,21 @@ const ZH_CN_MESSAGES = {
 } as const satisfies Readonly<Record<string, string>>;
 
 function translateDynamicMessage(value: string): string | null {
+  const createPrivateRepository = /^Create private repository on (.+)$/.exec(value);
+  if (createPrivateRepository) return `在 ${createPrivateRepository[1]} 上创建私有仓库`;
+  const createRepositoryFailure = /^Could not create the (.+) repository$/.exec(value);
+  if (createRepositoryFailure) return `无法创建 ${createRepositoryFailure[1]} 仓库`;
+
+  const updatingProviders = /^Updating (\d+) providers…$/.exec(value);
+  if (updatingProviders) return `正在更新 ${updatingProviders[1]} 个服务提供方…`;
+  const updatingEnvironments = /^Updating (\d+) environments…$/.exec(value);
+  if (updatingEnvironments) return `正在更新 ${updatingEnvironments[1]} 个环境…`;
+  const updatingSource = /^Updating (.+)…$/.exec(value);
+  if (updatingSource) return `正在更新 ${updatingSource[1]}…`;
+  const savedUsageTotals = /^(.+) Showing saved totals\.$/.exec(value);
+  if (savedUsageTotals)
+    return `${localizeMobileString(savedUsageTotals[1]!, "zh-CN")} 正在显示已保存的总计。`;
+
   const environmentLabel = /^Environment: (.+)$/.exec(value);
   if (environmentLabel) return `环境：${environmentLabel[1]}`;
   const onMachine = /^on (.+)$/.exec(value);

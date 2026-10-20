@@ -3,7 +3,6 @@ import type {
   EnvironmentId,
   ProjectId,
   PullRequestInvolvement,
-  ProjectIconOverride,
   PullRequestListFilters,
   PullRequestListState,
   SourceControlProviderKind,
@@ -23,7 +22,7 @@ import {
 } from "lucide-react";
 import { type ElementType, useState } from "react";
 
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { translateWebSource } from "~/i18n/messages";
 import { getSourceControlPresentationForKind } from "~/sourceControlPresentation";
 import { ProjectFavicon, type ProjectFaviconProject } from "../ProjectFavicon";
@@ -108,6 +107,7 @@ export function PullRequestSearchInput({
   onChange: (value: string) => void;
 }) {
   const { t } = useI18n();
+  const [draft, setDraft] = useState<string | null>(null);
   return (
     <InputGroup className="min-w-0 flex-1 **:[input]:h-9 sm:**:[input]:h-8">
       <InputGroupAddon>
@@ -115,8 +115,13 @@ export function PullRequestSearchInput({
       </InputGroupAddon>
       <InputGroupInput
         type="search"
-        value={value}
-        onChange={(event) => onChange(event.currentTarget.value)}
+        value={draft ?? value}
+        onFocus={() => setDraft(value)}
+        onBlur={() => setDraft(null)}
+        onChange={(event) => {
+          setDraft(event.currentTarget.value);
+          onChange(event.currentTarget.value);
+        }}
         placeholder={t("pullRequests.search.placeholder")}
         aria-label={t("pullRequests.search.label")}
       />
@@ -175,7 +180,7 @@ function PullRequestFilterRadioGroup<Value extends string>({
   options: ReadonlyArray<PullRequestFilterOption<Value>>;
   onChange: (value: Value) => void;
 }) {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   return (
     <MenuRadioGroup
       value={value}

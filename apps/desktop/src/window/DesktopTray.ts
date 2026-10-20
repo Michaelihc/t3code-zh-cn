@@ -68,7 +68,7 @@ export const make = Effect.gen(function* () {
           ),
         );
         const systemLocale = yield* electronApp.systemLocale;
-        const appName = yield* electronApp.name;
+        const appName = environment.displayName;
         const appLocale = Option.match(settings, {
           onNone: () => DEFAULT_APP_LOCALE_PREFERENCE,
           onSome: (value) => value.appLocale,

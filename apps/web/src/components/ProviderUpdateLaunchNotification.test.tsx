@@ -56,7 +56,7 @@ vi.mock("../providerUpdateDismissal", () => ({
     dismissNotificationKey: vi.fn(),
   }),
 }));
-vi.mock("../i18n/WebI18nProvider", () => ({
+vi.mock("../i18n/WebI18nContext", () => ({
   useI18n: () => ({
     locale: testState.locale,
     t: (key: string, values?: Readonly<Record<string, string | number>>) => {

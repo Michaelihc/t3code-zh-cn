@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEnvironments } from "~/state/environments";
 import { isDesktopLocalConnectionTarget } from "~/connection/desktopLocal";
 import { useDismissedProviderUpdateNotificationKeys } from "../providerUpdateDismissal";
-import { useI18n } from "../i18n/WebI18nProvider";
+import { useI18n } from "../i18n/WebI18nContext";
 import { ProviderUpdateEnvironmentRows } from "./ProviderUpdateEnvironmentRows";
 import { useLocalEnvironmentUpdateGroups } from "./ProviderUpdateLaunchNotification.environments";
 import {

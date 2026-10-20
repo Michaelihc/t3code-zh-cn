@@ -24,12 +24,12 @@ vi.mock("expo-secure-store", () => ({
 }));
 
 import { CONNECTION_CATALOG_KEY, LEGACY_CONNECTIONS_KEY, make } from "./catalog-store";
-import { MobileSecureStorage } from "../persistence/mobile-secure-storage";
+import * as MobileSecureStorage from "../persistence/mobile-secure-storage";
 
 function makeStorage(initial: Readonly<Record<string, string>>) {
   const values = new Map(Object.entries(initial));
   const deleted: Array<string> = [];
-  const storage = MobileSecureStorage.of({
+  const storage = MobileSecureStorage.MobileSecureStorage.of({
     getItem: (key) => Effect.sync(() => values.get(key) ?? null),
     setItem: (key, value) =>
       Effect.sync(() => {
@@ -55,7 +55,7 @@ describe("mobile connection catalog storage", () => {
         }),
       });
       const catalog = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage, memory.storage),
+        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
       );
       expect((yield* catalog.read).disabledEnvironmentIds).toEqual([id]);
     }),
@@ -67,7 +67,7 @@ describe("mobile connection catalog storage", () => {
         [CONNECTION_CATALOG_KEY]: "{not-json",
       });
       const catalog = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage, memory.storage),
+        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
       );
 
       expect((yield* catalog.read).targets).toEqual([]);
@@ -94,7 +94,7 @@ describe("mobile connection catalog storage", () => {
         }),
       });
       const catalog = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage, memory.storage),
+        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
       );
 
       expect((yield* catalog.read).targets).toEqual([]);
@@ -108,7 +108,7 @@ describe("mobile connection catalog storage", () => {
         [LEGACY_CONNECTIONS_KEY]: JSON.stringify({ connections: [{ invalid: true }] }),
       });
       const catalog = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage, memory.storage),
+        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
       );
 
       expect((yield* catalog.read).targets).toEqual([]);
@@ -137,7 +137,7 @@ describe("mobile connection catalog storage", () => {
         }),
       });
       const catalog = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage, memory.storage),
+        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
       );
 
       expect((yield* catalog.read).targets).toHaveLength(1);
@@ -153,7 +153,7 @@ describe("mobile connection catalog storage", () => {
     Effect.gen(function* () {
       const memory = makeStorage({});
       const catalog = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage, memory.storage),
+        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
       );
       const environmentId = EnvironmentId.make("environment-1");
       const connectionId = `bearer:${environmentId}`;
@@ -178,7 +178,7 @@ describe("mobile connection catalog storage", () => {
       const encoded = memory.values.get(CONNECTION_CATALOG_KEY);
       expect(encoded).toContain(environmentId);
       const reloaded = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage, memory.storage),
+        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
         Effect.flatMap((store) => store.read),
       );
       expect(reloaded.targets[0]).toBeInstanceOf(BearerConnectionTarget);

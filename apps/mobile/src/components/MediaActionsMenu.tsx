@@ -2,8 +2,8 @@ import { MenuView } from "@react-native-menu/menu";
 import type { ReactElement } from "react";
 import { Platform, View, type PressableProps, type StyleProp, type ViewStyle } from "react-native";
 
-import type { useMediaActions } from "../lib/mediaActions";
 import { localizeMobileString } from "../i18n/mobileStrings";
+import type { useMediaActions } from "../state/mediaActions";
 import { SymbolView } from "./AppSymbol";
 import { ControlPillMenu } from "./ControlPill";
 

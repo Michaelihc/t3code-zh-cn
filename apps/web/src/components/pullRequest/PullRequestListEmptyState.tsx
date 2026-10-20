@@ -15,7 +15,7 @@ import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { PlusIcon, SearchIcon } from "lucide-react";
 
 import { openCommandPalette } from "../../commandPaletteBus";
-import type { WebTranslate } from "../../i18n/WebI18nProvider";
+import type { WebTranslate } from "../../i18n/WebI18nContext";
 import { translateWebMessage } from "../../i18n/messages";
 import { Button } from "../ui/button";
 import { PullRequestListGhost } from "./PullRequestGhosts";

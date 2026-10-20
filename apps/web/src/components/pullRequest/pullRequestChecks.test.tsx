@@ -2,8 +2,8 @@ import type { EnvironmentId, ProjectId, PullRequestCheck } from "@t3tools/contra
 import { Children, isValidElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vite-plus/test";
 
-vi.mock("../../i18n/WebI18nProvider", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../i18n/WebI18nProvider")>();
+vi.mock("../../i18n/WebI18nContext", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../i18n/WebI18nContext")>();
   const { translateWebMessage } = await import("../../i18n/messages");
   return {
     ...actual,
@@ -119,6 +119,9 @@ function row(overrides: Partial<EnvironmentPullRequestEntry>): ReactNode {
     showProjectTitle: false,
     showProvider: false,
     onSelect: () => {},
+    speedMode: false,
+    hostActions: new Set(),
+    onActed: () => {},
   });
 }
 

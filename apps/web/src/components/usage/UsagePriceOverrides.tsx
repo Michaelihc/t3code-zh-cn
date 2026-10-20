@@ -1,23 +1,18 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId } from "@t3tools/contracts";
+import { AuthSettingsWriteScope, type EnvironmentId, sessionGrantsScope } from "@t3tools/contracts";
 import { ChevronDownIcon, PlusIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import * as Option from "effect/Option";
-import { AsyncResult, Atom } from "effect/unstable/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 import { useRef, useState } from "react";
 
-import { isElectron } from "../../env";
 import { cn } from "../../lib/utils";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 import { environmentPresentations } from "../../state/presentation";
 import { serverEnvironment } from "../../state/server";
-import { environmentSession } from "../../state/session";
+import { environmentSession, readEnvironmentScope } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
 import type { EnvironmentUsageStatus } from "../../state/usage";
-import {
-  resolvePrimaryOperateAccess,
-  resolveRemoteOperateAccess,
-} from "../settings/ProviderSettingsPanel.logic";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -36,6 +31,7 @@ import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import { USAGE_PRICE_FIELDS } from "./usagePriceForm";
 import {
   isEmptyUsagePriceDraft,
+  usageAliasCell,
   usagePriceCell,
   usagePriceTableChanges,
   usagePriceTableErrors,
@@ -52,19 +48,25 @@ const priceTargetsAtom = Atom.make((get): readonly UsagePriceTarget[] =>
   [...get(environmentPresentations.presentationsAtom)].map(([environmentId, environment]) => {
     const settings = get(serverEnvironment.settingsValueAtom(environmentId));
     const session = get(environmentSession.sessionStateAtom(environmentId));
-    const sessionAccess = {
-      session: Option.getOrNull(AsyncResult.value(session)),
-      isPending: session.waiting,
-      hasError: session._tag === "Failure",
-    };
-    const isPrimary = environment.entry.target._tag === "PrimaryConnectionTarget";
-    const access = isPrimary
-      ? resolvePrimaryOperateAccess({ ...sessionAccess, isPrimary, hasDesktopBridge: isElectron })
-      : resolveRemoteOperateAccess(sessionAccess);
+    const sessionData = Option.getOrNull(AsyncResult.value(session));
+    const access =
+      session._tag === "Failure"
+        ? "denied"
+        : sessionData === null
+          ? session.waiting
+            ? "pending"
+            : "denied"
+          : sessionGrantsScope(sessionData, AuthSettingsWriteScope)
+            ? "granted"
+            : "denied";
     return {
       environmentId,
       label: environment.entry.target.label,
       prices: settings?.usagePriceOverrides ?? null,
+      aliases:
+        environment.serverConfig?.environment.capabilities.usageModelAliases === true
+          ? (settings?.usageModelAliases ?? null)
+          : null,
       unavailable:
         environment.connection.phase !== "connected"
           ? "Offline"
@@ -93,16 +95,21 @@ type SaveAttempt = {
   >;
 };
 
+/**
+ * Edits custom model prices and mappings. A mapped model's usage counts as its
+ * target model. `initialModel` opens with a new row for that model.
+ */
 export function UsagePriceOverrides({
   usage,
   initialSelectedEnvironmentIds,
+  initialModel,
   onOpenChange,
 }: {
   readonly usage: readonly EnvironmentUsageStatus[];
   readonly initialSelectedEnvironmentIds: ReadonlySet<EnvironmentId> | null;
+  readonly initialModel?: string | undefined;
   readonly onOpenChange: (open: boolean) => void;
 }) {
-  const { locale: uiLocale } = useI18n();
   const { locale } = useI18n();
   const translate = (source: string) => translateWebSource(locale, source);
   const environments = useAtomValue(priceTargetsAtom);
@@ -110,14 +117,29 @@ export function UsagePriceOverrides({
   const selected = environments.filter(
     (environment) => selectedIds === null || selectedIds.has(environment.environmentId),
   );
-  const [drafts, setDrafts] = useState<readonly UsagePriceDraft[]>([]);
+  // A model that already has a custom price or mapping is edited in its existing row.
+  const [drafts, setDrafts] = useState<readonly UsagePriceDraft[]>(() =>
+    initialModel === undefined ||
+    selected.some(
+      (environment) =>
+        Object.hasOwn(environment.prices ?? {}, initialModel) ||
+        Object.hasOwn(environment.aliases ?? {}, initialModel),
+    )
+      ? []
+      : [{ id: "new:initial", model: initialModel, isNew: true, values: {} }],
+  );
   const [pending, setPending] = useState(false);
   const [attempt, setAttempt] = useState<SaveAttempt | null>(null);
   const focusRowRef = useRef<string | null>(null);
   const nextRowId = useRef(0);
   const updateSettings = useAtomCommand(serverEnvironment.updateSettings, { reportFailure: false });
   const customModels = [
-    ...new Set(selected.flatMap((environment) => Object.keys(environment.prices ?? {}))),
+    ...new Set(
+      selected.flatMap((environment) => [
+        ...Object.keys(environment.prices ?? {}),
+        ...Object.keys(environment.aliases ?? {}),
+      ]),
+    ),
   ].sort();
   const models = [
     ...new Set([
@@ -188,19 +210,31 @@ export function UsagePriceOverrides({
     );
     setAttempt(null);
   };
+  // An existing row edited back to its saved values has nothing left to save.
+  const matchesSaved = (
+    row: UsagePriceDraft,
+    cell: { value: string; placeholder: string },
+    value: string,
+  ) =>
+    !row.isNew &&
+    cell.placeholder !== "Mixed" &&
+    cell.placeholder !== "Unavailable" &&
+    value === cell.value;
+  const updateOrDropDraft = (draft: UsagePriceDraft) => {
+    if (!draft.isNew && Object.keys(draft.values).length === 0 && draft.alias === undefined)
+      setDrafts((previous) => previous.filter((entry) => entry.id !== draft.id));
+    else updateDraft(draft);
+  };
   const editCell = (row: UsagePriceDraft, field: UsagePriceField, value: string) => {
     const values = { ...row.values, [field]: value };
     const original = usagePriceCell(selected, row.model, field);
-    if (
-      !row.isNew &&
-      original.placeholder !== "Mixed" &&
-      original.placeholder !== translateWebSource(uiLocale, "Unavailable") &&
-      value === original.value
-    )
-      delete values[field];
-    if (!row.isNew && Object.keys(values).length === 0)
-      setDrafts((previous) => previous.filter((entry) => entry.id !== row.id));
-    else updateDraft({ ...row, values });
+    if (matchesSaved(row, original, value)) delete values[field];
+    updateOrDropDraft({ ...row, values });
+  };
+  const editAlias = (row: UsagePriceDraft, value: string) => {
+    const { alias: _alias, ...rest } = row;
+    const original = usageAliasCell(selected, row.model);
+    updateOrDropDraft(matchesSaved(row, original, value) ? rest : { ...rest, alias: value });
   };
   const save = async (retry = false) => {
     if (pending) return;
@@ -211,7 +245,7 @@ export function UsagePriceOverrides({
       (destination) =>
         environments.find(
           (environment) => environment.environmentId === destination.environmentId,
-        ) ?? { ...destination, prices: null, unavailable: "Environment removed" },
+        ) ?? { ...destination, prices: null, aliases: null, unavailable: "Environment removed" },
     );
     const changes = new Map(
       targets.map((target) => [target.environmentId, usagePriceTableChanges(target, edits)]),
@@ -233,7 +267,10 @@ export function UsagePriceOverrides({
           target.unavailable ?? [...changes.get(target.environmentId)!.errors.values()][0] ?? null,
       })),
       changes: new Map([...changes].map(([id, plan]) => [id, plan.changes])),
-      write: updateSettings,
+      write: async (input) =>
+        readEnvironmentScope(input.environmentId, AuthSettingsWriteScope)
+          ? updateSettings(input)
+          : { _tag: "Failure" },
       onResult: (environmentId, result) => {
         if (result.status === "failed") failed = true;
         setAttempt((previous) =>
@@ -254,14 +291,12 @@ export function UsagePriceOverrides({
         if (!pending) onOpenChange(open);
       }}
     >
-      <DialogPopup className="max-w-3xl">
+      <DialogPopup className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>{translate("Custom model prices")}</DialogTitle>
           <DialogDescription>
             {translate(
-              translate(
-                "Prices apply to all past and future usage on the environments you select.",
-              ),
+              "Prices and mappings apply to all past and future usage on the environments you select.",
             )}
           </DialogDescription>
         </DialogHeader>
@@ -330,11 +365,12 @@ export function UsagePriceOverrides({
             <>
               <div className="min-w-0 overflow-hidden rounded-lg border border-border">
                 <Table
-                  className="min-w-160 table-fixed"
+                  className="min-w-180 table-fixed"
                   aria-label={translate("Custom model prices")}
                 >
                   <colgroup>
-                    <col className="w-[34%]" />
+                    <col className="w-[22%]" />
+                    <col className="w-[18%]" />
                     {USAGE_PRICE_FIELDS.map((field) => (
                       <col key={field.key} />
                     ))}
@@ -343,6 +379,7 @@ export function UsagePriceOverrides({
                   <TableHeader>
                     <TableRow>
                       <TableHead>{translate("Model ID")}</TableHead>
+                      <TableHead>{translate("Map to")}</TableHead>
                       {USAGE_PRICE_FIELDS.map((field) => (
                         <TableHead key={field.key}>{translate(field.label)}</TableHead>
                       ))}
@@ -366,149 +403,161 @@ export function UsagePriceOverrides({
                   <TableBody>
                     {rows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center whitespace-normal">
+                        <TableCell colSpan={7} className="text-center whitespace-normal">
                           <p className="py-6 text-muted-foreground">
                             {selected.some((environment) => environment.prices === null)
                               ? translate("Some environment prices are unavailable.")
-                              : translate(
-                                  "No custom prices. Add a row to override automatic pricing.",
-                                )}
+                              : translate("No custom prices or mappings. Add a row to set one.")}
                           </p>
                         </TableCell>
                       </TableRow>
                     ) : (
-                      rows.map((row) => (
-                        <TableRow key={row.id} data-row-id={row.id}>
-                          <TableCell className="whitespace-normal">
-                            {row.isNew ? (
-                              <Input
-                                size="compact"
-                                value={row.model}
-                                ref={(node) => {
-                                  if (node && focusRowRef.current === row.id) {
-                                    node.focus();
-                                    focusRowRef.current = null;
+                      rows.map((row) => {
+                        const aliasCell = usageAliasCell(selected, row.model);
+                        const alias = (row.alias ?? aliasCell.value).trim();
+                        return (
+                          <TableRow key={row.id} data-row-id={row.id}>
+                            <TableCell className="whitespace-normal">
+                              {row.isNew ? (
+                                <Input
+                                  size="compact"
+                                  value={row.model}
+                                  ref={(node) => {
+                                    if (node && focusRowRef.current === row.id) {
+                                      node.focus();
+                                      focusRowRef.current = null;
+                                    }
+                                  }}
+                                  aria-label="New model ID"
+                                  aria-invalid={
+                                    (row.model.trim() !== "" && errors.has(row.id)) || undefined
                                   }
-                                }}
-                                aria-label={translate("New model ID")}
-                                aria-invalid={
-                                  (row.model.trim() !== "" && errors.has(row.id)) || undefined
-                                }
-                                list="usage-price-models"
-                                placeholder={translate("Model ID")}
-                                autoComplete="off"
-                                spellCheck={false}
-                                disabled={locked}
-                                onChange={(event) =>
-                                  updateDraft({ ...row, model: event.target.value })
-                                }
-                              />
-                            ) : (
-                              <span
-                                className={cn(
-                                  "block break-all",
-                                  row.removed && "text-muted-foreground line-through",
-                                )}
-                              >
-                                {row.model}
-                              </span>
-                            )}
-                            {errors.has(row.id) &&
-                            (row.model.trim() !== "" ||
-                              Object.values(row.values).some((value) => value !== "")) ? (
-                              <p role="alert" className="mt-1 text-xs text-destructive">
-                                {(() => {
-                                  const error = errors.get(row.id);
-                                  if (!error || locale !== "zh-CN") return error;
-                                  const required = /^(.+) is required on (.+)\.$/u.exec(error);
-                                  return required
-                                    ? `${translate(required[1]!)}是 ${required[2]} 上的必填项。`
-                                    : translate(error);
-                                })()}
-                              </p>
-                            ) : null}
-                          </TableCell>
-                          {row.removed ? (
-                            <TableCell colSpan={4}>
-                              <span className="text-muted-foreground">
-                                {translate("Automatic pricing after saving")}
-                              </span>
+                                  list="usage-price-models"
+                                  placeholder={translate("Model ID")}
+                                  autoComplete="off"
+                                  spellCheck={false}
+                                  disabled={locked}
+                                  onChange={(event) =>
+                                    updateDraft({ ...row, model: event.target.value })
+                                  }
+                                />
+                              ) : (
+                                <span
+                                  className={cn(
+                                    "block break-all",
+                                    row.removed && "text-muted-foreground line-through",
+                                  )}
+                                >
+                                  {row.model}
+                                </span>
+                              )}
+                              {errors.has(row.id) &&
+                              (row.model.trim() !== "" ||
+                                Object.values(row.values).some((value) => value !== "")) ? (
+                                <p role="alert" className="mt-1 text-xs text-destructive">
+                                  {translate(errors.get(row.id) ?? "")}
+                                </p>
+                              ) : null}
                             </TableCell>
-                          ) : (
-                            USAGE_PRICE_FIELDS.map((field) => {
-                              const cell = usagePriceCell(selected, row.model, field.key);
-                              return (
-                                <TableCell key={field.key}>
-                                  <Input
-                                    size="compact"
-                                    inputMode="decimal"
-                                    aria-label={
-                                      locale === "zh-CN"
-                                        ? `${row.model || "新模型"}的${translate(field.label)}价格`
-                                        : `${field.label} price for ${row.model || "new model"}`
-                                    }
-                                    value={row.values[field.key] ?? (row.isNew ? "" : cell.value)}
-                                    placeholder={
-                                      row.isNew
-                                        ? field.optional
-                                          ? translate("Input rate")
-                                          : "0.00"
-                                        : translate(cell.placeholder)
-                                    }
-                                    autoComplete="off"
-                                    disabled={locked}
-                                    font="mono"
-                                    onChange={(event) =>
-                                      editCell(row, field.key, event.target.value)
-                                    }
-                                  />
-                                </TableCell>
-                              );
-                            })
-                          )}
-                          <TableCell>
-                            <Tooltip>
-                              <TooltipTrigger
-                                render={<Button size="icon-xs" variant="ghost" />}
-                                disabled={locked}
-                                aria-label={
-                                  row.removed
-                                    ? locale === "zh-CN"
-                                      ? `撤销 ${row.model} 的重置`
-                                      : `Undo reset for ${row.model}`
-                                    : row.isNew
-                                      ? translate("Remove new model")
-                                      : locale === "zh-CN"
-                                        ? `将 ${row.model} 的价格恢复为自动定价`
+                            {row.removed ? (
+                              <TableCell colSpan={5}>
+                                <span className="text-muted-foreground">
+                                  {translate("Automatic pricing after saving")}
+                                </span>
+                              </TableCell>
+                            ) : (
+                              <TableCell>
+                                <Input
+                                  size="compact"
+                                  value={row.alias ?? aliasCell.value}
+                                  aria-label={`Map ${row.model || "new model"} to model`}
+                                  list="usage-alias-models"
+                                  placeholder={
+                                    row.isNew
+                                      ? translate("Optional")
+                                      : translate(aliasCell.placeholder)
+                                  }
+                                  autoComplete="off"
+                                  spellCheck={false}
+                                  disabled={locked}
+                                  onChange={(event) => editAlias(row, event.target.value)}
+                                />
+                              </TableCell>
+                            )}
+                            {row.removed ? null : alias !== "" ? (
+                              <TableCell colSpan={4} className="whitespace-normal">
+                                <span className="break-all text-muted-foreground">
+                                  {translate("Counted as")} {alias}
+                                </span>
+                              </TableCell>
+                            ) : (
+                              USAGE_PRICE_FIELDS.map((field) => {
+                                const cell = usagePriceCell(selected, row.model, field.key);
+                                return (
+                                  <TableCell key={field.key}>
+                                    <Input
+                                      size="compact"
+                                      inputMode="decimal"
+                                      aria-label={`${field.label} price for ${row.model || "new model"}`}
+                                      value={row.values[field.key] ?? (row.isNew ? "" : cell.value)}
+                                      placeholder={
+                                        row.isNew
+                                          ? field.optional
+                                            ? translate("Input rate")
+                                            : "0.00"
+                                          : translate(cell.placeholder)
+                                      }
+                                      autoComplete="off"
+                                      disabled={locked}
+                                      font="mono"
+                                      onChange={(event) =>
+                                        editCell(row, field.key, event.target.value)
+                                      }
+                                    />
+                                  </TableCell>
+                                );
+                              })
+                            )}
+                            <TableCell>
+                              <Tooltip>
+                                <TooltipTrigger
+                                  render={<Button size="icon-xs" variant="ghost" />}
+                                  disabled={locked}
+                                  aria-label={
+                                    row.removed
+                                      ? `Undo reset for ${row.model}`
+                                      : row.isNew
+                                        ? translate("Remove new model")
                                         : `Reset price for ${row.model} to automatic`
-                                }
-                                onClick={() => {
-                                  if (row.isNew)
-                                    setDrafts((previous) =>
-                                      previous.filter((entry) => entry.id !== row.id),
-                                    );
-                                  else if (row.removed) {
-                                    if (Object.keys(row.values).length === 0)
+                                  }
+                                  onClick={() => {
+                                    if (row.isNew)
                                       setDrafts((previous) =>
                                         previous.filter((entry) => entry.id !== row.id),
                                       );
-                                    else updateDraft({ ...row, removed: false });
-                                  } else updateDraft({ ...row, removed: true });
-                                }}
-                              >
-                                {row.isNew ? <XIcon aria-hidden /> : <RotateCcwIcon aria-hidden />}
-                              </TooltipTrigger>
-                              <TooltipPopup>
-                                {row.removed
-                                  ? translate("Undo reset")
-                                  : row.isNew
-                                    ? translate("Remove row")
-                                    : translate("Reset to automatic")}
-                              </TooltipPopup>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                                    else if (row.removed)
+                                      updateOrDropDraft({ ...row, removed: false });
+                                    else updateDraft({ ...row, removed: true });
+                                  }}
+                                >
+                                  {row.isNew ? (
+                                    <XIcon aria-hidden />
+                                  ) : (
+                                    <RotateCcwIcon aria-hidden />
+                                  )}
+                                </TooltipTrigger>
+                                <TooltipPopup>
+                                  {row.removed
+                                    ? translate("Undo reset")
+                                    : row.isNew
+                                      ? translate("Remove row")
+                                      : translate("Reset to automatic")}
+                                </TooltipPopup>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -520,9 +569,20 @@ export function UsagePriceOverrides({
                     <option key={model} value={model} />
                   ))}
               </datalist>
+              <datalist id="usage-alias-models">
+                {models
+                  .filter((model) =>
+                    selected.every(
+                      (environment) => !Object.hasOwn(environment.aliases ?? {}, model),
+                    ),
+                  )
+                  .map((model) => (
+                    <option key={model} value={model} />
+                  ))}
+              </datalist>
               <p className="text-xs text-muted-foreground">
                 {translate(
-                  translate("Blank cache rates use the input price. Enter 0 for free tokens."),
+                  "Blank cache rates use the input price. Enter 0 for free tokens. A mapped model’s usage counts as the model it maps to.",
                 )}
                 {selected.length > 1
                   ? ` ${translate("Mixed cells keep each environment’s rate until you edit them.")}`

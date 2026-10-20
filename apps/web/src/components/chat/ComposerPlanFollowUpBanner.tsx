@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { ComposerBanner } from "./ComposerBanner";
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 
 export const ComposerPlanFollowUpBanner = memo(function ComposerPlanFollowUpBanner({
   planTitle,

@@ -12,7 +12,7 @@ import {
   DIALOG_POPUP_CLASS,
 } from "~/components/ui/dialog-styles";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 
 const Dialog = DialogPrimitive.Root;
 

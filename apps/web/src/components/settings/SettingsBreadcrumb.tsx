@@ -3,7 +3,7 @@ import {
   WorkspaceBreadcrumbItem,
   WorkspaceBreadcrumbSeparator,
 } from "../WorkspaceBreadcrumb";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 import { SETTINGS_SECTION_LABELS } from "./settingsSearch";
 

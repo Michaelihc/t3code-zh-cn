@@ -1,7 +1,7 @@
 import { translateWebSource } from "~/i18n/messages";
 import { memo } from "react";
 import { type PendingApproval } from "../../session-logic";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { cn } from "~/lib/utils";
 
 interface ComposerPendingApprovalPanelProps {
@@ -63,7 +63,9 @@ export const ComposerPendingApprovalPanel = memo(function ComposerPendingApprova
         data-approval-detail="complete"
         tabIndex={0}
       >
-        {approval.detail || fallbackLabel}
+        {approval.responseCapability === "not_resumable"
+          ? "Provider process is gone — interrupt or restart the run to respond."
+          : approval.detail || fallbackLabel}
       </Detail>
     </span>
   );

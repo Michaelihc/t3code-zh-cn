@@ -9,7 +9,7 @@ import { Button } from "./ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "./ui/empty";
 import { SidebarInset } from "./ui/sidebar";
 import { WorkspacePageHeader } from "./WorkspacePageHeader";
-import { useI18n } from "../i18n/WebI18nProvider";
+import { useI18n } from "../i18n/WebI18nContext";
 
 export function NoProjectsHero() {
   const { t } = useI18n();

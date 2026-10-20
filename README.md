@@ -57,6 +57,12 @@ Windows、macOS、Linux 和 Android 的维护进度记录在 [README.zh-CN.md](.
 winget install T3Tools.T3Code
 ```
 
+#### Windows（scoop）
+
+```bash
+scoop install extras/t3code
+```
+
 #### macOS（Homebrew）
 
 ```bash
@@ -106,6 +112,8 @@ AUR 打包文件在本仓库的 [`packaging/aur`](./packaging/aur) 目录中维�
 - [源代码管理集成](./docs/user/source-control.md)
 - 多账号：[Codex](./docs/user/providers-codex.md) · [Claude](./docs/user/providers-claude.md)
 - [将 T3 Code 作为后台服务运行](./docs/user/background-service.md)
+- [外观偏好](./docs/user/appearance.md)
+- [通过 MCP 连接 Claude Code、Codex、ChatGPT 等智能体](./docs/user/outside-agents.md)
 
 想从源码构建？请先阅读 [docs/internals/overview.md](./docs/internals/overview.md)。
 

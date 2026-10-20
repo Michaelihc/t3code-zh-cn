@@ -6,7 +6,7 @@ import type { ProviderDriverKind, ServerProviderModel } from "@t3tools/contracts
 import type { CustomModelDefinition } from "@t3tools/shared/model";
 
 import { cn } from "../../lib/utils";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";

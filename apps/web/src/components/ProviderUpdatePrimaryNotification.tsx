@@ -1,14 +1,20 @@
+import { translateWebSource } from "~/i18n/messages";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "@effect/atom-react";
 import { DownloadIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { type ProviderDriverKind, type ProviderInstanceId } from "@t3tools/contracts";
+import {
+  AuthProvidersManageScope,
+  type ServerProvider,
+  type ProviderInstanceId,
+} from "@t3tools/contracts";
 
 import { primaryServerProvidersAtom, serverEnvironment } from "../state/server";
 import { usePrimaryEnvironment } from "../state/environments";
+import { readEnvironmentScope, useEnvironmentScope } from "../state/session";
 import { useDismissedProviderUpdateNotificationKeys } from "../providerUpdateDismissal";
-import { useI18n } from "../i18n/WebI18nProvider";
-import { PROVIDER_ICON_BY_PROVIDER } from "./chat/providerIconUtils";
+import { useI18n } from "../i18n/WebI18nContext";
+import { ProviderInstanceIcon } from "./chat/ProviderInstanceIcon";
 import {
   canOneClickUpdateProviderCandidate,
   collectProviderUpdateCandidates,
@@ -33,6 +39,7 @@ type ActiveProviderUpdateToast =
       readonly key: string;
       readonly locale: string;
       readonly toastId: ProviderUpdateToastId;
+      readonly canManageProviders: boolean;
     }
   | {
       readonly kind: "update";
@@ -41,21 +48,17 @@ type ActiveProviderUpdateToast =
       readonly providerCount: number;
     };
 
-function ProviderUpdateToastIcon({ provider }: { provider: ProviderDriverKind }) {
-  const ProviderIcon = PROVIDER_ICON_BY_PROVIDER[provider];
-
-  if (!ProviderIcon) {
-    return (
-      <span className="relative inline-flex size-4 shrink-0 items-center justify-center">
-        <DownloadIcon aria-hidden="true" className="size-4 text-success" strokeWidth={2.5} />
-      </span>
-    );
-  }
-
+function ProviderUpdateToastIcon({ provider }: { provider: ServerProvider }) {
   return (
     <span className="relative inline-flex size-4 shrink-0 items-center justify-center">
-      <ProviderIcon aria-hidden="true" className="size-4" />
-      <span className="absolute -right-1 -bottom-1 inline-flex size-3 items-center justify-center rounded-full bg-popover">
+      <ProviderInstanceIcon
+        driverKind={provider.driver}
+        displayName={provider.displayName ?? provider.driver}
+        acpRegistryIconUrl={provider.iconUrl}
+        iconClassName="size-4"
+      />
+      {/* ProviderInstanceIcon stacks at z-30, so the badge must sit above it. */}
+      <span className="absolute -right-1 -bottom-1 z-40 inline-flex size-3 items-center justify-center rounded-full bg-popover">
         <DownloadIcon aria-hidden="true" className="size-2.5 text-success" strokeWidth={2.5} />
       </span>
     </span>
@@ -109,10 +112,14 @@ function addProviderUpdateToast(input: {
  * per-environment split is gated behind WSL presence.
  */
 export function ProviderUpdatePrimaryNotification() {
-  const { locale, t } = useI18n();
+  const { locale: releaseLocale, locale, t } = useI18n();
   const navigate = useNavigate();
   const providers = useAtomValue(primaryServerProvidersAtom);
   const primaryEnvironment = usePrimaryEnvironment();
+  const canManageProviders = useEnvironmentScope(
+    primaryEnvironment?.environmentId ?? null,
+    AuthProvidersManageScope,
+  );
   const updateProvider = useAtomCommand(serverEnvironment.updateProvider, {
     reportFailure: false,
   });
@@ -211,14 +218,18 @@ export function ProviderUpdatePrimaryNotification() {
     }
 
     const localizedSeenKey = notificationKey ? `${locale}:${notificationKey}` : null;
-
+    const updateExistingPrompt =
+      activeToast?.kind === "prompt" &&
+      activeToast.key === notificationKey &&
+      activeToast.canManageProviders !== canManageProviders;
     if (
       !notificationKey ||
       dismissedNotificationKeys.has(notificationKey) ||
       (!replacingPromptForLocale &&
         localizedSeenKey !== null &&
-        seenProviderUpdateNotificationKeys.has(localizedSeenKey)) ||
-      activeToastRef.current
+        seenProviderUpdateNotificationKeys.has(localizedSeenKey) &&
+        !updateExistingPrompt) ||
+      (activeToastRef.current && !updateExistingPrompt)
     ) {
       return;
     }
@@ -239,7 +250,12 @@ export function ProviderUpdatePrimaryNotification() {
     };
 
     const runUpdates = () => {
-      if (updateStarted || oneClickProviders.length === 0 || !primaryEnvironment) {
+      if (
+        updateStarted ||
+        oneClickProviders.length === 0 ||
+        !primaryEnvironment ||
+        !readEnvironmentScope(primaryEnvironment.environmentId, AuthProvidersManageScope)
+      ) {
         return;
       }
       updateStarted = true;
@@ -259,6 +275,20 @@ export function ProviderUpdatePrimaryNotification() {
       void (async () => {
         const results = [];
         for (const provider of oneClickProviders) {
+          if (!readEnvironmentScope(primaryEnvironment.environmentId, AuthProvidersManageScope)) {
+            if (activeToastRef.current === activeUpdate) {
+              addProviderUpdateToast({
+                view: getProviderUpdateRejectedToastView(
+                  providerCount,
+                  "This connection cannot manage provider accounts.",
+                ),
+                openSettings: openProviderSettings,
+                settingsLabel: translateRef.current("providerUpdate.action.settings"),
+              });
+              activeToastRef.current = null;
+            }
+            return;
+          }
           results.push(
             await updateProvider({
               environmentId: primaryEnvironment.environmentId,
@@ -305,44 +335,61 @@ export function ProviderUpdatePrimaryNotification() {
       })();
     };
 
-    toastId = toastManager.add(
-      stackedThreadToast({
-        type: initialView.type,
-        title: initialView.title,
-        description: initialView.description,
-        timeout: 0,
-        actionProps:
-          oneClickProviders.length > 0
-            ? {
-                children: t("providerUpdate.action.update"),
-                onClick: runUpdates,
-              }
-            : {
-                children: t("providerUpdate.action.settings"),
+    const toastOptions = stackedThreadToast({
+      type: initialView.type,
+      title: initialView.title,
+      description: canManageProviders
+        ? initialView.description
+        : translateWebSource(
+            releaseLocale,
+            "This connection cannot manage provider accounts. View provider settings for update details.",
+          ),
+      timeout: 0,
+      actionProps:
+        oneClickProviders.length > 0
+          ? {
+              children: t("providerUpdate.action.update"),
+              disabled: !canManageProviders,
+              onClick: runUpdates,
+            }
+          : {
+              children: t("sidebar.settings"),
+              onClick: openSettings,
+            },
+      actionVariant: "outline",
+      data: {
+        leadingIcon:
+          updateProviders.length === 1 ? (
+            <ProviderUpdateToastIcon provider={updateProviders[0]!} />
+          ) : undefined,
+        hideCopyButton: true,
+        onClose: dismissPrompt,
+        ...(oneClickProviders.length > 0
+          ? {
+              secondaryActionProps: {
+                children: t("sidebar.settings"),
                 onClick: openSettings,
               },
-        actionVariant: "outline",
-        data: {
-          leadingIcon:
-            updateProviders.length === 1 ? (
-              <ProviderUpdateToastIcon provider={updateProviders[0]!.driver} />
-            ) : undefined,
-          hideCopyButton: true,
-          onClose: dismissPrompt,
-          ...(oneClickProviders.length > 0
-            ? {
-                secondaryActionProps: {
-                  children: t("providerUpdate.action.settings"),
-                  onClick: openSettings,
-                },
-                secondaryActionVariant: "outline" as const,
-              }
-            : {}),
-        },
-      }),
-    );
-    activeToastRef.current = { kind: "prompt", key: notificationKey, locale, toastId };
+              secondaryActionVariant: "outline" as const,
+            }
+          : {}),
+      },
+    });
+    if (updateExistingPrompt && activeToast?.kind === "prompt") {
+      toastId = activeToast.toastId;
+      toastManager.update(toastId, toastOptions);
+    } else {
+      toastId = toastManager.add(toastOptions);
+    }
+    activeToastRef.current = {
+      kind: "prompt",
+      key: notificationKey,
+      locale,
+      toastId,
+      canManageProviders,
+    };
   }, [
+    canManageProviders,
     updateProvider,
     dismissNotificationKey,
     dismissedNotificationKeys,

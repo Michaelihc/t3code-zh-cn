@@ -11,7 +11,7 @@ const state = vi.hoisted(() => ({
   updateSettings: vi.fn<(patch: ScopedSettingsPatch) => void>(),
 }));
 
-vi.mock("../../i18n/WebI18nProvider", async () => {
+vi.mock("../../i18n/WebI18nContext", async () => {
   const { translateWebMessage } = await import("../../i18n/messages");
   return {
     useI18n: () => ({
@@ -30,7 +30,10 @@ vi.mock("./useScopedSettings", () => ({
     ...DEFAULT_UNIFIED_SETTINGS,
     sourceControlWritingStyle: state.styles[0],
   }),
-  useScopedSettingsMixed: () => JSON.stringify(state.styles[0]) !== JSON.stringify(state.styles[1]),
+  // Review guides stay off and agreed here, so their rows do not render beside the style's.
+  useScopedSettingsMixed: (keys: ReadonlyArray<string>) =>
+    !keys.includes("reviewGuidesEnabled") &&
+    JSON.stringify(state.styles[0]) !== JSON.stringify(state.styles[1]),
   useUpdateScopedSettings: () => state.updateSettings,
 }));
 vi.mock("./SettingsScopeContext", () => ({

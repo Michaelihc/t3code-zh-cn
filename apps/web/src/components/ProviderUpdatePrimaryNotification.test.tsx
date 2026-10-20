@@ -1,5 +1,5 @@
 import * as Cause from "effect/Cause";
-import { AsyncResult } from "effect/unstable/reactivity";
+import { AsyncResult } from "effect/reactivity";
 import {
   EnvironmentId,
   ProviderDriverKind,
@@ -12,6 +12,7 @@ import { reactHookHarness as hooks } from "../test/reactHookHarness";
 
 const testState = vi.hoisted(() => ({
   locale: "en" as "en" | "zh-CN",
+  canManageProviders: true,
   providers: [] as ServerProvider[],
   updateProvider: vi.fn(),
 }));
@@ -51,6 +52,10 @@ vi.mock("../state/server", () => ({
 vi.mock("../state/environments", () => ({
   usePrimaryEnvironment: () => ({ environmentId: EnvironmentId.make("primary") }),
 }));
+vi.mock("../state/session", () => ({
+  readEnvironmentScope: () => testState.canManageProviders,
+  useEnvironmentScope: () => testState.canManageProviders,
+}));
 vi.mock("../state/use-atom-command", () => ({
   useAtomCommand: () => testState.updateProvider,
 }));
@@ -60,7 +65,7 @@ vi.mock("../providerUpdateDismissal", () => ({
     dismissNotificationKey: vi.fn(),
   }),
 }));
-vi.mock("../i18n/WebI18nProvider", () => ({
+vi.mock("../i18n/WebI18nContext", () => ({
   useI18n: () => ({
     locale: testState.locale,
     t: (key: string, values?: Readonly<Record<string, string | number>>) => {
@@ -152,6 +157,7 @@ describe("ProviderUpdatePrimaryNotification lifecycle", () => {
   beforeEach(() => {
     hooks.reset();
     testState.locale = "en";
+    testState.canManageProviders = true;
     testState.providers = [updateCandidate()];
     testState.updateProvider.mockReset();
     toastState.nextId = 0;

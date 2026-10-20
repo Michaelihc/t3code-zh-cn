@@ -1,7 +1,7 @@
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { useAtomValue } from "@effect/atom-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Atom } from "effect/unstable/reactivity";
+import { Atom } from "effect/reactivity";
 import { useEffect, useState } from "react";
 
 import {
@@ -11,7 +11,7 @@ import {
 } from "../../hooks/useSettings";
 import { isLocalEnvironmentDisabled } from "../../localEnvironment";
 import { useCompleteOnboarding } from "../../onboarding/firstRun";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 import {
   isFirstRunWorkspaceProvenanceAuthoritative,

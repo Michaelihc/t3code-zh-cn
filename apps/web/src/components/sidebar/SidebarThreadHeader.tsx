@@ -20,7 +20,7 @@ import {
 } from "react";
 
 import { cn } from "~/lib/utils";
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { Button } from "../ui/button";
 import { SidebarInput, SidebarMenuButton } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";

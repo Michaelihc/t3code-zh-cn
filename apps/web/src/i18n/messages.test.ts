@@ -87,6 +87,16 @@ describe("translateWebMessage", () => {
 });
 
 describe("upstream UI localization", () => {
+  it("localizes registry, account, permission and scheduled-task settings", () => {
+    expect(translateWebSource("zh-CN", "Search ACP Registry")).toBe("搜索 ACP 注册表");
+    expect(translateWebSource("zh-CN", "Provider sign-in terminal")).toBe("提供商登录终端");
+    expect(translateWebSource("zh-CN", "Scheduled tasks")).toBe("定时任务");
+    expect(translateWebSource("zh-CN", "Require signature")).toBe("要求签名");
+    expect(translateWebSource("zh-CN", "Not granted")).toBe("未授予");
+    expect(translateWebSource("zh-CN", "GH_TOKEN")).toBe("GH_TOKEN");
+    expect(translateWebSource("en", "Scheduled tasks")).toBe("Scheduled tasks");
+  });
+
   it("localizes new queue, permission and scoped-settings copy", () => {
     expect(translateWebSource("zh-CN", "Queue message")).toBe("将消息加入队列");
     expect(translateWebSource("zh-CN", "App permission approval")).toBe("应用权限审批");

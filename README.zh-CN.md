@@ -17,6 +17,16 @@
 
 Android 的原有升级签名无法提供，后续安装包将使用新的发布签名，不能直接覆盖历史 APK。请先备份设置，再卸载旧版；卸载可能丢失本地数据。新签名完成安全备份前不会发布可安装 APK。Actions 中明确标记的未签名 Android 候选包不可安装，不是正式下载。
 
+### 升级到上游 v0.1.0 / Orchestrator V2 前
+
+维护分支正在验证基于 `v0.1.0` 的候选版本，以下说明不代表候选包已经发布：
+
+- 请先备份数据。V2 首次启动会复制并导入 V1 数据；两个版本此后的数据不会互相同步。
+- V1 与 V2 的服务器和客户端不能互连，连接的所有机器、桌面端和移动端都需要更新。
+- 历史社区 Android APK 不能连接 V2 服务器。新的社区 Android 签名发布完成前，请使用新版网页客户端；官方移动应用需升级到 2.0，但不包含本 Fork 的汉化。
+- OpenCode 2 会迁移自己的共享数据库，不要与 OpenCode 1 在同一台机器上并行运行。
+- 详见[官方 v0.1.0 升级说明](https://github.com/pingdotgg/t3code/releases/tag/v0.1.0)和[迁移指南](https://github.com/pingdotgg/t3code/issues/14871)。
+
 ### 历史社区安装包
 
 - [Windows x64 历史版 `0.0.39-cn.3`](https://github.com/ZhiweiXiao98/t3code/releases/tag/zh-cn-v0.0.39-cn.3)

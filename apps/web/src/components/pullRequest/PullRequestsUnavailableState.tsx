@@ -1,7 +1,7 @@
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { ExternalLinkIcon } from "lucide-react";
 
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { Button } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
 import { PullRequestGlyph } from "./pullRequestIcons";
@@ -22,7 +22,7 @@ export function PullRequestsUnavailableState({
   const { t } = useI18n();
   const displayTitle = title ?? t("pullRequests.unavailable.loadFailed");
   return (
-    <Empty className="min-h-0 justify-center-safe overflow-y-auto [&>*]:shrink-0">
+    <Empty className="scrollbar-gutter-both min-h-0 justify-center-safe overflow-y-auto [&>*]:shrink-0">
       <EmptyMedia variant="icon">
         <PullRequestGlyph.pullRequest />
       </EmptyMedia>

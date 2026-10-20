@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { useI18n } from "../i18n/WebI18nProvider";
+import { useI18n } from "../i18n/WebI18nContext";
 import { isMacPlatform } from "../lib/utils";
 
 // A released hold hint lingers for the original hold duration. Double-press

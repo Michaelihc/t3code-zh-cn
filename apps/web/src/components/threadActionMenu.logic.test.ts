@@ -2,12 +2,14 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { translateWebMessage } from "../i18n/messages";
 import {
+  buildDraftActionMenuItems,
   buildThreadActionMenuItems,
   localizeSnoozePresetLabel,
   type ThreadActionMenuState,
 } from "./threadActionMenu.logic";
 
 const baseState: ThreadActionMenuState = {
+  canOperate: true,
   branch: null,
   projectFilter: null,
   isPinned: false,
@@ -40,6 +42,57 @@ function allIds(state: ThreadActionMenuState): string[] {
 }
 
 describe("buildThreadActionMenuItems", () => {
+  it.each([false, true])(
+    "disables both lifecycle directions without permission (reversed: %s)",
+    (reversed) => {
+      const items = buildThreadActionMenuItems({
+        ...baseState,
+        canOperate: false,
+        isPinned: reversed,
+        isSettled: reversed,
+        isSnoozed: reversed,
+      });
+      const expected = reversed
+        ? [
+            "unpin",
+            "unsettle",
+            "unsnooze",
+            "rename",
+            "regenerate-title",
+            "auto-settle",
+            "archive",
+            "delete",
+          ]
+        : [
+            "pin",
+            "settle",
+            "snooze",
+            "rename",
+            "regenerate-title",
+            "auto-settle",
+            "archive",
+            "delete",
+          ];
+      expect(items.filter((item) => item.disabled).map((item) => item.id)).toEqual(expected);
+      expect(
+        items.find((item) => item.id === "snooze")?.children?.every((child) => child.disabled) ??
+          true,
+      ).toBe(true);
+    },
+  );
+
+  it("preserves local actions and restores mutations after a grant", () => {
+    const denied = buildThreadActionMenuItems({ ...baseState, canOperate: false, branch: "main" });
+    expect(denied.filter((item) => !item.disabled).map((item) => item.id)).toEqual([
+      "new-thread-on-branch",
+      "mark-unread",
+      "copy",
+      "project-settings",
+    ]);
+    const allowed = buildThreadActionMenuItems({ ...baseState, canOperate: true });
+    expect(allowed.every((item) => !item.disabled)).toBe(true);
+  });
+
   it("hides lifecycle items when the environment lacks the capabilities", () => {
     expect(
       ids({
@@ -212,5 +265,26 @@ it("localizes new project and auto-settle menus without translating action ids",
       { id: "auto-settle:enabled", label: "已启用", checked: true },
       { id: "auto-settle:disabled", label: "已禁用", checked: false },
     ],
+  });
+});
+
+describe("buildDraftActionMenuItems", () => {
+  it("offers only the copy values the draft has", () => {
+    const items = buildDraftActionMenuItems({ hasPath: false, hasBranch: true, hasProject: true });
+    expect(items[0]).toMatchObject({ id: "copy", disabled: false });
+    expect(items[0]?.children?.map((item) => item.id)).toEqual(["copy-branch"]);
+
+    const noCopy = buildDraftActionMenuItems({
+      hasPath: false,
+      hasBranch: false,
+      hasProject: true,
+    });
+    expect(noCopy[0]).toMatchObject({ id: "copy", disabled: true, children: [] });
+  });
+
+  it("drops project settings without a project and keeps discard last", () => {
+    const items = buildDraftActionMenuItems({ hasPath: true, hasBranch: false, hasProject: false });
+    expect(items.map((item) => item.id)).toEqual(["copy", "discard"]);
+    expect(items.at(-1)).toMatchObject({ label: "Discard draft", destructive: true });
   });
 });

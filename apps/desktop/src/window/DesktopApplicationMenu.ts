@@ -64,6 +64,13 @@ const zoomMainWindow = Effect.fn("desktop.menu.zoomMainWindow")(function* (
   yield* desktopWindow.zoomMain(direction);
 });
 
+const runMainContentsCommand = Effect.fn("desktop.menu.runMainContentsCommand")(function* (
+  command: DesktopWindow.MainWindowContentsCommand,
+): Effect.fn.Return<void, never, DesktopWindow.DesktopWindow> {
+  const desktopWindow = yield* DesktopWindow.DesktopWindow;
+  yield* desktopWindow.runMainContentsCommand(command);
+});
+
 const checkForUpdatesFromMenu = (messages: DesktopApplicationMenuMessages) =>
   Effect.gen(function* () {
     const updates = yield* DesktopUpdates.DesktopUpdates;
@@ -115,11 +122,10 @@ const handleCheckForUpdatesMenuClick = (messages: DesktopApplicationMenuMessages
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {
-  const electronApp = yield* ElectronApp.ElectronApp;
   const electronMenu = yield* ElectronMenu.ElectronMenu;
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const clientSettings = yield* DesktopClientSettings.DesktopClientSettings;
-  const appName = yield* electronApp.name;
+  const electronApp = yield* ElectronApp.ElectronApp;
   const context = yield* Effect.context<DesktopApplicationMenuRuntimeServices>();
   const runPromise = Effect.runPromiseWith(context);
 
@@ -175,13 +181,16 @@ export const make = Effect.gen(function* () {
     const zoomClick = (direction: DesktopWindow.MainWindowZoomDirection) => () => {
       runMenuEffect(`zoom-${direction}`, zoomMainWindow(direction));
     };
+    const mainContentsClick = (command: DesktopWindow.MainWindowContentsCommand) => () => {
+      runMenuEffect(command, runMainContentsCommand(command));
+    };
     const template: Electron.MenuItemConstructorOptions[] = [];
 
     if (environment.platform === "darwin") {
       template.push({
-        label: appName,
+        label: environment.displayName,
         submenu: [
-          { role: "about", label: messages.about(appName) },
+          { role: "about", label: messages.about(environment.displayName) },
           {
             label: messages.checkForUpdates,
             click: checkForUpdatesClick,
@@ -195,11 +204,11 @@ export const make = Effect.gen(function* () {
           { type: "separator" },
           { role: "services", label: messages.services },
           { type: "separator" },
-          { role: "hide", label: messages.hide(appName) },
+          { role: "hide", label: messages.hide(environment.displayName) },
           { role: "hideOthers", label: messages.hideOthers },
           { role: "unhide", label: messages.showAll },
           { type: "separator" },
-          { role: "quit", label: messages.quit(appName) },
+          { role: "quit", label: messages.quit(environment.displayName) },
         ],
       });
     }
@@ -221,7 +230,9 @@ export const make = Effect.gen(function* () {
           {
             role: environment.platform === "darwin" ? "close" : "quit",
             label:
-              environment.platform === "darwin" ? messages.closeWindow : messages.quit(appName),
+              environment.platform === "darwin"
+                ? messages.closeWindow
+                : messages.quit(environment.displayName),
           },
         ],
       },
@@ -259,16 +270,28 @@ export const make = Effect.gen(function* () {
       {
         label: messages.view,
         submenu: [
-          { role: "reload", label: messages.reload },
-          { role: "forceReload", label: messages.forceReload },
-          { role: "toggleDevTools", label: messages.toggleDeveloperTools },
-          { type: "separator" },
           /*
-            Not the zoom roles: those act on the focused webContents, so with
-            an embedded preview WebContentsView focused they zoom the guest
-            page and the app UI appears stuck. These always zoom the main
-            window (see DesktopWindow.zoomMain).
+            Not the reload, DevTools or zoom roles: those act on the focused
+            webContents, so with a browser page focused they reload or zoom
+            the guest page and the app UI appears stuck. These always target
+            the main window (see DesktopWindow.zoomMain).
           */
+          {
+            label: messages.reload,
+            accelerator: "CmdOrCtrl+R",
+            click: mainContentsClick("reload"),
+          },
+          {
+            label: messages.forceReload,
+            accelerator: "Shift+CmdOrCtrl+R",
+            click: mainContentsClick("forceReload"),
+          },
+          {
+            label: messages.toggleDeveloperTools,
+            accelerator: environment.platform === "darwin" ? "Alt+Command+I" : "Ctrl+Shift+I",
+            click: mainContentsClick("toggleDevTools"),
+          },
+          { type: "separator" },
           { label: messages.actualSize, accelerator: "CmdOrCtrl+0", click: zoomClick("reset") },
           { label: messages.zoomIn, accelerator: "CmdOrCtrl+=", click: zoomClick("in") },
           {

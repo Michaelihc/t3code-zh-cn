@@ -10,6 +10,7 @@ import type {
   PullRequestReviewDecision,
   PullRequestState,
 } from "@t3tools/contracts";
+import { formatDiffCount } from "@t3tools/client-runtime/diff-count";
 import {
   CircleCheckIcon,
   CircleDashedIcon,
@@ -22,7 +23,7 @@ import {
 import { Children, type CSSProperties, isValidElement, type ReactNode, useState } from "react";
 
 import { cn } from "~/lib/utils";
-import { useI18n, type WebTranslate } from "../../i18n/WebI18nProvider";
+import { useI18n, type WebTranslate } from "../../i18n/WebI18nContext";
 
 import { Badge } from "../ui/badge";
 import { InlineButton } from "../ui/button";
@@ -586,8 +587,8 @@ export function PullRequestDiffStat({
   }
   return (
     <span className={cn("inline-flex items-baseline gap-1 tabular-nums", className)}>
-      <span className="text-diff-addition-foreground">+{additions.toLocaleString()}</span>
-      <span className="text-diff-deletion">-{deletions.toLocaleString()}</span>
+      <span className="text-diff-addition-foreground">+{formatDiffCount(additions)}</span>
+      <span className="text-diff-deletion">-{formatDiffCount(deletions)}</span>
     </span>
   );
 }

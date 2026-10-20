@@ -1,7 +1,9 @@
+import type { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card";
 import { isAtomCommandInterrupted } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId, PullRequestRef } from "@t3tools/contracts";
 import {
   cloneElement,
+  useRef,
   useState,
   type ComponentPropsWithoutRef,
   type MouseEvent,
@@ -17,7 +19,7 @@ import { useEnvironmentQuery } from "~/state/query";
 import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from "../ui/preview-card";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { PullRequestActorAvatar, resolvePullRequestState } from "./pullRequestPresentation";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 
 interface PullRequestLinkPreviewTarget {
@@ -48,6 +50,7 @@ export function PullRequestLinkPreview({
 }) {
   const { locale: uiLocale } = useI18n();
   const [open, setOpen] = useState(false);
+  const previewActionsRef = useRef<PreviewCardPrimitive.Root.Actions | null>(null);
   const [resolvingClick, setResolvingClick] = useState(false);
   const detailQuery = useEnvironmentQuery(
     open
@@ -99,8 +102,14 @@ export function PullRequestLinkPreview({
         : (detail?.author.login ?? null);
 
   return (
-    <PreviewCard open={open} onOpenChange={setOpen}>
-      <Tooltip open={showUrlTooltip}>
+    <PreviewCard open={open} onOpenChange={setOpen} actionsRef={previewActionsRef}>
+      <Tooltip
+        open={showUrlTooltip}
+        onOpenChange={(nextOpen) => {
+          // Cancel the card's delayed hover too, without changing its content preview.
+          if (!nextOpen && !showCard) previewActionsRef.current?.close();
+        }}
+      >
         <PreviewCardTrigger
           render={<TooltipTrigger render={trigger} />}
           delay={350}

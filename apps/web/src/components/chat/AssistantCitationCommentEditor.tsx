@@ -1,7 +1,7 @@
 import { ASSISTANT_CITATION_MAX_COMMENT_LENGTH, type AssistantCitation } from "@t3tools/contracts";
 import { useState, type Ref } from "react";
 
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { Button } from "../ui/button";
 
 export function AssistantCitationCommentEditor({

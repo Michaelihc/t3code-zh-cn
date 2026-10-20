@@ -6,8 +6,8 @@ const testState = vi.hoisted(() => ({
   addToast: vi.fn(),
 }));
 
-vi.mock("../../i18n/WebI18nProvider", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../i18n/WebI18nProvider")>();
+vi.mock("../../i18n/WebI18nContext", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../i18n/WebI18nContext")>();
   const { translateWebMessage } = await import("../../i18n/messages");
   return {
     ...actual,

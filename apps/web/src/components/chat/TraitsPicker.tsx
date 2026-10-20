@@ -1,4 +1,6 @@
+import { translateWebSource } from "~/i18n/messages";
 import {
+  type ModelSelection,
   type ProviderDriverKind,
   type ProviderInstanceId,
   type ProviderOptionDescriptor,
@@ -16,9 +18,8 @@ import {
   normalizeModelSlug,
 } from "@t3tools/shared/model";
 import { memo, useCallback } from "react";
-import { BrainIcon, ZapIcon } from "lucide-react";
+import { BrainIcon } from "lucide-react";
 import { useI18n } from "~/i18n/WebI18nContext";
-import { UltrafastIcon } from "../Icons";
 import {
   Menu,
   MenuGroup,
@@ -94,9 +95,10 @@ type TraitsPersistence =
 const ULTRATHINK_PROMPT_PREFIX = "Ultrathink:\n";
 
 function DefaultBadge() {
+  const { t: translateRelease } = useI18n();
   return (
     <Badge variant="outline" size="sm" className="min-w-0">
-      Default
+      {translateRelease("connections.endpoint.default")}
     </Badge>
   );
 }
@@ -123,11 +125,13 @@ function replaceDescriptorCurrentValue(
 
 function getDescriptorStringValue(
   descriptor: Extract<ProviderOptionDescriptor, { type: "select" }> | null,
+  selection?: ModelSelection | null,
+  reportedSelection?: ModelSelection | null,
 ): string | null {
   if (!descriptor) {
     return null;
   }
-  const value = getProviderOptionCurrentValue(descriptor);
+  const value = getProviderOptionCurrentValue(descriptor, selection, reportedSelection);
   return typeof value === "string" ? value : null;
 }
 
@@ -275,6 +279,7 @@ export interface TraitsMenuContentProps {
   prompt: string;
   onPromptChange: (prompt: string) => void;
   modelOptions?: ProviderOptions | null | undefined;
+  reportedModelSelection?: ModelSelection | null | undefined;
   allowPromptInjectedEffort?: boolean;
   planModeEnabled: boolean;
   triggerClassName?: string;
@@ -289,11 +294,14 @@ export const TraitsMenuContent = memo(function TraitsMenuContentImpl({
   prompt,
   onPromptChange,
   modelOptions,
+  reportedModelSelection,
   allowPromptInjectedEffort = true,
   planModeEnabled,
   ...persistence
 }: TraitsMenuContentProps & TraitsPersistence) {
-  const { t } = useI18n();
+  const { locale: releaseLocale, t } = useI18n();
+  const modelSelection =
+    instanceId && model ? { instanceId, model, options: modelOptions ?? [] } : null;
   const setProviderModelOptions = useComposerDraftStore((store) => store.setProviderModelOptions);
   const updateModelOptions = useCallback(
     (nextOptions: ProviderOptions | undefined) => {
@@ -364,7 +372,11 @@ export const TraitsMenuContent = memo(function TraitsMenuContentImpl({
     return (
       <>
         {descriptors.map((descriptor, index) => {
-          const value = getProviderOptionCurrentLabel(descriptor);
+          const value = getProviderOptionCurrentLabel(
+            descriptor,
+            modelSelection,
+            reportedModelSelection,
+          );
           if (!value) return null;
           return (
             <div key={descriptor.id}>
@@ -388,7 +400,7 @@ export const TraitsMenuContent = memo(function TraitsMenuContentImpl({
         const selectedValue =
           ultrathinkPromptControlled && descriptor.id === primarySelectDescriptor?.id
             ? "ultrathink"
-            : (getDescriptorStringValue(descriptor) ?? "");
+            : (getDescriptorStringValue(descriptor, modelSelection, reportedModelSelection) ?? "");
 
         return (
           <div key={descriptor.id}>
@@ -399,8 +411,10 @@ export const TraitsMenuContent = memo(function TraitsMenuContentImpl({
               </div>
               {ultrathinkInBodyText && descriptor.id === primarySelectDescriptor?.id ? (
                 <div className="px-2 pb-1.5 text-muted-foreground/80 text-xs">
-                  Your prompt contains &quot;ultrathink&quot; in the text. Remove it to change this
-                  option.
+                  {translateWebSource(
+                    releaseLocale,
+                    "Your prompt contains &quot;ultrathink&quot; in the text. Remove it to change this option.",
+                  )}
                 </div>
               ) : null}
               <MenuRadioGroup
@@ -467,7 +481,11 @@ export const TraitsMenuContent = memo(function TraitsMenuContentImpl({
                 {(["on", "off"] as const).map((value) => (
                   <MenuRadioItem key={value} value={value} hideIndicator closeOnClick>
                     <span className="flex w-full min-w-0 items-center justify-between gap-3">
-                      <span>{value === "on" ? "On" : "Off"}</span>
+                      <span>
+                        {value === "on"
+                          ? translateWebSource(releaseLocale, "On")
+                          : t("connections.wsl.off")}
+                      </span>
                     </span>
                   </MenuRadioItem>
                 ))}
@@ -480,23 +498,23 @@ export const TraitsMenuContent = memo(function TraitsMenuContentImpl({
   );
 });
 
-/**
- * Fast mode uses one bolt; Codex Ultrafast uses two. Keep a text label when
- * speed is the only trait so the trigger remains readable.
- */
+/** Pair speed with reasoning while keeping other traits separated. */
 export function buildTraitsTriggerDisplay(input: {
   provider: ProviderDriverKind;
   descriptors: ReadonlyArray<ProviderOptionDescriptor>;
   primarySelectDescriptorId: string | null;
   ultrathinkPromptControlled: boolean;
-}): { label: string; speedIcon: "fast" | "ultrafast" | null } {
+  modelSelection?: ModelSelection | null;
+  reportedModelSelection?: ModelSelection | null | undefined;
+}): { label: string } {
   let fastModeFallbackLabel: string | null = null;
-  let speedIcon: "fast" | "ultrafast" | null = null;
+  let speedLabel: string | null = null;
+  let reasoningLabelIndex = -1;
   const labels: Array<string> = [];
   for (const descriptor of input.descriptors) {
     if (descriptor.id === "fastMode" && descriptor.type === "boolean") {
-      speedIcon = descriptor.currentValue === true ? "fast" : null;
-      fastModeFallbackLabel = speedIcon ? "Fast" : "Normal";
+      speedLabel = descriptor.currentValue === true ? "Fast" : null;
+      fastModeFallbackLabel = speedLabel ?? "Normal";
       continue;
     }
     if (
@@ -512,11 +530,11 @@ export function buildTraitsTriggerDisplay(input: {
         (fastTier && currentValue === fastTier.id) ||
         (ultrafastTier && currentValue === ultrafastTier.id)
       ) {
-        speedIcon =
+        speedLabel =
           ultrafastTier && currentValue === ultrafastTier.id
-            ? "ultrafast"
+            ? "Ultrafast"
             : fastTier && currentValue === fastTier.id
-              ? "fast"
+              ? "Fast"
               : null;
         fastModeFallbackLabel =
           descriptor.options.find(({ id }) => id === currentValue)?.label ?? "Normal";
@@ -528,8 +546,20 @@ export function buildTraitsTriggerDisplay(input: {
         ? "Ultrathink"
         : descriptor.type === "boolean"
           ? `${descriptor.label} ${descriptor.currentValue === true ? "On" : "Off"}`
-          : getProviderOptionCurrentLabel(descriptor);
+          : getProviderOptionCurrentLabel(
+              descriptor,
+              input.modelSelection,
+              input.reportedModelSelection,
+            );
     if (typeof label === "string" && label.length > 0) {
+      // Custom models retain descriptor order, so the primary select can be context.
+      if (
+        reasoningLabelIndex === -1 &&
+        descriptor.type === "select" &&
+        ["reasoningEffort", "reasoning", "effort", "variant", "thinking"].includes(descriptor.id)
+      ) {
+        reasoningLabelIndex = labels.length;
+      }
       labels.push(label);
     }
   }
@@ -538,9 +568,16 @@ export function buildTraitsTriggerDisplay(input: {
   // off an empty label list alone would also catch descriptors that resolved to
   // no label at all, printing a bogus "Normal" for a model without fast mode.
   if (labels.length === 0 && fastModeFallbackLabel !== null) {
-    return { label: fastModeFallbackLabel, speedIcon: null };
+    return { label: fastModeFallbackLabel };
   }
-  return { label: labels.join(" · "), speedIcon };
+  if (speedLabel) {
+    if (reasoningLabelIndex >= 0) {
+      labels[reasoningLabelIndex] = `${labels[reasoningLabelIndex]} ${speedLabel}`;
+    } else {
+      labels.push(speedLabel);
+    }
+  }
+  return { label: labels.join(" · ") };
 }
 
 export const TraitsPicker = memo(function TraitsPicker({
@@ -551,21 +588,24 @@ export const TraitsPicker = memo(function TraitsPicker({
   prompt,
   onPromptChange,
   modelOptions,
+  reportedModelSelection,
   allowPromptInjectedEffort = true,
   planModeEnabled,
   triggerClassName,
   isComposerOwned,
   size = "sm",
   hidden = false,
+  disabled = false,
   ...persistence
 }: TraitsMenuContentProps &
   TraitsPersistence & {
     size?: ComposerControlSize;
     hidden?: boolean;
+    disabled?: boolean;
   }) {
   const { t } = useI18n();
   const composerFloatingLayerProps = useComposerMenuProps();
-  const [isMenuOpen, setIsMenuOpen] = useComposerMenuState(hidden);
+  const [isMenuOpen, setIsMenuOpen] = useComposerMenuState(hidden || disabled);
   const { descriptors, primarySelectDescriptor, ultrathinkPromptControlled } =
     getTraitsSectionVisibility({
       provider,
@@ -590,46 +630,25 @@ export const TraitsPicker = memo(function TraitsPicker({
     return null;
   }
 
-  const { label: rawTriggerLabel, speedIcon } = buildTraitsTriggerDisplay({
+  const { label: rawTriggerLabel } = buildTraitsTriggerDisplay({
     provider,
     descriptors,
     primarySelectDescriptorId: primarySelectDescriptor?.id ?? null,
     ultrathinkPromptControlled,
+    modelSelection: instanceId && model ? { instanceId, model, options: modelOptions ?? [] } : null,
+    reportedModelSelection,
   });
   const triggerLabel =
     provider === "codex" && rawTriggerLabel === "Ultrafast"
       ? t("composer.traits.ultrafast")
       : rawTriggerLabel;
-  const speedLabel =
-    speedIcon === "ultrafast"
-      ? t("composer.traits.ultrafastModeOn")
-      : t("composer.traits.fastModeOn");
-  const accessibleLabel = speedIcon ? `${triggerLabel}, ${speedLabel}` : triggerLabel;
-  const fastModeIcon = speedIcon ? (
-    <>
-      <ComposerControlIcon
-        icon={speedIcon === "ultrafast" ? UltrafastIcon : ZapIcon}
-        size={size}
-        className={cn(
-          "fill-current opacity-80",
-          size === "xs"
-            ? "text-current"
-            : provider === "claudeAgent"
-              ? "text-[#d97757]"
-              : "text-foreground",
-        )}
-      />
-      <span className="sr-only">{speedLabel}</span>
-    </>
-  ) : null;
-
   const isCodexStyle = provider === "codex";
 
   return (
     <Menu
       open={isMenuOpen}
       onOpenChange={(open) => {
-        setIsMenuOpen(open);
+        setIsMenuOpen(open && !disabled);
       }}
     >
       <Tooltip>
@@ -638,7 +657,8 @@ export const TraitsPicker = memo(function TraitsPicker({
             <MenuTrigger
               render={
                 <ComposerControl
-                  aria-label={accessibleLabel}
+                  disabled={disabled}
+                  aria-label={triggerLabel}
                   data-composer-shortcut={isComposerOwned ? "composer.effort" : undefined}
                   size={size}
                   className={cn(
@@ -661,14 +681,7 @@ export const TraitsPicker = memo(function TraitsPicker({
                 size === "xs" ? "gap-1" : "gap-1.5",
               )}
             >
-              {fastModeIcon ?? (
-                <span
-                  data-composer-control-compact-icon
-                  className="pointer-events-none invisible absolute"
-                >
-                  <ComposerControlIcon icon={BrainIcon} size={size} />
-                </span>
-              )}
+              <ComposerControlIcon icon={BrainIcon} size={size} />
               <span data-composer-control-label className="min-w-0 truncate">
                 {triggerLabel}
               </span>
@@ -676,20 +689,13 @@ export const TraitsPicker = memo(function TraitsPicker({
             </span>
           ) : (
             <>
-              {fastModeIcon ?? (
-                <span
-                  data-composer-control-compact-icon
-                  className="pointer-events-none invisible absolute"
-                >
-                  <ComposerControlIcon icon={BrainIcon} size={size} />
-                </span>
-              )}
+              <ComposerControlIcon icon={BrainIcon} size={size} />
               <span data-composer-control-label>{triggerLabel}</span>
               <ComposerControlChevron size={size} />
             </>
           )}
         </TooltipTrigger>
-        <TooltipPopup side="top">{accessibleLabel}</TooltipPopup>
+        <TooltipPopup side="top">{triggerLabel}</TooltipPopup>
       </Tooltip>
       <MenuPopup align="start" {...(isComposerOwned ? composerFloatingLayerProps : {})}>
         <TraitsMenuContent
@@ -700,6 +706,7 @@ export const TraitsPicker = memo(function TraitsPicker({
           prompt={prompt}
           onPromptChange={onPromptChange}
           modelOptions={modelOptions}
+          reportedModelSelection={reportedModelSelection}
           allowPromptInjectedEffort={allowPromptInjectedEffort}
           planModeEnabled={planModeEnabled}
           {...persistence}

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useSyncExternalStore } from "react";
 
 import { useTheme } from "../../hooks/useTheme";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import {
   getThemeDefinition,
   subscribeToCustomThemes,

@@ -5,25 +5,23 @@ import { translateWebSource } from "~/i18n/messages";
  */
 import type {
   EnvironmentId,
+  PullRequestDiffSide,
   PullRequestRef,
+  PullRequestReviewPosition,
   PullRequestReviewThread,
   PullRequestThreadCommentsResult,
   PullRequestThreadComment,
 } from "@t3tools/contracts";
-import {
-  CheckCircle2Icon,
-  CircleIcon,
-  HammerIcon,
-  MessageSquareIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { HammerIcon, MessageSquareIcon, Trash2Icon } from "lucide-react";
+import { Circle, CircleCheck } from "lucide";
 import { useRef, useState } from "react";
 
 import { formatRelativeTimeLabel } from "~/timestampFormat";
 import { cn } from "~/lib/utils";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 
 import { Button } from "../ui/button";
+import { MorphIcon } from "~/components/MorphIcon";
 import { PullRequestEditButton } from "./PullRequestEditButton";
 import { Textarea } from "../ui/textarea";
 import { isCommentSubmitShortcut } from "../diffs/commentSubmitShortcut";
@@ -57,6 +55,28 @@ function submitKeys(input: {
       input.onSubmit();
     }
   };
+}
+
+/** The contract's sides named the way the diff viewer names them, and back again. */
+export function toViewerSide(side: PullRequestDiffSide) {
+  return side === "left" ? ("deletions" as const) : ("additions" as const);
+}
+
+export function getReviewPositionAnchor(position: PullRequestReviewPosition): {
+  line: number;
+  side: PullRequestDiffSide;
+} {
+  switch (position.kind) {
+    case "added":
+      return { line: position.newLine, side: "right" };
+    case "deleted":
+      return { line: position.oldLine, side: "left" };
+    case "context":
+      return {
+        line: position.side === "left" ? position.oldLine : position.newLine,
+        side: position.side,
+      };
+  }
 }
 
 /** A comment waiting to be sent with the rest of the review. */
@@ -224,11 +244,10 @@ export function ReviewThreadCard({
       onPointerDown={(event) => event.stopPropagation()}
     >
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {thread.isResolved ? (
-          <CheckCircle2Icon className="size-3.5 text-success-foreground" />
-        ) : (
-          <CircleIcon className="size-3.5" />
-        )}
+        <MorphIcon
+          className={cn("size-3.5", thread.isResolved && "text-success-foreground")}
+          icon={thread.isResolved ? CircleCheck : Circle}
+        />
         <button
           type="button"
           className="hover:text-foreground"

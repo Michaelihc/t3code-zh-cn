@@ -5,7 +5,7 @@ import { commandForProjectScript } from "../../projectScripts";
 import { ScriptIcon } from "../projectScriptEditor";
 import { Button } from "../ui/button";
 import { SettingsRow } from "./settingsLayout";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 
 export function ProjectActionsList({
@@ -40,6 +40,11 @@ export function ProjectActionsList({
             {script.runOnWorktreeCreate ? (
               <span className="shrink-0 rounded-sm border border-border/60 px-1.5 py-px text-2xs font-normal text-muted-foreground">
                 {translate(translate("setup"))}
+              </span>
+            ) : null}
+            {script.runOnSettle ? (
+              <span className="shrink-0 rounded-sm border border-border/60 px-1.5 py-px text-2xs font-normal text-muted-foreground">
+                on settle
               </span>
             ) : null}
             {script.previewUrl ? (

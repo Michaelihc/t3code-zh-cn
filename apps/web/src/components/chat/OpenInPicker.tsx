@@ -1,11 +1,13 @@
 import { translateWebSource } from "~/i18n/messages";
+import { ThreadDetailsControl } from "./ThreadDetailsControl";
 import {
+  AuthOrchestrationOperateScope,
   buildRemoteOpenUrl,
   EditorId,
   type EnvironmentId,
   type ResolvedKeybindingsConfig,
 } from "@t3tools/contracts";
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { isOpenFavoriteEditorShortcut, shortcutLabelForCommand } from "../../keybindings";
 import { usePreferredEditor } from "../../editorPreferences";
 import { editorLabelForPlatform } from "../../editorLabels";
@@ -17,7 +19,7 @@ import {
 } from "../../remoteOpen";
 import { useEnvironment } from "../../state/environments";
 import { ChevronDownIcon, FolderClosedIcon, SquareArrowOutUpRightIcon } from "lucide-react";
-import { Button } from "../ui/button";
+
 import { Group, GroupSeparator } from "../ui/group";
 import {
   Menu,
@@ -60,7 +62,16 @@ import {
 import { cn, isMacPlatform, isWindowsPlatform } from "~/lib/utils";
 import { shellEnvironment } from "~/state/shell";
 import { useAtomCommand } from "~/state/use-atom-command";
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
+import {
+  THREAD_DETAILS_PANEL_CHEVRON_CLASS,
+  THREAD_DETAILS_PANEL_ICON_CLASS,
+  THREAD_DETAILS_PANEL_LABEL_CLASS,
+  THREAD_DETAILS_PANEL_SPLIT_GROUP_CLASS,
+  THREAD_DETAILS_PANEL_SPLIT_SEPARATOR_CLASS,
+} from "./threadDetailsPanelStyles";
+import { readEnvironmentScope, useEnvironmentScope } from "~/state/session";
+import { useComposerMenuState } from "./useComposerMenuState";
 
 type OpenInOption = {
   label: string;
@@ -202,6 +213,7 @@ export const OpenInPicker = memo(function OpenInPicker({
   presentation = "toolbar",
   compact = false,
   enableShortcut = true,
+  displayMode = "toolbar",
 }: {
   environmentId: EnvironmentId;
   keybindings: ResolvedKeybindingsConfig;
@@ -210,11 +222,19 @@ export const OpenInPicker = memo(function OpenInPicker({
   presentation?: "toolbar" | "menu";
   compact?: boolean;
   enableShortcut?: boolean;
+  displayMode?: "toolbar" | "panel";
 }) {
   const { locale: uiLocale } = useI18n();
   const { t } = useI18n();
+  const isPanel = displayMode === "panel";
+  const ActionGroup = isPanel ? "div" : Group;
+  const panelAnchorRef = useRef<HTMLDivElement | null>(null);
   const openInEditorMutation = useAtomCommand(shellEnvironment.openInEditor, "open in editor");
   const remote = useRemoteOpenState(environmentId);
+  const canOperateHost = useEnvironmentScope(environmentId, AuthOrchestrationOperateScope);
+  const isHostEditorDenied = remote.mode === "local-exec" && !canOperateHost;
+  const canOpenEditor = remote.mode !== "remote-unavailable" && !isHostEditorDenied;
+  const [menuOpen, setMenuOpen] = useComposerMenuState(isHostEditorDenied);
   const remoteCapableEditors = useRemoteCapableEditors();
   const [remoteHintSeen, markRemoteHintSeen] = useRemoteOpenHint();
   const environmentLabel = useEnvironment(environmentId)?.label ?? "this machine";
@@ -250,6 +270,7 @@ export const OpenInPicker = memo(function OpenInPicker({
         });
         return;
       }
+      if (!readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)) return;
       const result = openInEditorMutation({
         environmentId,
         input: {
@@ -277,18 +298,37 @@ export const OpenInPicker = memo(function OpenInPicker({
   );
 
   useEffect(() => {
-    if (!enableShortcut) return;
+    if (!enableShortcut || !canOpenEditor) return;
     const handler = (e: globalThis.KeyboardEvent) => {
       if (!isOpenFavoriteEditorShortcut(e, keybindings)) return;
       if (!openInCwd) return;
       if (!preferredEditor) return;
+      if (
+        remote.mode === "local-exec" &&
+        !readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)
+      )
+        return;
 
       e.preventDefault();
       void openInEditor(preferredEditor);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [enableShortcut, keybindings, openInCwd, openInEditor, preferredEditor]);
+  }, [
+    canOpenEditor,
+    enableShortcut,
+    environmentId,
+    keybindings,
+    openInCwd,
+    openInEditor,
+    preferredEditor,
+    remote.mode,
+  ]);
+  const primaryLabel = isPanel
+    ? primaryOption
+      ? t("markdownFile.openInNamedEditor", { editor: primaryOption.label })
+      : t("markdownFile.openInEditor")
+    : t("pullRequestThread.state.open");
 
   const editorItems = (
     <>
@@ -306,8 +346,15 @@ export const OpenInPicker = memo(function OpenInPicker({
           {options.map(({ label, Icon, value, kind }) => (
             <MenuItem
               density={presentation === "menu" ? "touch" : "default"}
+              disabled={!openInCwd || !canOpenEditor}
               key={value}
-              onClick={() => openInEditor(value)}
+              onClick={() => {
+                if (presentation === "menu") {
+                  void openInEditor(value);
+                } else {
+                  setPreferredEditor(value);
+                }
+              }}
             >
               <Icon aria-hidden="true" className={getOpenInIconClass(kind)} />
               <MenuItemLabel>{label}</MenuItemLabel>
@@ -332,7 +379,7 @@ export const OpenInPicker = memo(function OpenInPicker({
           <MenuItem
             density={presentation === "menu" ? "touch" : "default"}
 
-            disabled={!openInCwd || remote.mode === "remote-unavailable"}
+            disabled={!openInCwd || !canOpenEditor}
             onClick={() => openInEditor(preferredEditor)}
           >
             <primaryOption.Icon className={cn("size-4", getOpenInIconClass(primaryOption.kind))} />
@@ -345,7 +392,7 @@ export const OpenInPicker = memo(function OpenInPicker({
           </MenuItem>
         )}
         <MenuSub>
-          <MenuSubTrigger density="touch">
+          <MenuSubTrigger density="touch" disabled={isHostEditorDenied}>
             <SquareArrowOutUpRightIcon className="size-4" />
             <MenuItemLabel>{translateWebSource(uiLocale, "Open in…")}</MenuItemLabel>
           </MenuSubTrigger>
@@ -356,41 +403,78 @@ export const OpenInPicker = memo(function OpenInPicker({
   }
 
   return (
-    <Group aria-label={t("headerAction.openInEditor")}>
-      <Button
-        aria-label={compact ? t("headerAction.openPreferredEditor") : undefined}
-        size="xs"
-        variant="outline"
-        disabled={!preferredEditor || !openInCwd || remote.mode === "remote-unavailable"}
+    <ActionGroup
+      aria-label={t("markdownFile.openInEditor")}
+      role="group"
+      {...(isPanel
+        ? { className: THREAD_DETAILS_PANEL_SPLIT_GROUP_CLASS, ref: panelAnchorRef }
+        : {})}
+    >
+      <ThreadDetailsControl
+        aria-label={compact ? t("headerAction.openPreferredEditor") : primaryLabel}
+        size={isPanel ? "sm" : "xs"}
+        variant={isPanel ? "ghost" : "outline"}
+        part="primary"
+        panel={isPanel}
+        disabled={!preferredEditor || !openInCwd || !canOpenEditor}
         onClick={() => openInEditor(preferredEditor)}
       >
-        {primaryOption?.Icon && (
+        {primaryOption?.Icon ? (
           <primaryOption.Icon
             aria-hidden="true"
-            className={cn("size-3.5", getOpenInIconClass(primaryOption.kind))}
+            className={cn(
+              isPanel ? THREAD_DETAILS_PANEL_ICON_CLASS : "size-3.5",
+              getOpenInIconClass(primaryOption.kind),
+            )}
           />
-        )}
+        ) : isPanel ? (
+          <SquareArrowOutUpRightIcon
+            aria-hidden="true"
+            className={THREAD_DETAILS_PANEL_ICON_CLASS}
+          />
+        ) : null}
         <span
-          className={
+          className={cn(
             compact
               ? "sr-only"
-              : "sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5"
-          }
+              : "sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5",
+            isPanel && cn("not-sr-only ml-0 min-w-0 truncate", THREAD_DETAILS_PANEL_LABEL_CLASS),
+          )}
         >
-          {t("headerAction.open")}
+          {primaryLabel}
         </span>
-      </Button>
-      <GroupSeparator {...(!compact ? { className: "hidden @3xl/header-actions:block" } : {})} />
-      <Menu>
+      </ThreadDetailsControl>
+      {isPanel ? (
+        <span aria-hidden="true" className={THREAD_DETAILS_PANEL_SPLIT_SEPARATOR_CLASS} />
+      ) : (
+        <GroupSeparator {...(!compact ? { className: "hidden @3xl/header-actions:block" } : {})} />
+      )}
+      <Menu open={menuOpen} onOpenChange={setMenuOpen}>
         <MenuTrigger
+          disabled={isHostEditorDenied}
           render={
-            <Button aria-label={t("headerAction.chooseEditor")} size="icon-xs" variant="outline" />
+            <ThreadDetailsControl
+              aria-label={t("headerAction.chooseEditor")}
+              size={isPanel ? "sm" : "icon-xs"}
+              variant={isPanel ? "ghost" : "outline"}
+              part="secondary"
+              panel={isPanel}
+            />
           }
         >
-          <ChevronDownIcon aria-hidden="true" className="size-4" />
+          <ChevronDownIcon
+            aria-hidden="true"
+            className={isPanel ? THREAD_DETAILS_PANEL_CHEVRON_CLASS : "size-4"}
+          />
         </MenuTrigger>
-        <MenuPopup align="end">{editorItems}</MenuPopup>
+        <MenuPopup
+          align="end"
+          {...(isPanel ? { anchor: panelAnchorRef } : {})}
+          className={isPanel ? "w-(--anchor-width)" : undefined}
+        >
+          {editorItems}
+        </MenuPopup>
       </Menu>
-    </Group>
+    </ActionGroup>
   );
 });

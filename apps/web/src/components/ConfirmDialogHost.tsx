@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { Button } from "./ui/button";
-import { useI18n } from "../i18n/WebI18nProvider";
+import { useI18n } from "../i18n/WebI18nContext";
 
 type ConfirmationCopy = {
   readonly title: string;

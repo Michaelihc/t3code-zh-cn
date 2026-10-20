@@ -14,17 +14,17 @@ import type {
 import {
   ChevronDownIcon,
   ChevronRightIcon,
-  ChevronsDownUpIcon,
-  ChevronsUpDownIcon,
   Columns2Icon,
   FolderTreeIcon,
   InfoIcon,
   MessageSquareOffIcon,
   PilcrowIcon,
   Rows3Icon,
+  Settings2Icon,
   TextWrapIcon,
   TriangleAlertIcon,
 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide";
 import { useAtomRefresh } from "@effect/atom-react";
 import * as Schema from "effect/Schema";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -32,14 +32,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useLocalStorage } from "~/hooks/useLocalStorage";
 import { useClientSettings, useUpdateClientSettings } from "~/hooks/useSettings";
 import { useTheme } from "~/hooks/useTheme";
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { areAllDiffFilesCollapsed } from "~/lib/diffCollapse";
 import { pullRequestFindingKey, type PullRequestFinding } from "./pullRequestDetail.logic";
-import { canEditPullRequestComment } from "./pullRequestEditing.logic";
+import { canEditPullRequestComment, canResolvePullRequestThread } from "./pullRequestEditing.logic";
 import { orderDiffFiles } from "./pullRequestFileOrder.logic";
 import {
   buildFileDiffRenderKey,
   fnv1a32,
+  getDiffLineStat,
   getRenderablePatch,
   resolveDiffThemeName,
   resolveFileDiffPath,
@@ -66,20 +67,28 @@ import { useCodeViewFileReveal } from "../diffs/useCodeViewFileReveal";
 import { diffFileTreeEntries } from "../diffs/diffFileTree.logic";
 import { StyledDiffCodeView } from "../diffs/StyledDiffCodeView";
 import { Button } from "../ui/button";
+import { MorphIcon } from "~/components/MorphIcon";
 import { Checkbox } from "../ui/checkbox";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/menu";
 import { toastManager } from "../ui/toast";
 import { Toggle, ToggleGroup } from "../ui/toggle-group";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { PendingReviewCommentCard, ReviewThreadCard } from "./PullRequestReviewAnnotation";
+import {
+  getReviewPositionAnchor,
+  PendingReviewCommentCard,
+  ReviewThreadCard,
+  toViewerSide,
+} from "./PullRequestReviewAnnotation";
 import {
   isFileDiffCollapsed,
   isLineInFileDiff,
@@ -160,28 +169,6 @@ export interface PullRequestAgentSelectionInput {
   readonly request: string;
 }
 
-/** The contract's sides named the way the diff viewer names them, and back again. */
-function toViewerSide(side: PullRequestDiffSide) {
-  return side === "left" ? ("deletions" as const) : ("additions" as const);
-}
-
-function getReviewPositionAnchor(position: PullRequestReviewPosition): {
-  line: number;
-  side: PullRequestDiffSide;
-} {
-  switch (position.kind) {
-    case "added":
-      return { line: position.newLine, side: "right" };
-    case "deleted":
-      return { line: position.oldLine, side: "left" };
-    case "context":
-      return {
-        line: position.side === "left" ? position.oldLine : position.newLine,
-        side: position.side,
-      };
-  }
-}
-
 /**
  * Whether the viewer draws this line at all. A line counts the new file on the right and the old
  * one on the left, and each hunk covers one run of each; a line outside every run — a
@@ -194,6 +181,7 @@ function getReviewPositionAnchor(position: PullRequestReviewPosition): {
  * drafted rather than being posted as it is typed.
  */
 function PullRequestCodeTab({
+  scrollerRef,
   environmentId,
   reference,
   detail,
@@ -205,7 +193,9 @@ function PullRequestCodeTab({
   onAddToAgentSelection,
   onRefresh,
   refreshToken = 0,
+  revealRequest = null,
 }: {
+  scrollerRef: (node: HTMLDivElement | null) => void;
   environmentId: EnvironmentId;
   reference: PullRequestRef;
   detail: PullRequestDetailView;
@@ -221,6 +211,8 @@ function PullRequestCodeTab({
   onRefresh: () => void;
   /** Bumped by the panel's refresh button: drop the accumulated pages and re-read the diff. */
   refreshToken?: number;
+  /** A file another tab asked to show. A new nonce asks again for the same path. */
+  revealRequest?: { readonly path: string; readonly nonce: number } | null;
 }) {
   const { locale: uiLocale } = useI18n();
   const { t } = useI18n();
@@ -258,7 +250,9 @@ function PullRequestCodeTab({
     readonly slices: ReadonlyArray<DiffSlice>;
   }>({ key: "", cursor: null, slices: NO_SLICES });
   const parseCache = useRef(new Map<string, RenderablePatch>());
-  const [viewer, setViewer] = useState<CodeViewHandle<ReviewAnnotationGroup> | null>(null);
+  const [viewer, setViewer] = useState<CodeViewHandle<ReviewAnnotationGroup, undefined> | null>(
+    null,
+  );
 
   const referenceKey = pullRequestReviewKey(reference);
   const commit = selectedCommitOid;
@@ -598,6 +592,23 @@ function PullRequestCodeTab({
       ),
     [loadedSlices],
   );
+  const sourceFileStats = useMemo(
+    () =>
+      new Map(
+        parsedSlices.flatMap((parsed) =>
+          parsed?.kind === "files"
+            ? parsed.files.map(
+                (file, index) =>
+                  [
+                    buildFileDiffRenderKey(file),
+                    getDiffLineStat([parsed.sourceFiles[index] ?? file]),
+                  ] as const,
+              )
+            : [],
+        ),
+      ),
+    [parsedSlices],
+  );
   const fileKeys = useMemo(() => items.map((item) => item.id), [items]);
   const collapsedFileKeys = useMemo(
     () => new Set(items.filter((item) => item.collapsed === true).map((item) => item.id)),
@@ -673,6 +684,19 @@ function PullRequestCodeTab({
     },
     [items, requestTreeReveal, toggleFile],
   );
+  // Answered once the requested file has arrived: a large diff may still be paging when the
+  // request comes in, so it waits for the slice that carries the path rather than dropping it.
+  const answeredReveal = useRef<number | null>(null);
+  useEffect(() => {
+    if (revealRequest === null || answeredReveal.current === revealRequest.nonce) return;
+    if (!items.some((item) => resolveFileDiffPath(item.fileDiff) === revealRequest.path)) {
+      // The reader is not scrolling toward it, so the sentinel would never ask for its slice.
+      if (canLoadNextSlice) loadNextSlice();
+      return;
+    }
+    answeredReveal.current = revealRequest.nonce;
+    revealFile(revealRequest.path);
+  }, [canLoadNextSlice, items, loadNextSlice, revealFile, revealRequest]);
 
   const toggleAllFiles = () => {
     // Held as an override of the default rather than as the file keys on screen: a diff that is
@@ -797,11 +821,7 @@ function PullRequestCodeTab({
             toggleFile(item.id);
           }}
         >
-          {collapsed ? (
-            <ChevronRightIcon className="size-4" />
-          ) : (
-            <ChevronDownIcon className="size-4" />
-          )}
+          <MorphIcon className="size-4" icon={collapsed ? ChevronRight : ChevronDown} />
         </Button>
       );
     },
@@ -819,12 +839,8 @@ function PullRequestCodeTab({
   const renderHeaderMetadata = useCallback(
     (item: CodeViewItem<ReviewAnnotationGroup>) => {
       if (item.type !== "diff") return null;
-      let additions = 0;
-      let deletions = 0;
-      for (const hunk of item.fileDiff.hunks) {
-        additions += hunk.additionLines;
-        deletions += hunk.deletionLines;
-      }
+      let { additions, deletions } =
+        sourceFileStats.get(item.id) ?? getDiffLineStat([item.fileDiff]);
       const path = resolveFileDiffPath(item.fileDiff);
       if (additions === 0 && deletions === 0) {
         const withheld = omittedFileStats.get(path);
@@ -869,13 +885,13 @@ function PullRequestCodeTab({
                 </TooltipPopup>
               </Tooltip>
             ) : (
-              "Viewed"
+              <span className="@max-xs:hidden">Viewed</span>
             )}
           </label>
         </span>
       );
     },
-    [omittedFileStats, uiLocale],
+    [omittedFileStats, sourceFileStats, uiLocale],
   );
 
   const diffViewOptions = useMemo(
@@ -928,7 +944,7 @@ function PullRequestCodeTab({
         thread={thread}
         workspaceRoot={detail.workspaceRoot}
         canReply={review.reply}
-        canResolve={review.resolve}
+        canResolve={review.resolve && canResolvePullRequestThread(detail, thread)}
         canReact={detail.capabilities.reactions === true}
         environmentId={environmentId}
         reference={reference}
@@ -960,7 +976,11 @@ function PullRequestCodeTab({
         }
         // A conversation on a line is made of review comments, whatever the host filed them as.
         canEditComment={(comment) =>
-          canEditPullRequestComment(detail, { author: comment.author, kind: "review-comment" })
+          canEditPullRequestComment(detail, {
+            author: comment.author,
+            kind: "review-comment",
+            canEdit: comment.canEdit,
+          })
         }
         onEditComment={(commentId, body) =>
           runThreadCommand(t("pullRequests.comments.saveFailed"), () =>
@@ -1076,8 +1096,13 @@ function PullRequestCodeTab({
   const scopeLabel = selectedCommit
     ? selectedCommit.messageHeadline
     : t("pullRequests.code.allCommits");
+  const changeIgnoreWhitespace = (next: boolean) => {
+    setIgnoreWhitespace(next);
+    setDraft(null);
+    setSelectedLines(null);
+  };
   const toolbar = (
-    <div className="flex h-10 min-h-10 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background px-4 text-xs text-muted-foreground">
+    <div className="@container flex h-10 min-h-10 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background px-4 text-xs text-muted-foreground">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {/* A host that reports no commits has nothing to scope by, and a dropdown whose only
             entry is the scope already showing is a control that does nothing. */}
@@ -1091,7 +1116,7 @@ function PullRequestCodeTab({
               <span className="truncate">{scopeLabel}</span>
               <ChevronDownIcon className="size-3.5 shrink-0 opacity-70" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="start" className="max-w-[min(28rem,calc(100vw-2rem))]">
               <DropdownMenuRadioGroup
                 value={commit ?? "all"}
                 onValueChange={(value) => onSelectedCommitChange(value === "all" ? null : value)}
@@ -1136,7 +1161,7 @@ function PullRequestCodeTab({
         ) : null}
         {/* One count, and the caveats as icons that carry their own words. Spelled out they
             competed for a strip this narrow and every one of them truncated to nothing. */}
-        <PullRequestMetaLine className="shrink-0">
+        <PullRequestMetaLine>
           <span className="shrink-0 tabular-nums">
             {files.length === 1
               ? t("pullRequests.code.fileCountOne", { count: files.length })
@@ -1240,30 +1265,113 @@ function PullRequestCodeTab({
         </PullRequestMetaLine>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Toggle
-                aria-label={
-                  ignoreWhitespace ? "Show whitespace changes" : "Hide whitespace changes"
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <DropdownMenuTrigger
+                  render={<Button size="icon-sm" variant="ghost" />}
+                  className="@lg:hidden"
+                  aria-label="Diff options"
+                />
+              }
+            >
+              <Settings2Icon className="size-3.5" />
+            </TooltipTrigger>
+            <TooltipPopup side="top">Diff options</TooltipPopup>
+          </Tooltip>
+          <DropdownMenuContent align="end">
+            <DropdownMenuCheckboxItem
+              checked={ignoreWhitespace}
+              onCheckedChange={(checked) => changeIgnoreWhitespace(checked)}
+            >
+              Hide whitespace changes
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={wordWrap}
+              onCheckedChange={(checked) => setWordWrap(checked)}
+            >
+              Wrap lines
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup
+              value={diffLayout}
+              onValueChange={(value) => {
+                if (value === "stacked" || value === "split") {
+                  updateClientSettings({ diffLayout: value });
                 }
-                variant="ghost"
-                size="sm"
-                pressed={ignoreWhitespace}
-                onPressedChange={(pressed) => {
-                  setIgnoreWhitespace(Boolean(pressed));
-                  setDraft(null);
-                  setSelectedLines(null);
-                }}
-              />
-            }
+              }}
+            >
+              <DropdownMenuRadioItem value="stacked" closeOnClick>
+                Stacked
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="split" closeOnClick>
+                Split
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <div className="hidden items-center gap-1 @lg:flex">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Toggle
+                  aria-label={
+                    ignoreWhitespace ? "Show whitespace changes" : "Hide whitespace changes"
+                  }
+                  variant="ghost"
+                  size="sm"
+                  pressed={ignoreWhitespace}
+                  onPressedChange={(pressed) => changeIgnoreWhitespace(Boolean(pressed))}
+                />
+              }
+            >
+              <PilcrowIcon className="size-3.5" />
+            </TooltipTrigger>
+            <TooltipPopup side="top">
+              {ignoreWhitespace ? "Show whitespace changes" : "Hide whitespace changes"}
+            </TooltipPopup>
+          </Tooltip>
+          <ToggleGroup
+            aria-label="Diff layout"
+            className="shrink-0"
+            variant="segmented"
+            value={[diffLayout]}
+            onValueChange={(value) => {
+              const next = value[0];
+              if (next === "stacked" || next === "split") {
+                updateClientSettings({ diffLayout: next });
+              }
+            }}
           >
-            <PilcrowIcon className="size-3.5" />
-          </TooltipTrigger>
-          <TooltipPopup side="top">
-            {ignoreWhitespace ? "Show whitespace changes" : "Hide whitespace changes"}
-          </TooltipPopup>
-        </Tooltip>
+            <Toggle aria-label="Stacked diff view" value="stacked">
+              <Rows3Icon className="size-3.5" />
+            </Toggle>
+            <Toggle aria-label="Split diff view" value="split">
+              <Columns2Icon className="size-3.5" />
+            </Toggle>
+          </ToggleGroup>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Toggle
+                  aria-label={wordWrap ? "Disable diff line wrapping" : "Enable diff line wrapping"}
+                  variant="ghost"
+                  size="sm"
+                  pressed={wordWrap}
+                  onPressedChange={(pressed) => {
+                    setWordWrap(Boolean(pressed));
+                  }}
+                />
+              }
+            >
+              <TextWrapIcon className="size-3.5" />
+            </TooltipTrigger>
+            <TooltipPopup side="top">
+              {wordWrap ? "Disable line wrapping" : "Enable line wrapping"}
+            </TooltipPopup>
+          </Tooltip>
+        </div>
         {fileKeys.length > 0 ? (
           <Tooltip>
             <TooltipTrigger
@@ -1281,11 +1389,10 @@ function PullRequestCodeTab({
                 />
               }
             >
-              {allFilesCollapsed ? (
-                <ChevronsUpDownIcon className="size-3.5" />
-              ) : (
-                <ChevronsDownUpIcon className="size-3.5" />
-              )}
+              <MorphIcon
+                className="size-3.5"
+                icon={allFilesCollapsed ? ChevronsUpDown : ChevronsDownUp}
+              />
             </TooltipTrigger>
             <TooltipPopup side="top">
               {allFilesCollapsed
@@ -1294,51 +1401,6 @@ function PullRequestCodeTab({
             </TooltipPopup>
           </Tooltip>
         ) : null}
-        <ToggleGroup
-          aria-label={t("pullRequests.code.diffLayout")}
-          className="shrink-0"
-          variant="segmented"
-          value={[diffLayout]}
-          onValueChange={(value) => {
-            const next = value[0];
-            if (next === "stacked" || next === "split") {
-              updateClientSettings({ diffLayout: next });
-            }
-          }}
-        >
-          <Toggle aria-label={t("pullRequests.code.stackedDiffView")} value="stacked">
-            <Rows3Icon className="size-3.5" />
-          </Toggle>
-          <Toggle aria-label={t("pullRequests.code.splitDiffView")} value="split">
-            <Columns2Icon className="size-3.5" />
-          </Toggle>
-        </ToggleGroup>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Toggle
-                aria-label={
-                  wordWrap
-                    ? t("pullRequests.code.disableDiffWrapping")
-                    : t("pullRequests.code.enableDiffWrapping")
-                }
-                variant="ghost"
-                size="sm"
-                pressed={wordWrap}
-                onPressedChange={(pressed) => {
-                  setWordWrap(Boolean(pressed));
-                }}
-              />
-            }
-          >
-            <TextWrapIcon className="size-3.5" />
-          </TooltipTrigger>
-          <TooltipPopup side="top">
-            {wordWrap
-              ? t("pullRequests.code.disableWrapping")
-              : t("pullRequests.code.enableWrapping")}
-          </TooltipPopup>
-        </Tooltip>
         {fileKeys.length > 0 ? (
           <Tooltip>
             <TooltipTrigger
@@ -1373,7 +1435,9 @@ function PullRequestCodeTab({
   const withToolbar = (body: ReactNode) => (
     <div className="flex h-full min-h-0 flex-col">
       {toolbar}
-      <div className="min-h-0 flex-1 overflow-auto">{body}</div>
+      <div ref={scrollerRef} className="min-h-0 flex-1 overflow-auto">
+        {body}
+      </div>
     </div>
   );
 
@@ -1554,7 +1618,8 @@ function PullRequestCodeTab({
             // diff crosses the overflow boundary. The viewer is itself focusable for keyboard
             // interaction, but its native host outline clips and competes with the focus
             // indicators on its actual controls.
-            className="h-full overflow-auto [scrollbar-gutter:stable]"
+            className="@container h-full overflow-auto [scrollbar-gutter:stable]"
+            containerRef={scrollerRef}
             viewerRef={setViewer}
             items={items}
             selectedLines={selectedLines}
@@ -1567,6 +1632,12 @@ function PullRequestCodeTab({
             renderHeaderPrefix={renderHeaderPrefix}
             renderHeaderMetadata={renderHeaderMetadata}
             renderAnnotation={renderAnnotation}
+            // Find can ask again before the unfolded file arrives, so this unfolds and never folds.
+            onRevealSearchMatch={(item) =>
+              setToggledFiles((current) =>
+                toggleFileDiffFoldForViewed(item.id, false, effectiveFoldOverride, current),
+              )
+            }
             unsafeCSSExtra={REPLACE_FILE_COUNTS_CSS}
           />
         </div>

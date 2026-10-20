@@ -1,7 +1,7 @@
 import { BookmarkIcon } from "lucide-react";
 import { memo } from "react";
 
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { cn } from "~/lib/utils";
 import { ComposerBanner } from "./ComposerBanner";
 

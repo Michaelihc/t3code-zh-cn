@@ -1,4 +1,4 @@
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { preloadPatchFile } from "@pierre/diffs/ssr";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ComposerPromptEditor, type ComposerPromptEditorHandle } from "../ComposerPromptEditor";

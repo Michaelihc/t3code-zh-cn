@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from "../ui/alert";
 import type { AuthSessionState } from "@t3tools/contracts";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import React, { startTransition, useEffect, useRef, useState, useCallback } from "react";
@@ -10,7 +11,7 @@ import {
   submitServerAuthCredential,
 } from "../../environments/primary";
 import { readHostedPairingRequest } from "../../hostedPairing";
-import { useI18n, type WebTranslate } from "../../i18n/WebI18nProvider";
+import { useI18n, type WebTranslate } from "../../i18n/WebI18nContext";
 import type { WebMessageKey, WebMessageValues } from "../../i18n/messages";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -118,9 +119,9 @@ export function PairingRouteSurface({
         </div>
 
         {errorMessage ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/6 px-3 py-2 text-sm text-destructive">
-            {errorMessage}
-          </div>
+          <Alert variant="error">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
         ) : null}
 
         <div className="flex flex-wrap gap-2">
@@ -256,9 +257,9 @@ export function HostedPairingRouteSurface() {
       ) : null}
 
       {status === "error" ? (
-        <div className="mt-5 rounded-lg border border-destructive/30 bg-destructive/6 px-3 py-2 text-sm text-destructive">
-          {t("pairing.hosted.troubleshooting")}
-        </div>
+        <Alert variant="error" className="mt-5">
+          <AlertDescription>{t("pairing.hosted.troubleshooting")}</AlertDescription>
+        </Alert>
       ) : null}
 
       <div className="mt-6 flex flex-wrap gap-2">

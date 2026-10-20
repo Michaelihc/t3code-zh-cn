@@ -1,7 +1,7 @@
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import { type ComponentProps, type ReactNode, useLayoutEffect, useRef } from "react";
 
-import { useI18n } from "../i18n/WebI18nProvider";
+import { useI18n } from "../i18n/WebI18nContext";
 import { Command, CommandFooter, CommandInput, CommandPanel } from "./ui/command";
 import { Kbd, KbdGroup } from "./ui/kbd";
 

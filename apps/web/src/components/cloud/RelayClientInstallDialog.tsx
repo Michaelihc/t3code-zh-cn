@@ -18,7 +18,7 @@ import {
   DialogPopup,
   DialogTitle,
 } from "../ui/dialog";
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import type { WebMessageKey } from "~/i18n/messages";
 const installSteps: ReadonlyArray<{
   readonly stage: RelayClientInstallProgressStage;

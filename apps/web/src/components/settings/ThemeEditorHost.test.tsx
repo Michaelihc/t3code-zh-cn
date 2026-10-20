@@ -28,7 +28,7 @@ const state = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../i18n/WebI18nProvider", async () => {
+vi.mock("../../i18n/WebI18nContext", async () => {
   const { translateWebMessage } = await import("../../i18n/messages");
   return {
     useI18n: () => ({

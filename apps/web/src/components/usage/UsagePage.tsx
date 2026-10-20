@@ -8,18 +8,17 @@ import {
   type EnvironmentId,
   type UsageProviderKind,
 } from "@t3tools/contracts";
-import {
-  CircleAlertIcon,
-  ChevronDownIcon,
-  CircleDashedIcon,
-  InfoIcon,
-  SlidersHorizontalIcon,
-} from "lucide-react";
+import { CircleAlertIcon, ChevronDownIcon, InfoIcon, SlidersHorizontalIcon } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import {
   cursorKeychainAccessEnvironments,
   refreshUsageLimits,
 } from "@t3tools/client-runtime/state/usage";
+import {
+  updatingProvidersLabel,
+  usageEnvironmentProgress,
+  usageLoadingState,
+} from "@t3tools/client-runtime/state/usage-progress";
 
 import {
   isCompatibleUsageContractVersion,
@@ -30,7 +29,7 @@ import {
 } from "@t3tools/shared/usageMerge";
 
 import { isElectron } from "../../env";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 import { cn } from "../../lib/utils";
 import { environmentPresentations } from "../../state/presentation";
@@ -74,13 +73,22 @@ import {
   WorkspaceBreadcrumb,
   WorkspaceBreadcrumbItem,
   WorkspaceBreadcrumbSeparator,
+  WorkspaceBreadcrumbText,
 } from "../WorkspaceBreadcrumb";
 import { WorkspacePageContainer } from "../WorkspacePageContainer";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { UsageLimitsSection } from "./UsageLimits";
 import { UsagePriceOverrides } from "./UsagePriceOverrides";
 import { UsageProviderChart } from "./UsageProviderChart";
-import { sortModelsByTokens } from "./usageBreakdown";
+import { SpeedPremium, UsageModelDialog } from "./UsageModelDialog";
+import { UsageShareBar } from "./UsageShareBar";
+import {
+  costTypeSegments,
+  modelShare,
+  sortModelsByTokens,
+  speedCostSegments,
+  tokenTypeSegments,
+} from "./usageBreakdown";
 import {
   METRIC_OPTIONS,
   WINDOW_OPTIONS,
@@ -102,6 +110,8 @@ function isUsageMetric(value: string | null | undefined): value is UsageMetric {
 function isUsageWindowDays(value: number): value is UsagePagePreferences["windowDays"] {
   return WINDOW_OPTIONS.some((option) => option.days === value);
 }
+
+const providerLabel = (provider: UsageProviderKind) => PROVIDER_PRESENTATION[provider].label;
 
 export function UsagePage() {
   const { locale: uiLocale } = useI18n();
@@ -139,16 +149,50 @@ export function UsagePage() {
   const [limitsNow, setLimitsNow] = useState(() => Date.now());
   const refreshingRef = useRef(false);
   const [breakdown, setBreakdown] = useState<"model" | "time">("model");
+  const [priceDialog, setPriceDialog] = useState<{ readonly model?: string } | null>(null);
+  const [selectedModelKey, setSelectedModelKey] = useState<string | null>(null);
   const [selectedEnvironmentIds, setSelectedEnvironmentIds] =
     useState<ReadonlySet<EnvironmentId> | null>(null);
+  const hiddenProviders = useMemo(
+    () => new Set(preferences.hiddenProviders),
+    [preferences.hiddenProviders],
+  );
   const { days: windowDays, window } = windowSelection;
   const isPast24Hours = windowDays === 1;
-  const { merged, environments, selectedEnvironments, isPending, isPartial, refresh } = useUsage(
-    window,
-    selectedEnvironmentIds,
-  );
+  const {
+    merged: answeredUsage,
+    environments,
+    selectedEnvironments,
+    shown,
+    isPartial,
+    refresh,
+  } = useUsage(window, selectedEnvironmentIds, hiddenProviders);
+  // Until a new window's first answer, the previous one stays on screen, muted.
+  const merged = shown?.merged ?? answeredUsage;
+  const shownWindow = shown?.window ?? window;
+  const shownHourly = shownWindow.resolution === "hour";
+  const refreshingUsage = isRefreshing && !showingLimits;
+  // Usage kept from another window is all old, so every figure stays muted.
+  const showingKept = shown !== null && shown.window !== window;
+  const loading = useMemo(() => {
+    if (showingKept) {
+      return { partial: true, everyProvider: true, providers: new Set<UsageProviderKind>() };
+    }
+    const state = usageLoadingState(selectedEnvironments, refreshingUsage);
+    // A hidden provider still refreshing must not add its row or mute the totals.
+    const providers = new Set([...state.providers].filter((p) => !hiddenProviders.has(p)));
+    return {
+      partial: state.everyProvider || providers.size > 0,
+      everyProvider: state.everyProvider,
+      providers,
+    };
+  }, [showingKept, refreshingUsage, selectedEnvironments, hiddenProviders]);
+  const isProviderLoading = (provider: UsageProviderKind) =>
+    loading.everyProvider || loading.providers.has(provider);
   const presentations = useAtomValue(environmentPresentations.presentationsAtom);
-  const cursorAccessEnvironments = cursorKeychainAccessEnvironments(selectedEnvironments);
+  const cursorAccessEnvironments = hiddenProviders.has("cursor")
+    ? []
+    : cursorKeychainAccessEnvironments(selectedEnvironments);
   const sourceMessages = [
     ...new Set(
       selectedEnvironments.flatMap(
@@ -156,6 +200,7 @@ export function UsagePage() {
           environment.summary?.sources.flatMap((source) =>
             source.message &&
             !source.action &&
+            !hiddenProviders.has(source.fingerprint.provider) &&
             (source.status === "partial" ||
               source.status === "failed" ||
               source.fingerprint.provider === "cursor")
@@ -169,22 +214,26 @@ export function UsagePage() {
     reportFailure: false,
   });
 
+  const canReadDiagnostics = selectedEnvironments.some(
+    (environment) => environment.canReadDiagnostics,
+  );
+
   const days = useMemo(
-    () => enumerateDays(window.sinceDay, window.untilDay),
-    [window.sinceDay, window.untilDay],
+    () => enumerateDays(shownWindow.sinceDay, shownWindow.untilDay),
+    [shownWindow.sinceDay, shownWindow.untilDay],
   );
   const hours = useMemo(
     () =>
-      window.sinceTime === undefined || window.untilTime === undefined
+      shownWindow.sinceTime === undefined || shownWindow.untilTime === undefined
         ? []
-        : enumerateHourStarts(window.sinceTime, window.untilTime),
-    [window.sinceTime, window.untilTime],
+        : enumerateHourStarts(shownWindow.sinceTime, shownWindow.untilTime),
+    [shownWindow.sinceTime, shownWindow.untilTime],
   );
   // Newest first: the window can run 90 periods, so the interesting end
   // belongs at the top of the table.
   const breakdownPeriods = useMemo<readonly (DailyTotals | HourlyTotals)[]>(
-    () => (isPast24Hours ? merged.hourly : merged.daily).toReversed(),
-    [isPast24Hours, merged.daily, merged.hourly],
+    () => (shownHourly ? merged.hourly : merged.daily).toReversed(),
+    [shownHourly, merged.daily, merged.hourly],
   );
   const breakdownModels = useMemo(
     () =>
@@ -193,7 +242,32 @@ export function UsagePage() {
         : merged.models,
     [breakdown, merged.models, metric],
   );
-  const activeProviders = useMemo(() => providersWithUsage(merged.providers), [merged.providers]);
+  const providersWithData = useMemo(() => providersWithUsage(merged.providers), [merged.providers]);
+  // A provider still refreshing keeps its row and line before its usage lands.
+  const activeProviders = useMemo(
+    () =>
+      PROVIDER_ORDER.filter(
+        (provider) => providersWithData.includes(provider) || loading.providers.has(provider),
+      ),
+    [loading.providers, providersWithData],
+  );
+  const chartLoadingProviders = useMemo(
+    () =>
+      new Set(
+        activeProviders.filter(
+          (provider) => loading.everyProvider || loading.providers.has(provider),
+        ),
+      ),
+    [activeProviders, loading.everyProvider, loading.providers],
+  );
+  const selectedModel =
+    selectedModelKey === null
+      ? undefined
+      : merged.models.find((model) => `${model.provider}:${model.model}` === selectedModelKey);
+  const breakdownPeak = breakdownModels.reduce(
+    (peak, model) => Math.max(peak, metric === "tokens" ? model.totalTokens : model.costUsd),
+    0,
+  );
   const summaryRows: Array<
     | { readonly kind: "usage"; readonly provider: UsageProviderKind }
     | { readonly kind: "enable"; readonly environment: EnvironmentUsageStatus }
@@ -207,11 +281,14 @@ export function UsagePage() {
   );
   const timeValueColumnWidth = `${60 / (activeProviders.length + 2)}%`;
 
-  const selectWindow = (days: number) => {
-    if (!isUsageWindowDays(days)) return;
-    const nextPreferences = { metric, windowDays: days };
+  const updatePreferences = (patch: Partial<UsagePagePreferences>) => {
+    const nextPreferences = { ...preferences, ...patch };
     setPreferences(nextPreferences);
     saveUsagePagePreferences(nextPreferences);
+  };
+  const selectWindow = (days: number) => {
+    if (!isUsageWindowDays(days)) return;
+    updatePreferences({ windowDays: days });
     setWindowSelection({
       days,
       window: makeWindow(days, undefined, days === 1 ? "hour" : "day"),
@@ -219,9 +296,7 @@ export function UsagePage() {
   };
   const selectMetric = (nextMetric: UsageMetric) => {
     if (nextMetric === "limits") setLimitsNow(Date.now());
-    const nextPreferences = { metric: nextMetric, windowDays };
-    setPreferences(nextPreferences);
-    saveUsagePagePreferences(nextPreferences);
+    updatePreferences({ metric: nextMetric });
   };
   const refreshLimits = async (automatic = false, afterPending = false) => {
     try {
@@ -313,27 +388,37 @@ export function UsagePage() {
     if (showingLimits && connectedLimitsEnvironments) autoRefreshLimits();
   }, [showingLimits, connectedLimitsEnvironments]);
 
+  // Names the period on screen, which is the previous one until the new one answers.
   const windowLabel =
-    isPast24Hours && window.sinceTime !== undefined && window.untilTime !== undefined
-      ? `${formatDateTimeShort(window.sinceTime, window.timeZone, locale)} ${t("usage.range.separator")} ${formatDateTimeShort(window.untilTime, window.timeZone, locale)}`
-      : `${formatDayShort(window.sinceDay, locale)} ${t("usage.range.separator")} ${formatDayShort(window.untilDay, locale)}`;
+    shownHourly && shownWindow.sinceTime !== undefined && shownWindow.untilTime !== undefined
+      ? `${formatDateTimeShort(shownWindow.sinceTime, shownWindow.timeZone, locale)} ${t("usage.range.separator")} ${formatDateTimeShort(shownWindow.untilTime, shownWindow.timeZone, locale)}`
+      : `${formatDayShort(shownWindow.sinceDay, locale)} ${t("usage.range.separator")} ${formatDayShort(shownWindow.untilDay, locale)}`;
   const topbarContent = (
-    <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-2 xl:flex">
-      <WorkspaceBreadcrumb ariaLabel={t("usage.breadcrumb")} className="col-span-2 min-w-0">
+    <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-2 xl:flex">
+      <WorkspaceBreadcrumb ariaLabel={t("usage.breadcrumb")} className="min-w-0">
         <WorkspaceBreadcrumbItem>
           <h1>{t("usage.title")}</h1>
         </WorkspaceBreadcrumbItem>
         <WorkspaceBreadcrumbSeparator />
-        <WorkspaceBreadcrumbItem current className="min-w-10">
+        <WorkspaceBreadcrumbItem className="min-w-10 shrink">
           <UsageEnvironmentFilter
             environments={environments}
             selectedEnvironments={selectedEnvironments}
             selectedEnvironmentIds={selectedEnvironmentIds}
             onSelectionChange={setSelectedEnvironmentIds}
             showUsageStatus={!showingLimits}
+            refreshing={refreshingUsage}
             isPartial={isPartial}
             duplicateSources={merged.duplicateSources}
             contractMismatches={merged.contractMismatches}
+            onOpenModelPrices={() => setPriceDialog({})}
+          />
+        </WorkspaceBreadcrumbItem>
+        <WorkspaceBreadcrumbSeparator />
+        <WorkspaceBreadcrumbItem current className="min-w-10">
+          <UsageProviderFilter
+            hiddenProviders={hiddenProviders}
+            onChange={(next) => updatePreferences({ hiddenProviders: next })}
           />
         </WorkspaceBreadcrumbItem>
       </WorkspaceBreadcrumb>
@@ -380,14 +465,14 @@ export function UsagePage() {
           onClick={refreshWindow}
           aria-label={t(showingLimits ? "usage.limits.refresh" : "usage.refresh")}
           aria-busy={isRefreshing}
-          disabled={isRefreshing}
+          disabled={isRefreshing || (!showingLimits && !canReadDiagnostics)}
           size="icon-sm"
           variant="ghost"
         >
           <RefreshIcon size="sm" refreshing={isRefreshing} />
         </Button>
       </div>
-      <div className="col-span-2 ms-auto flex min-w-0 items-center justify-end gap-1 xl:hidden">
+      <div className="ms-auto flex min-w-0 items-center justify-end gap-1 xl:hidden">
         <Select
           value={metric}
           onValueChange={(value) => {
@@ -443,7 +528,7 @@ export function UsagePage() {
           onClick={refreshWindow}
           aria-label={t(showingLimits ? "usage.limits.refresh" : "usage.refresh")}
           aria-busy={isRefreshing}
-          disabled={isRefreshing}
+          disabled={isRefreshing || (!showingLimits && !canReadDiagnostics)}
           size="icon-sm"
           variant="ghost"
         >
@@ -456,9 +541,7 @@ export function UsagePage() {
   return (
     <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none isolate">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background text-foreground">
-        <WorkspacePageHeader electron={isElectron} className="h-auto">
-          {topbarContent}
-        </WorkspacePageHeader>
+        <WorkspacePageHeader electron={isElectron}>{topbarContent}</WorkspacePageHeader>
 
         <ScrollArea className="min-h-0 flex-1">
           <WorkspacePageContainer width="wide">
@@ -471,6 +554,7 @@ export function UsagePage() {
             ) : showingLimits ? (
               <UsageLimitsSection
                 selectedEnvironmentIds={selectedEnvironmentIds}
+                hiddenProviders={hiddenProviders}
                 now={limitsNow}
                 cursorPrompt={
                   cursorAccessEnvironments.length > 0 ? (
@@ -484,10 +568,19 @@ export function UsagePage() {
                   ) : null
                 }
               />
-            ) : isPending ? (
+            ) : shown === null ? (
               <UsageSkeleton />
+            ) : !canReadDiagnostics ? (
+              <div className="space-y-2 py-12 text-center text-sm text-muted-foreground">
+                {selectedEnvironments.map((environment) => (
+                  <p key={environment.environmentId}>
+                    {selectedEnvironments.length > 1 ? `${environment.label}: ` : null}
+                    {environment.error}
+                  </p>
+                ))}
+              </div>
             ) : (
-              <>
+              <div aria-busy={loading.partial} className="flex flex-col gap-6">
                 {sourceMessages.map((message) => (
                   <p key={message} className="mb-4 text-sm text-muted-foreground">
                     {message}
@@ -496,44 +589,46 @@ export function UsagePage() {
                 <section className="grid gap-6 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
                   <div className="flex min-w-0 flex-col gap-5">
                     <div className="flex flex-col gap-1">
-                      <span className="text-4xl font-semibold text-foreground tabular-nums">
+                      <span
+                        className={cn(
+                          "text-4xl font-semibold text-foreground tabular-nums",
+                          figureClass(loading.partial),
+                        )}
+                      >
                         {metric === "cost"
                           ? formatUsd(merged.costUsd)
                           : formatTokens(merged.totalTokens)}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatCount(merged.sessions)} {translateWebSource(uiLocale, "sessions")}
-                        {metric === "cost" && (
-                          <>
-                            {" · API estimate"}
-                            {merged.costQuality.unpricedShare > 0 && (
-                              <>
-                                {" "}
-                                <Popover>
-                                  <PopoverTrigger
-                                    openOnHover
-                                    render={<InlineButton tone="muted" />}
-                                    aria-label={translateWebSource(
-                                      uiLocale,
-                                      "Unpriced usage details",
-                                    )}
-                                  >
-                                    <InfoIcon className="size-3" aria-hidden />
-                                  </PopoverTrigger>
-                                  <PopoverPopup side="top" tooltipStyle>
-                                    {t("upstream.usage.unpriced", {
-                                      share: formatPercent(merged.costQuality.unpricedShare),
-                                    })}
-                                  </PopoverPopup>
-                                </Popover>
-                              </>
-                            )}
-                          </>
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <span>
+                          <span className={figureClass(loading.partial)}>
+                            {formatCount(merged.sessions)}{" "}
+                            {translateWebSource(uiLocale, "sessions")}
+                          </span>
+                          {metric === "cost" &&
+                            ` · ${translateWebSource(uiLocale, "API estimate")}`}
+                        </span>
+                        {metric === "cost" && merged.costQuality.unpricedShare > 0 && (
+                          <Popover>
+                            <PopoverTrigger
+                              openOnHover
+                              render={<InlineButton tone="muted" />}
+                              aria-label={translateWebSource(uiLocale, "Unpriced usage details")}
+                            >
+                              <InfoIcon className="size-3" aria-hidden />
+                            </PopoverTrigger>
+                            <PopoverPopup side="top" tooltipStyle>
+                              {t("upstream.usage.unpriced", {
+                                share: formatPercent(merged.costQuality.unpricedShare),
+                              })}
+                            </PopoverPopup>
+                          </Popover>
                         )}
                       </span>
                     </div>
 
-                    {[...presentations].some(
+                    {!hiddenProviders.has("codex") &&
+                    [...presentations].some(
                       ([id, presentation]) =>
                         (selectedEnvironmentIds === null || selectedEnvironmentIds.has(id)) &&
                         presentation.serverConfig?.providers.some(usesChatGptSharing),
@@ -570,6 +665,8 @@ export function UsagePage() {
                           count: formatCount(providerSessions),
                         },
                       );
+                      const providerLoading = isProviderLoading(provider);
+                      const awaitingData = providerLoading && !providersWithData.includes(provider);
                       return (
                         <div key={provider} className="flex flex-col gap-1">
                           <div className="flex items-baseline justify-between gap-4">
@@ -586,18 +683,38 @@ export function UsagePage() {
                                 <span className="truncate">
                                   {PROVIDER_PRESENTATION[provider].label}
                                 </span>
-                                <span className="shrink-0 whitespace-nowrap text-2xs text-muted-foreground tabular-nums">
+                                <span
+                                  className={cn(
+                                    "shrink-0 whitespace-nowrap text-2xs text-muted-foreground tabular-nums",
+                                    figureClass(providerLoading),
+                                    awaitingData && "invisible",
+                                  )}
+                                >
                                   {sessionLabel}
                                 </span>
                               </span>
                             </span>
-                            <span className="shrink-0 text-sm font-medium text-foreground tabular-nums">
-                              {metric === "cost"
-                                ? formatUsd(totals?.costUsd ?? 0)
-                                : formatTokens(totals?.totalTokens ?? 0)}
+                            <span
+                              className={cn(
+                                "shrink-0 text-sm font-medium text-foreground tabular-nums",
+                                figureClass(providerLoading),
+                              )}
+                            >
+                              {awaitingData
+                                ? "—"
+                                : metric === "cost"
+                                  ? formatUsd(totals?.costUsd ?? 0)
+                                  : formatTokens(totals?.totalTokens ?? 0)}
                             </span>
                           </div>
-                          <span className="text-xs text-muted-foreground">
+                          {/* Kept while awaiting data so the row does not grow when it lands. */}
+                          <span
+                            className={cn(
+                              "text-xs text-muted-foreground",
+                              figureClass(providerLoading),
+                              awaitingData && "invisible",
+                            )}
+                          >
                             {metric === "cost"
                               ? t("usage.provider.costShare", {
                                   share: formatPercent(share),
@@ -616,7 +733,7 @@ export function UsagePage() {
                   <div className="flex min-w-0 flex-col gap-3">
                     <h2 className="text-sm font-medium text-foreground">
                       {t(
-                        isPast24Hours
+                        shownHourly
                           ? metric === "tokens"
                             ? "usage.hourlyTokens"
                             : "usage.hourlyCost"
@@ -627,14 +744,15 @@ export function UsagePage() {
                     </h2>
                     <UsageProviderChart
                       providers={activeProviders}
+                      loadingProviders={chartLoadingProviders}
                       days={days}
                       daily={merged.daily}
                       hours={hours}
                       hourly={merged.hourly}
                       metric={metric}
-                      referenceTime={window.untilTime}
-                      resolution={isPast24Hours ? "hour" : "day"}
-                      timeZone={window.timeZone}
+                      referenceTime={shownWindow.untilTime}
+                      resolution={shownHourly ? "hour" : "day"}
+                      timeZone={shownWindow.timeZone}
                     />
                   </div>
                 </section>
@@ -643,27 +761,65 @@ export function UsagePage() {
                   <h2 className="text-sm font-medium text-foreground">{t("usage.totals")}</h2>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4 py-1 md:grid-cols-5">
                     <Metric
+                      loading={loading.partial}
                       label={t("usage.processedTokens")}
                       value={formatTokens(merged.totalTokens)}
                     />
                     <Metric
+                      loading={loading.partial}
                       label={t("usage.metric.cachedInput")}
                       value={formatTokens(merged.cachedInputTokens)}
                     />
                     <Metric
+                      loading={loading.partial}
                       label={t("usage.metric.uncachedInput")}
                       value={formatTokens(merged.uncachedInputTokens)}
                     />
                     <Metric
+                      loading={loading.partial}
                       label={t("usage.metric.output")}
                       value={formatTokens(merged.outputTokens)}
                     />
                     <Metric
+                      loading={loading.partial}
                       label={t("usage.metric.cacheSavings")}
                       value={formatUsd(merged.costQuality.cacheSavingsUsd)}
                     />
                   </div>
                 </section>
+
+                {merged.totalTokens > 0 ? (
+                  <section
+                    className={cn(
+                      "grid gap-x-12 gap-y-8 lg:grid-cols-2",
+                      figureClass(loading.partial),
+                    )}
+                  >
+                    {metric === "tokens" ? (
+                      <UsageShareBar
+                        label="Tokens by type"
+                        segments={tokenTypeSegments(merged)}
+                        format={formatTokens}
+                      />
+                    ) : (
+                      <>
+                        <UsageShareBar
+                          label="Cost by type"
+                          segments={costTypeSegments(merged.categoryCost)}
+                          format={formatUsd}
+                        />
+                        {merged.speedCost.fast + merged.speedCost.ultrafast > 0 ? (
+                          <UsageShareBar
+                            label="Cost by speed"
+                            segments={speedCostSegments(merged.speedCost)}
+                            format={formatUsd}
+                            aside={<SpeedPremium premiumUsd={merged.speedCost.premium} />}
+                          />
+                        ) : null}
+                      </>
+                    )}
+                  </section>
+                ) : null}
 
                 <section className="flex flex-col gap-3">
                   <div className="flex items-center justify-between gap-3">
@@ -682,7 +838,7 @@ export function UsagePage() {
                           { value: "model", label: t("usage.breakdown.model") },
                           {
                             value: "time",
-                            label: t(isPast24Hours ? "usage.period.hour" : "usage.period.day"),
+                            label: t(shownHourly ? "usage.period.hour" : "usage.period.day"),
                           },
                         ] as const
                       ).map((option) => (
@@ -694,63 +850,89 @@ export function UsagePage() {
                   </div>
 
                   {breakdown === "model" ? (
-                    <table className="w-full table-fixed text-sm">
-                      <colgroup>
-                        <col className="w-2/5" />
-                        <col className="w-1/5" />
-                        <col className="w-1/5" />
-                        <col className="w-1/5" />
-                      </colgroup>
+                    <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                          <th className="py-2 font-normal">{t("usage.breakdown.model")}</th>
-                          <th className="py-2 text-right font-normal">
-                            {t("usage.breakdown.cost")}
+                        <tr className="border-b border-border text-right text-xs text-muted-foreground">
+                          <th className="py-2 pr-3 text-left font-normal">#</th>
+                          <th className="w-full py-2 text-left font-normal">
+                            {t("usage.breakdown.model")}
                           </th>
-                          <th className="py-2 text-right font-normal">
+                          <th className="py-2 pl-6 font-normal">{t("usage.breakdown.cost")}</th>
+                          <th className="hidden py-2 pl-6 font-normal sm:table-cell">
                             {t("usage.breakdown.share")}
                           </th>
-                          <th className="py-2 text-right font-normal">
-                            {t("usage.breakdown.tokens")}
-                          </th>
+                          <th className="py-2 pl-6 font-normal">{t("usage.breakdown.tokens")}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {breakdownModels.length === 0 ? (
                           <tr>
-                            <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                            <td colSpan={5} className="py-6 text-center text-muted-foreground">
                               {t("usage.noActivity")}
                             </td>
                           </tr>
                         ) : (
-                          breakdownModels.map((model) => (
-                            <tr
-                              key={`${model.provider}:${model.model}`}
-                              className="border-b border-border/50 transition-colors hover:bg-muted/50"
-                            >
-                              <td className="py-2 text-foreground">
-                                <span className="flex items-center gap-2">
-                                  <ProviderMark provider={model.provider} className="size-3.5" />
-                                  {model.model}
-                                </span>
-                              </td>
-                              <td className="py-2 text-right text-foreground tabular-nums">
-                                {isModelCostUnknown(model) ? (
-                                  <span className="text-muted-foreground">
-                                    {translateWebSource(uiLocale, "Unpriced")}
-                                  </span>
-                                ) : (
-                                  formatUsd(model.costUsd)
-                                )}
-                              </td>
-                              <td className="py-2 text-right text-muted-foreground tabular-nums">
-                                {isModelCostUnknown(model) ? "—" : formatPercent(model.costShare)}
-                              </td>
-                              <td className="py-2 text-right text-muted-foreground tabular-nums">
-                                {formatTokens(model.totalTokens)}
-                              </td>
-                            </tr>
-                          ))
+                          breakdownModels.map((model, index) => {
+                            const key = `${model.provider}:${model.model}`;
+                            const value = metric === "tokens" ? model.totalTokens : model.costUsd;
+                            const share = modelShare(
+                              model,
+                              metric === "tokens" ? "tokens" : "cost",
+                            );
+                            const rowFigures = figureClass(isProviderLoading(model.provider));
+                            return (
+                              <tr
+                                key={key}
+                                className="relative border-b border-border/50 text-right whitespace-nowrap text-muted-foreground tabular-nums transition-colors hover:bg-muted/50 has-focus-visible:bg-muted/50"
+                              >
+                                <td className="py-2.5 pr-3 text-left text-xs">{index + 1}</td>
+                                <td className="py-2.5 text-left whitespace-normal">
+                                  {/* The button's overlay makes the whole row open the model.
+                                      Focus shows as the row's hover fill, not a ring. */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedModelKey(key)}
+                                    className="flex items-center gap-2 text-left text-foreground outline-none after:absolute after:inset-0"
+                                  >
+                                    <ProviderMark provider={model.provider} className="size-3.5" />
+                                    {model.model}
+                                  </button>
+                                  <div
+                                    aria-hidden
+                                    className={cn("mt-1.5 h-0.5 max-w-48", rowFigures)}
+                                  >
+                                    <div
+                                      className="h-full rounded-full"
+                                      style={{
+                                        // A short minimum keeps tiny shares a dash, not a dot.
+                                        width:
+                                          value > 0 && breakdownPeak > 0
+                                            ? `max(0.5rem, ${(value / breakdownPeak) * 100}%)`
+                                            : 0,
+                                        backgroundColor:
+                                          PROVIDER_PRESENTATION[model.provider].color,
+                                      }}
+                                    />
+                                  </div>
+                                </td>
+                                <td className={cn("py-2.5 pl-6 text-foreground", rowFigures)}>
+                                  {isModelCostUnknown(model) ? (
+                                    <span className="text-muted-foreground">
+                                      {translateWebSource(uiLocale, "Unpriced")}
+                                    </span>
+                                  ) : (
+                                    formatUsd(model.costUsd)
+                                  )}
+                                </td>
+                                <td className={cn("hidden py-2.5 pl-6 sm:table-cell", rowFigures)}>
+                                  {share === null ? "" : formatPercent(share)}
+                                </td>
+                                <td className={cn("py-2.5 pl-6", rowFigures)}>
+                                  {formatTokens(model.totalTokens)}
+                                </td>
+                              </tr>
+                            );
+                          })
                         )}
                       </tbody>
                     </table>
@@ -767,7 +949,7 @@ export function UsagePage() {
                       <thead>
                         <tr className="border-b border-border text-left text-xs text-muted-foreground">
                           <th className="py-2 font-normal">
-                            {t(isPast24Hours ? "usage.period.hour" : "usage.period.day")}
+                            {t(shownHourly ? "usage.period.hour" : "usage.period.day")}
                           </th>
                           {activeProviders.map((provider) => (
                             <th key={provider} className="py-2 text-right font-normal">
@@ -800,21 +982,34 @@ export function UsagePage() {
                             >
                               <td className="py-2 text-foreground">
                                 {"hourStart" in period
-                                  ? formatHourShort(period.hourStart, window.timeZone, locale)
+                                  ? formatHourShort(period.hourStart, shownWindow.timeZone, locale)
                                   : formatDayShort(period.day, locale)}
                               </td>
                               {activeProviders.map((provider) => (
                                 <td
                                   key={provider}
-                                  className="py-2 text-right text-muted-foreground tabular-nums"
+                                  className={cn(
+                                    "py-2 text-right text-muted-foreground tabular-nums",
+                                    figureClass(isProviderLoading(provider)),
+                                  )}
                                 >
                                   {formatUsd(period.byProvider.get(provider)?.costUsd ?? 0)}
                                 </td>
                               ))}
-                              <td className="py-2 text-right text-foreground tabular-nums">
+                              <td
+                                className={cn(
+                                  "py-2 text-right text-foreground tabular-nums",
+                                  figureClass(loading.partial),
+                                )}
+                              >
                                 {formatUsd(period.costUsd)}
                               </td>
-                              <td className="py-2 text-right text-muted-foreground tabular-nums">
+                              <td
+                                className={cn(
+                                  "py-2 text-right text-muted-foreground tabular-nums",
+                                  figureClass(loading.partial),
+                                )}
+                              >
                                 {formatTokens(period.totalTokens)}
                               </td>
                             </tr>
@@ -824,11 +1019,40 @@ export function UsagePage() {
                     </table>
                   )}
                 </section>
-              </>
+              </div>
             )}
           </WorkspacePageContainer>
         </ScrollArea>
       </div>
+      {selectedModel !== undefined && !showingLimits ? (
+        <UsageModelDialog
+          model={selectedModel}
+          environments={selectedEnvironments}
+          metric={metric === "tokens" ? "tokens" : "cost"}
+          chartWindow={{
+            days,
+            hours,
+            resolution: shownHourly ? "hour" : "day",
+            timeZone: shownWindow.timeZone,
+            referenceTime: shownWindow.untilTime,
+          }}
+          onSetPrice={() => {
+            setSelectedModelKey(null);
+            setPriceDialog({ model: selectedModel.model });
+          }}
+          onClose={() => setSelectedModelKey(null)}
+        />
+      ) : null}
+      {priceDialog ? (
+        <UsagePriceOverrides
+          usage={environments}
+          initialSelectedEnvironmentIds={selectedEnvironmentIds}
+          initialModel={priceDialog.model}
+          onOpenChange={(open) => {
+            if (!open) setPriceDialog(null);
+          }}
+        />
+      ) : null}
     </SidebarInset>
   );
 }
@@ -972,15 +1196,38 @@ function ProviderMark({
   readonly provider: UsageProviderKind;
   readonly className: string;
 }) {
-  const Mark = PROVIDER_PRESENTATION[provider].mark;
-  return <Mark className={cn("shrink-0", className)} aria-hidden />;
+  const presentation = PROVIDER_PRESENTATION[provider];
+  return (
+    <ProviderInstanceIcon
+      driverKind={presentation.driverKind}
+      displayName={presentation.label}
+      iconClassName={className}
+    />
+  );
 }
 
-function Metric({ label, value }: { readonly label: string; readonly value: string }) {
+/** Mutes a figure that is still coming in. The delay keeps a quick answer from flashing. */
+function figureClass(loading: boolean) {
+  return cn("transition-opacity", loading && "opacity-40 delay-150");
+}
+
+function Metric({
+  label,
+  value,
+  loading,
+}: {
+  readonly label: string;
+  readonly value: string;
+  readonly loading: boolean;
+}) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-base font-medium text-foreground tabular-nums">{value}</span>
+      <span
+        className={cn("text-base font-medium text-foreground tabular-nums", figureClass(loading))}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -1015,7 +1262,7 @@ function UsageCoverageNotice({
     <div className="flex flex-col gap-1 border-t border-border px-2 py-2 text-xs text-muted-foreground">
       {failed.map((environment) => (
         <span key={environment.label}>
-          {t("usage.coverage.failed", { environment: environment.label })}
+          {environment.label}: {environment.error}
         </span>
       ))}
       {incompatible.map(({ environment, mismatch }) => (
@@ -1030,29 +1277,32 @@ function UsageCoverageNotice({
   );
 }
 
-/** Environment selection and scan progress share a permanent header control. */
+/** Environment selection, with each environment's scan status in the menu. */
 function UsageEnvironmentFilter({
   environments,
   selectedEnvironments,
   selectedEnvironmentIds,
   onSelectionChange,
   showUsageStatus,
+  refreshing,
   isPartial,
   duplicateSources,
   contractMismatches,
+  onOpenModelPrices,
 }: {
   readonly environments: readonly EnvironmentUsageStatus[];
   readonly selectedEnvironments: readonly EnvironmentUsageStatus[];
   readonly selectedEnvironmentIds: ReadonlySet<EnvironmentId> | null;
   readonly onSelectionChange: (ids: ReadonlySet<EnvironmentId> | null) => void;
   readonly showUsageStatus: boolean;
+  readonly refreshing: boolean;
   readonly isPartial: boolean;
   readonly duplicateSources: readonly string[];
   readonly contractMismatches: MergedUsage["contractMismatches"];
+  readonly onOpenModelPrices: () => void;
 }) {
   const { locale } = useI18n();
   const translate = (source: string) => translateWebSource(locale, source);
-  const [modelPricesOpen, setModelPricesOpen] = useState(false);
   const allSelected = selectedEnvironmentIds === null;
   const label = allSelected
     ? translate("All environments")
@@ -1061,132 +1311,176 @@ function UsageEnvironmentFilter({
       : locale === "zh-CN"
         ? `${selectedEnvironments.length} 个环境`
         : `${selectedEnvironments.length} environments`;
-  const pendingCount = selectedEnvironments.filter(
-    (environment) =>
-      environment.error === null && (environment.isPending || environment.summary === null),
-  ).length;
   const hasIssue =
     selectedEnvironments.some((environment) => environment.error !== null) ||
     contractMismatches.length > 0;
 
   return (
-    <>
-      <Menu>
-        <MenuTrigger
-          render={<InlineButton />}
-          className="group/usage-environment min-w-0 max-w-full"
-        >
-          <span className="min-w-0 truncate">{label}</span>
-          <span className="flex size-3.5 shrink-0 items-center justify-center text-muted-foreground">
-            {showUsageStatus && pendingCount > 0 ? (
-              <>
-                <CircleDashedIcon className="size-3.5" aria-hidden />
-                <span className="sr-only">
-                  {locale === "zh-CN"
-                    ? `${pendingCount} 个环境仍在扫描${isPartial ? "；当前总计不完整" : ""}`
-                    : `${pendingCount} ${pendingCount === 1 ? "environment" : "environments"} still scanning${isPartial ? "; totals are partial" : ""}`}
-                </span>
-              </>
-            ) : showUsageStatus && hasIssue ? (
-              <CircleAlertIcon
-                className="size-3.5 text-warning-foreground"
-                aria-label={translate(translate("Some environments could not report usage"))}
-              />
-            ) : (
-              <ChevronDownIcon
-                className="size-3.5 opacity-0 transition-opacity group-hover/usage-environment:opacity-100 group-focus-visible/usage-environment:opacity-100 group-data-popup-open/usage-environment:opacity-100"
-                aria-hidden
-              />
-            )}
-          </span>
-        </MenuTrigger>
-        <MenuPopup align="start">
-          <MenuCheckboxItem
-            checked={allSelected}
-            closeOnClick={false}
-            onCheckedChange={(checked) => onSelectionChange(checked ? null : new Set())}
-          >
-            {translate("All environments")}
-          </MenuCheckboxItem>
-          <MenuSeparator />
-          {environments.map((environment) => {
-            const checked =
-              selectedEnvironmentIds === null ||
-              selectedEnvironmentIds.has(environment.environmentId);
-            const status =
-              environment.error !== null
-                ? translate("Unavailable")
-                : environment.summary !== null &&
-                    !isCompatibleUsageContractVersion(
-                      environment.summary.contractVersion,
-                      USAGE_CONTRACT_VERSION,
-                    )
-                  ? translate("Update required")
-                  : environment.summary === null
-                    ? translate("Scanning…")
-                    : environment.isPending
-                      ? translate("Refreshing…")
-                      : translate("Ready");
-            return (
-              <MenuCheckboxItem
-                key={environment.environmentId}
-                checked={checked}
-                closeOnClick={false}
-                onCheckedChange={(nextChecked) => {
-                  const next = new Set(selectedEnvironments.map((entry) => entry.environmentId));
-                  if (nextChecked) next.add(environment.environmentId);
-                  else next.delete(environment.environmentId);
-                  onSelectionChange(next.size === environments.length ? null : next);
-                }}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <span className="min-w-0 flex-1 truncate">{environment.label}</span>
-                  {showUsageStatus ? (
-                    <span
-                      className={cn(
-                        "shrink-0 text-xs text-muted-foreground",
-                        environment.error !== null && "text-destructive",
-                      )}
-                    >
-                      {status}
-                    </span>
-                  ) : null}
-                </span>
-              </MenuCheckboxItem>
-            );
-          })}
-          {environments.length === 0 ? (
-            <p className="px-2 py-2 text-xs text-muted-foreground">
-              {translate("No environments connected.")}
-            </p>
-          ) : null}
-          {showUsageStatus && isPartial ? (
-            <p className="px-2 py-2 text-xs text-muted-foreground">
-              {translate("Totals are partial while selected environments scan.")}
-            </p>
-          ) : null}
-          {showUsageStatus ? (
-            <UsageCoverageNotice
-              environments={selectedEnvironments}
-              duplicateSources={duplicateSources}
-              contractMismatches={contractMismatches}
+    <Menu>
+      <MenuTrigger render={<InlineButton />} className="group/usage-environment min-w-0 max-w-full">
+        <WorkspaceBreadcrumbText>{label}</WorkspaceBreadcrumbText>
+        <span className="flex size-3.5 shrink-0 items-center justify-center text-muted-foreground">
+          {showUsageStatus && hasIssue ? (
+            <CircleAlertIcon
+              className="size-3.5 text-warning-foreground"
+              aria-label={translate("Some environments could not report usage")}
             />
-          ) : null}
-          <MenuSeparator />
-          <MenuItem onClick={() => setModelPricesOpen(true)}>
-            <SlidersHorizontalIcon aria-hidden />
-            {translate("Model prices")}
-          </MenuItem>
-        </MenuPopup>
-      </Menu>
-      {modelPricesOpen ? (
-        <UsagePriceOverrides
-          usage={environments}
-          initialSelectedEnvironmentIds={selectedEnvironmentIds}
-          onOpenChange={setModelPricesOpen}
+          ) : (
+            <ChevronDownIcon
+              className="size-3.5 opacity-0 transition-opacity group-hover/usage-environment:opacity-100 group-focus-visible/usage-environment:opacity-100 group-data-popup-open/usage-environment:opacity-100"
+              aria-hidden
+            />
+          )}
+        </span>
+      </MenuTrigger>
+      <MenuPopup align="start">
+        <MenuCheckboxItem
+          checked={allSelected}
+          closeOnClick={false}
+          onCheckedChange={(checked) => onSelectionChange(checked ? null : new Set())}
+        >
+          {translate("All environments")}
+        </MenuCheckboxItem>
+        <MenuSeparator />
+        {environments.map((environment) => {
+          const checked =
+            selectedEnvironmentIds === null ||
+            selectedEnvironmentIds.has(environment.environmentId);
+          const progress = usageEnvironmentProgress(environment, refreshing);
+          const status =
+            environment.error !== null
+              ? translate("Unavailable")
+              : environment.summary !== null &&
+                  !isCompatibleUsageContractVersion(
+                    environment.summary.contractVersion,
+                    USAGE_CONTRACT_VERSION,
+                  )
+                ? translate("Update required")
+                : !environment.isConnected
+                  ? translate("Connecting…")
+                  : progress.phase === "loading"
+                    ? translate("Scanning…")
+                    : progress.phase === "stale"
+                      ? translate("Refreshing…")
+                      : progress.phase === "partway"
+                        ? updatingProvidersLabel(progress.providers, providerLabel)
+                        : translate("Ready");
+          return (
+            <MenuCheckboxItem
+              key={environment.environmentId}
+              checked={checked}
+              closeOnClick={false}
+              onCheckedChange={(nextChecked) => {
+                const next = new Set(selectedEnvironments.map((entry) => entry.environmentId));
+                if (nextChecked) next.add(environment.environmentId);
+                else next.delete(environment.environmentId);
+                onSelectionChange(next.size === environments.length ? null : next);
+              }}
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="min-w-0 flex-1 truncate">{environment.label}</span>
+                {showUsageStatus ? (
+                  <span
+                    className={cn(
+                      "shrink-0 text-xs text-muted-foreground",
+                      environment.error !== null && "text-destructive",
+                    )}
+                  >
+                    {status}
+                  </span>
+                ) : null}
+              </span>
+            </MenuCheckboxItem>
+          );
+        })}
+        {environments.length === 0 ? (
+          <p className="px-2 py-2 text-xs text-muted-foreground">
+            {translate("No environments connected.")}
+          </p>
+        ) : null}
+        {showUsageStatus && isPartial ? (
+          <p className="px-2 py-2 text-xs text-muted-foreground">
+            {translate("Totals are partial while selected environments scan.")}
+          </p>
+        ) : null}
+        {showUsageStatus ? (
+          <UsageCoverageNotice
+            environments={selectedEnvironments}
+            duplicateSources={duplicateSources}
+            contractMismatches={contractMismatches}
+          />
+        ) : null}
+        <MenuSeparator />
+        <MenuItem onClick={onOpenModelPrices}>
+          <SlidersHorizontalIcon aria-hidden />
+          {translate("Model prices")}
+        </MenuItem>
+      </MenuPopup>
+    </Menu>
+  );
+}
+
+/** Provider visibility shared by every tab. Stored as the hidden set. */
+function UsageProviderFilter({
+  hiddenProviders,
+  onChange,
+}: {
+  readonly hiddenProviders: ReadonlySet<UsageProviderKind>;
+  readonly onChange: (hiddenProviders: readonly UsageProviderKind[]) => void;
+}) {
+  const { locale } = useI18n();
+  const translate = (source: string) => translateWebSource(locale, source);
+  const visible = PROVIDER_ORDER.filter((provider) => !hiddenProviders.has(provider));
+  const label =
+    visible.length === PROVIDER_ORDER.length
+      ? translate("All providers")
+      : visible.length === 0
+        ? translate("No providers")
+        : visible.length === 1
+          ? PROVIDER_PRESENTATION[visible[0]!].label
+          : locale === "zh-CN"
+            ? `${visible.length} 个提供方`
+            : `${visible.length} providers`;
+
+  return (
+    <Menu>
+      <MenuTrigger render={<InlineButton />} className="group/usage-provider min-w-0 max-w-full">
+        <span className="min-w-0 truncate">{label}</span>
+        <ChevronDownIcon
+          className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/usage-provider:opacity-100 group-focus-visible/usage-provider:opacity-100 group-data-popup-open/usage-provider:opacity-100"
+          aria-hidden
         />
-      ) : null}
-    </>
+      </MenuTrigger>
+      <MenuPopup align="start">
+        <MenuCheckboxItem
+          checked={hiddenProviders.size === 0}
+          closeOnClick={false}
+          onCheckedChange={(checked) => onChange(checked ? [] : PROVIDER_ORDER)}
+        >
+          All providers
+        </MenuCheckboxItem>
+        <MenuSeparator />
+        {PROVIDER_ORDER.map((provider) => (
+          <MenuCheckboxItem
+            key={provider}
+            checked={!hiddenProviders.has(provider)}
+            closeOnClick={false}
+            onCheckedChange={(checked) =>
+              onChange(
+                PROVIDER_ORDER.filter((entry) =>
+                  entry === provider ? !checked : hiddenProviders.has(entry),
+                ),
+              )
+            }
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <ProviderMark provider={provider} className="size-3.5" />
+              <span className="truncate">{PROVIDER_PRESENTATION[provider].label}</span>
+            </span>
+          </MenuCheckboxItem>
+        ))}
+      </MenuPopup>
+    </Menu>
   );
 }
 
@@ -1239,13 +1533,14 @@ function UsageSkeleton() {
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-foreground">{t("usage.totals")}</h2>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4 py-1 md:grid-cols-5">
-          {metricLabels.map((label) => (
-            <div key={label} className="flex flex-col gap-0.5">
-              <span className="text-xs text-muted-foreground">{label}</span>
-              <Skeleton className="h-6 w-16" />
-            </div>
-          ))}
+        <MetricSkeletons labels={metricLabels} />
+      </section>
+
+      <section className="grid gap-x-12 gap-y-8 lg:grid-cols-2">
+        <div className="flex flex-col gap-2.5">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-2" />
+          <Skeleton className="h-4 w-72" />
         </div>
       </section>
 
@@ -1257,5 +1552,18 @@ function UsageSkeleton() {
         <Skeleton className="h-44" />
       </section>
     </>
+  );
+}
+
+function MetricSkeletons({ labels }: { readonly labels: readonly string[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-x-6 gap-y-4 py-1 md:grid-cols-5">
+      {labels.map((label) => (
+        <div key={label} className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <Skeleton className="h-6 w-16" />
+        </div>
+      ))}
+    </div>
   );
 }

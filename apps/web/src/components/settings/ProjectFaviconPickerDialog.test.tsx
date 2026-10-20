@@ -28,7 +28,7 @@ vi.mock("~/state/server", () => ({
   primaryServerKeybindingsAtom: Symbol("keybindings"),
 }));
 
-vi.mock("~/i18n/WebI18nProvider", () => ({
+vi.mock("~/i18n/WebI18nContext", () => ({
   useI18n: () => ({
     t: (key: string, values?: Readonly<Record<string, string | number>>) => {
       const messages: Readonly<Record<string, string>> = {

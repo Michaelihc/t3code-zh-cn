@@ -5,8 +5,8 @@ import { WizardSteps } from "../ui/wizard";
 import { ADD_PROVIDER_WIZARD_STEPS } from "./AddProviderInstanceDialog.logic";
 import { AddProviderInstanceWizardSteps } from "./AddProviderInstanceWizardSteps";
 
-vi.mock("../../i18n/WebI18nProvider", () => ({
-  useI18n: () => ({ t: (key: string) => key }),
+vi.mock("../../i18n/WebI18nContext", () => ({
+  useI18n: () => ({ locale: "en", t: (key: string) => key }),
 }));
 
 interface StepButtonProps {

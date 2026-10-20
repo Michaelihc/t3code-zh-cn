@@ -38,7 +38,7 @@ const environmentInput = {
   runningUnderArm64Translation: false,
 } satisfies DesktopEnvironment.MakeDesktopEnvironmentInput;
 
-const makeElectronAppLayer = (systemLocale = "en-US") =>
+const layerElectronApp = (systemLocale = "en-US") =>
   Layer.succeed(ElectronApp.ElectronApp, {
     metadata: Effect.die("unexpected metadata read"),
     name: Effect.succeed("T3 Code"),
@@ -62,7 +62,7 @@ const makeElectronAppLayer = (systemLocale = "en-US") =>
   } satisfies ElectronApp.ElectronApp["Service"]);
 
 const electronDialog = {
-  pickFolder: () => Effect.succeed(Option.none()),
+  pickFolder: () => Effect.succeedNone,
   pickFiles: () => Effect.succeed([]),
   showMessageBox: () => Effect.succeed({ response: 0, checkboxChecked: false }),
   showErrorBox: () => Effect.void,
@@ -83,7 +83,7 @@ const desktopUpdates = {
   installPrepared: () => Effect.die("unexpected installPrepared"),
 } satisfies DesktopUpdates.DesktopUpdates["Service"];
 
-const makeDesktopWindowLayer = (selectedAction: Deferred.Deferred<string>) =>
+const layerDesktopWindow = (selectedAction: Deferred.Deferred<string>) =>
   Layer.succeed(DesktopWindow.DesktopWindow, {
     createMain: Effect.die("unexpected createMain"),
     ensureMain: Effect.succeed({} as Electron.BrowserWindow),
@@ -99,10 +99,12 @@ const makeDesktopWindowLayer = (selectedAction: Deferred.Deferred<string>) =>
     dispatchSnapShotEvent: () => Effect.void,
     zoomMain: (direction) =>
       Deferred.succeed(selectedAction, `zoom-${direction}`).pipe(Effect.asVoid),
+    runMainContentsCommand: (command) =>
+      Deferred.succeed(selectedAction, `main-${command}`).pipe(Effect.asVoid),
     syncAppearance: Effect.void,
   } satisfies DesktopWindow.DesktopWindow["Service"]);
 
-const makeElectronMenuLayer = (
+const layerElectronMenu = (
   applicationMenuTemplate: Deferred.Deferred<readonly Electron.MenuItemConstructorOptions[]>,
 ) =>
   Layer.succeed(ElectronMenu.ElectronMenu, {
@@ -115,10 +117,9 @@ const makeElectronMenuLayer = (
 const configureMenu = (
   selectedAction: Deferred.Deferred<string>,
   applicationMenuTemplate: Deferred.Deferred<readonly Electron.MenuItemConstructorOptions[]>,
-  options: {
+  options: Partial<DesktopEnvironment.MakeDesktopEnvironmentInput> & {
     readonly appLocale?: AppLocalePreference;
     readonly systemLocale?: string;
-    readonly platform?: DesktopEnvironment.MakeDesktopEnvironmentInput["platform"];
     readonly electronDialog?: ElectronDialog.ElectronDialog["Service"];
     readonly desktopUpdates?: DesktopUpdates.DesktopUpdates["Service"];
   } = {},
@@ -129,15 +130,15 @@ const configureMenu = (
   }).pipe(
     Effect.provide(
       DesktopApplicationMenu.layer.pipe(
-        Layer.provideMerge(makeElectronMenuLayer(applicationMenuTemplate)),
-        Layer.provideMerge(makeDesktopWindowLayer(selectedAction)),
+        Layer.provideMerge(layerElectronMenu(applicationMenuTemplate)),
+        Layer.provideMerge(layerDesktopWindow(selectedAction)),
         Layer.provideMerge(
           Layer.succeed(DesktopUpdates.DesktopUpdates, options.desktopUpdates ?? desktopUpdates),
         ),
         Layer.provideMerge(
           Layer.succeed(ElectronDialog.ElectronDialog, options.electronDialog ?? electronDialog),
         ),
-        Layer.provideMerge(makeElectronAppLayer(options.systemLocale)),
+        Layer.provideMerge(layerElectronApp(options.systemLocale)),
         Layer.provideMerge(
           DesktopClientSettings.layerTest(
             Option.some({
@@ -149,7 +150,7 @@ const configureMenu = (
         Layer.provideMerge(
           DesktopEnvironment.layer({
             ...environmentInput,
-            platform: options.platform ?? environmentInput.platform,
+            ...options,
           }).pipe(Layer.provide(Layer.mergeAll(NodeServices.layer, DesktopConfig.layerTest({})))),
         ),
       ),
@@ -157,6 +158,39 @@ const configureMenu = (
   );
 
 describe("DesktopApplicationMenu", () => {
+  it.effect("keeps display branding in the macOS application menu", () =>
+    Effect.gen(function* () {
+      const selectedAction = yield* Deferred.make<string>();
+      const applicationMenuTemplate =
+        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
+
+      yield* configureMenu(selectedAction, applicationMenuTemplate, {
+        platform: "darwin",
+        appVersion: "0.0.43-nightly.20260929.2428",
+      });
+
+      const template = yield* Deferred.await(applicationMenuTemplate);
+      const applicationMenu = template[0];
+      assert.isDefined(applicationMenu);
+      assert.equal(applicationMenu.label, "T3 Code (Nightly)");
+      if (!Array.isArray(applicationMenu.submenu)) {
+        throw new Error("Expected application menu submenu to be an array.");
+      }
+      assert.equal(
+        applicationMenu.submenu.find((item) => item.role === "about")?.label,
+        "About T3 Code (Nightly)",
+      );
+      assert.equal(
+        applicationMenu.submenu.find((item) => item.role === "hide")?.label,
+        "Hide T3 Code (Nightly)",
+      );
+      assert.equal(
+        applicationMenu.submenu.find((item) => item.role === "quit")?.label,
+        "Quit T3 Code (Nightly)",
+      );
+    }),
+  );
+
   it("resolves system language from the runtime locale", () => {
     assert.equal(resolveDesktopApplicationMenuMessages("system", ["zh-Hans-CN"]).file, "文件");
     assert.equal(resolveDesktopApplicationMenuMessages("system", ["fr-FR"]).file, "File");
@@ -284,7 +318,9 @@ describe("DesktopApplicationMenu", () => {
       }
 
       assert.isUndefined(
-        viewMenu.submenu.find((item) => item.role?.toLowerCase().includes("zoom")),
+        viewMenu.submenu.find((item) =>
+          ["zoom", "reload", "devtools"].some((role) => item.role?.toLowerCase().includes(role)),
+        ),
       );
 
       const zoomIn = viewMenu.submenu.find((item) => item.label === "Zoom In");
@@ -314,7 +350,10 @@ describe("DesktopApplicationMenu", () => {
         throw new Error("Expected localized File menu submenu to be an array.");
       }
       assert.isDefined(fileMenu.submenu.find((item) => item.label === "设置..."));
-      assert.equal(fileMenu.submenu.find((item) => item.role === "quit")?.label, "退出 T3 Code");
+      assert.equal(
+        fileMenu.submenu.find((item) => item.role === "quit")?.label,
+        "退出 T3 Code (Beta)",
+      );
 
       const editMenu = template.find((item) => item.label === "编辑");
       assert.equal(editMenu?.label, "编辑");
@@ -344,13 +383,16 @@ describe("DesktopApplicationMenu", () => {
       assert.isDefined(viewMenu.submenu.find((item) => item.label === "实际大小"));
       assert.isDefined(viewMenu.submenu.find((item) => item.label === "放大"));
       assert.isDefined(viewMenu.submenu.find((item) => item.label === "缩小"));
-      assert.equal(viewMenu.submenu.find((item) => item.role === "reload")?.label, "重新加载");
       assert.equal(
-        viewMenu.submenu.find((item) => item.role === "forceReload")?.label,
+        viewMenu.submenu.find((item) => item.accelerator === "CmdOrCtrl+R")?.label,
+        "重新加载",
+      );
+      assert.equal(
+        viewMenu.submenu.find((item) => item.accelerator === "Shift+CmdOrCtrl+R")?.label,
         "强制重新加载",
       );
       assert.equal(
-        viewMenu.submenu.find((item) => item.role === "toggleDevTools")?.label,
+        viewMenu.submenu.find((item) => item.accelerator === "Ctrl+Shift+I")?.label,
         "切换开发者工具",
       );
       assert.equal(
@@ -398,7 +440,10 @@ describe("DesktopApplicationMenu", () => {
       if (!Array.isArray(viewMenu?.submenu)) {
         throw new Error("Expected English View menu submenu to be an array.");
       }
-      assert.equal(viewMenu.submenu.find((item) => item.role === "reload")?.label, "Reload");
+      assert.equal(
+        viewMenu.submenu.find((item) => item.accelerator === "CmdOrCtrl+R")?.label,
+        "Reload",
+      );
       assert.equal(
         viewMenu.submenu.find((item) => item.role === "togglefullscreen")?.label,
         "Toggle Full Screen",
@@ -436,12 +481,12 @@ describe("DesktopApplicationMenu", () => {
           .filter((item) => item.role !== undefined)
           .map((item) => [item.role, item.label]),
         [
-          ["about", "关于 T3 Code"],
+          ["about", "关于 T3 Code (Beta)"],
           ["services", "服务"],
-          ["hide", "隐藏 T3 Code"],
+          ["hide", "隐藏 T3 Code (Beta)"],
           ["hideOthers", "隐藏其他应用"],
           ["unhide", "全部显示"],
-          ["quit", "退出 T3 Code"],
+          ["quit", "退出 T3 Code (Beta)"],
         ],
       );
 
@@ -534,7 +579,7 @@ describe("DesktopApplicationMenu", () => {
       };
       const layer = Layer.mergeAll(
         DesktopClientSettings.layerTest(Option.some(initialSettings)),
-        Layer.mock(DesktopSnapShot.DesktopSnapShot, { configure: () => Effect.void }),
+        Layer.mock(DesktopSnapShot.DesktopSnapShot)({ configure: () => Effect.void }),
         Layer.succeed(DesktopApplicationMenu.DesktopApplicationMenu, {
           configure: Ref.update(configureCount, (count) => count + 1),
         }),
@@ -551,6 +596,57 @@ describe("DesktopApplicationMenu", () => {
         yield* setClientSettings.handler({ ...chineseSettings, wordWrap: true });
         assert.equal(yield* Ref.get(configureCount), 1);
       }).pipe(Effect.provide(layer));
+    }),
+  );
+  it.effect("reloads the main window even while a browser page has focus", () =>
+    Effect.gen(function* () {
+      const selectedAction = yield* Deferred.make<string>();
+      const applicationMenuTemplate =
+        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
+
+      yield* configureMenu(selectedAction, applicationMenuTemplate);
+
+      const template = yield* Deferred.await(applicationMenuTemplate);
+      const viewMenu = template.find((item) => item.label === "View");
+      if (!Array.isArray(viewMenu?.submenu)) {
+        throw new Error("Expected View menu submenu to be an array.");
+      }
+      const reload = viewMenu.submenu.find((item) => item.label === "Reload");
+      assert.equal(reload?.accelerator, "CmdOrCtrl+R");
+      if (typeof reload?.click !== "function") {
+        throw new Error("Expected Reload menu item to have a click handler.");
+      }
+
+      reload.click({} as Electron.MenuItem, {} as Electron.BrowserWindow, {} as KeyboardEvent);
+      assert.equal(yield* Deferred.await(selectedAction), "main-reload");
+    }),
+  );
+  it.effect.each([
+    { label: "重新加载", accelerator: "CmdOrCtrl+R", command: "reload" },
+    { label: "强制重新加载", accelerator: "Shift+CmdOrCtrl+R", command: "forceReload" },
+    { label: "切换开发者工具", accelerator: "Ctrl+Shift+I", command: "toggleDevTools" },
+  ] as const)("routes localized $command to the main renderer", ({ label, accelerator, command }) =>
+    Effect.gen(function* () {
+      const selectedAction = yield* Deferred.make<string>();
+      const applicationMenuTemplate =
+        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
+
+      yield* configureMenu(selectedAction, applicationMenuTemplate, { appLocale: "zh-CN" });
+
+      const template = yield* Deferred.await(applicationMenuTemplate);
+      const viewMenu = template.find((item) => item.label === "视图");
+      if (!Array.isArray(viewMenu?.submenu)) {
+        throw new Error("Expected localized View menu submenu to be an array.");
+      }
+      const item = viewMenu.submenu.find((item) => item.label === label);
+      assert.equal(item?.accelerator, accelerator);
+      assert.isUndefined(item?.role);
+      if (typeof item?.click !== "function") {
+        throw new Error("Expected localized main-renderer command to have a click handler.");
+      }
+
+      item.click({} as Electron.MenuItem, {} as Electron.BrowserWindow, {} as KeyboardEvent);
+      assert.equal(yield* Deferred.await(selectedAction), `main-${command}`);
     }),
   );
 });

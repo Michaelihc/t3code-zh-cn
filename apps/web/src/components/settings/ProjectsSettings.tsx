@@ -1,5 +1,5 @@
 import { translateWebSource } from "../../i18n/messages";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { EnvironmentId } from "@t3tools/contracts";
 
 import { ProjectSettingsPanel } from "./ProjectSettingsPanel";

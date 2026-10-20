@@ -1,6 +1,6 @@
 import { Spinner } from "~/components/ui/spinner";
 
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import type { ThreadSyncPhase } from "../../threadSync";
 import { ComposerBanner } from "./ComposerBanner";
 

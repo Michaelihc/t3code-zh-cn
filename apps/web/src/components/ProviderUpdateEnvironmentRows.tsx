@@ -1,6 +1,11 @@
+import { translateWebSource } from "~/i18n/messages";
 import { CheckIcon } from "lucide-react";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import type { EnvironmentId, ServerProvider } from "@t3tools/contracts";
+import {
+  AuthProvidersManageScope,
+  type EnvironmentId,
+  type ServerProvider,
+} from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -8,8 +13,9 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 
 import { cn } from "~/lib/utils";
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { serverEnvironment } from "~/state/server";
+import { readEnvironmentScope, useEnvironmentScope } from "~/state/session";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { useLocalEnvironmentUpdateGroups } from "./ProviderUpdateLaunchNotification.environments";
 import {
@@ -120,6 +126,8 @@ function EnvironmentUpdateRow({
   readonly retryLabel: string;
   readonly updateLabel: string;
 }) {
+  const { locale: releaseLocale } = useI18n();
+  const canManageProviders = useEnvironmentScope(group.environmentId, AuthProvidersManageScope);
   let trailing: ReactNode;
   switch (status.kind) {
     case "loading":
@@ -131,14 +139,14 @@ function EnvironmentUpdateRow({
     case "failed":
     case "unchanged":
       trailing = (
-        <Button size="xs" variant="outline" onClick={onUpdate}>
+        <Button size="xs" variant="outline" disabled={!canManageProviders} onClick={onUpdate}>
           {retryLabel}
         </Button>
       );
       break;
     default:
       trailing = (
-        <Button size="xs" variant="outline" onClick={onUpdate}>
+        <Button size="xs" variant="outline" disabled={!canManageProviders} onClick={onUpdate}>
           {updateLabel}
         </Button>
       );
@@ -150,6 +158,11 @@ function EnvironmentUpdateRow({
       <div className="flex min-w-0 flex-col">
         <span className="truncate font-medium text-foreground">{group.label}</span>
         <span className={cn("truncate text-xs", rowToneClass(status.kind))}>{status.text}</span>
+        {!canManageProviders ? (
+          <span className="text-xs text-muted-foreground">
+            {translateWebSource(releaseLocale, "This connection cannot manage provider accounts.")}
+          </span>
+        ) : null}
       </div>
       <div className="shrink-0">{trailing}</div>
     </div>
@@ -217,6 +230,7 @@ export function ProviderUpdateEnvironmentRows({
 
   const handleUpdate = useCallback(
     async (environmentId: EnvironmentId) => {
+      if (!readEnvironmentScope(environmentId, AuthProvidersManageScope)) return;
       const group = groupByEnvironment.get(environmentId);
       if (!group || group.candidates.length === 0) {
         return;
@@ -347,7 +361,7 @@ export function ProviderUpdateEnvironmentRows({
           setErrorByEnvironment((previous) =>
             new Map(previous).set(
               environmentId,
-              error instanceof Error ? error.message : "Provider update failed.",
+              error instanceof Error ? error.message : t("providerUpdate.run.failedFallback"),
             ),
           );
         }

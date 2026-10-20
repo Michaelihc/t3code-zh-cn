@@ -15,7 +15,7 @@ import {
   PROJECT_FILE_PICKER_RESULT_LIMIT,
 } from "../files/ProjectFilePicker.logic";
 import { useProjectFilePickerQuery } from "../files/projectFilesQueryState";
-import { useI18n, type WebTranslate } from "~/i18n/WebI18nProvider";
+import { useI18n, type WebTranslate } from "~/i18n/WebI18nContext";
 import { CommandDialog, CommandDialogPopup, CommandFooterAction } from "../ui/command";
 import { toastManager } from "../ui/toast";
 

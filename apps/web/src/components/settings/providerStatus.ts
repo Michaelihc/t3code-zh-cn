@@ -1,5 +1,5 @@
 import { translateWebMessage } from "../../i18n/messages";
-import type { WebTranslate } from "../../i18n/WebI18nProvider";
+import type { WebTranslate } from "../../i18n/WebI18nContext";
 import type {
   ServerProvider,
   ServerProviderVersionAdvisory,
@@ -95,8 +95,11 @@ export function getProviderSummary(
     };
   }
   if (provider.auth.status === "unauthenticated") {
+    const authLabel = provider.auth.label ?? provider.auth.type;
     return {
-      headline: t("providers.status.notAuthenticated"),
+      headline: authLabel
+        ? `${t("providers.status.notAuthenticated")} · ${authLabel}`
+        : t("providers.status.notAuthenticated"),
       detail: provider.message ? translateProviderMessage(provider.message, t) : null,
     };
   }

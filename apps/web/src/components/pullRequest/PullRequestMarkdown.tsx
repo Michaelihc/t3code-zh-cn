@@ -9,7 +9,7 @@ import type { Options as ReactMarkdownOptions } from "react-markdown";
 import { useAssetUrlRefresh, useAssetUrlState } from "~/assets/assetUrls";
 import { cn } from "~/lib/utils";
 import { PULL_REQUESTS_PANEL_REF } from "~/rightPanelStore";
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 
 import ChatMarkdown from "../ChatMarkdown";
 import { MediaVideoPlayer } from "../media/MediaVideoPlayer";
@@ -95,11 +95,11 @@ export function PullRequestMarkdown({
       data-image-gallery
     >
       {segments.map((segment) => {
-        if (segment.kind === "markdown") {
+        if (segment.kind === "markdown" || segment.media === "image") {
           return (
             <ChatMarkdown
               key={segment.id}
-              text={segment.text}
+              text={segment.kind === "markdown" ? segment.text : `![](<${segment.url}>)`}
               cwd={cwd}
               threadRef={resolvedThreadRef}
               pullRequestPanelRef={resolvedThreadRef ?? PULL_REQUESTS_PANEL_REF}

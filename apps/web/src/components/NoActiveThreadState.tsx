@@ -1,7 +1,7 @@
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "./ui/empty";
 import { SidebarInset } from "./ui/sidebar";
 import { isElectron } from "../env";
-import { useI18n } from "../i18n/WebI18nProvider";
+import { useI18n } from "../i18n/WebI18nContext";
 import { WorkspacePageHeader } from "./WorkspacePageHeader";
 
 export function NoActiveThreadState() {

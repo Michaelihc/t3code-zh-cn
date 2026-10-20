@@ -11,7 +11,7 @@ import { Switch } from "../ui/switch";
 import { EnvironmentRow, environmentTransportLabel } from "./EnvironmentRow";
 import { FoldedSettingsSection } from "./FoldedSettingsSection";
 import { searchableSetting } from "./settingsSearch";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 
 const preferences = [

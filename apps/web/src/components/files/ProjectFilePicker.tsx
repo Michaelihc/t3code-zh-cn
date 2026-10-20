@@ -15,7 +15,7 @@ import {
   PROJECT_FILE_PICKER_RESULT_LIMIT,
 } from "./ProjectFilePicker.logic";
 import { useProjectFilePickerQuery } from "./projectFilesQueryState";
-import { useI18n, type WebTranslate } from "~/i18n/WebI18nProvider";
+import { useI18n, type WebTranslate } from "~/i18n/WebI18nContext";
 
 interface ProjectFilePickerProps {
   readonly setOpen: (open: boolean) => void;

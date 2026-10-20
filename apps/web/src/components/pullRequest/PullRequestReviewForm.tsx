@@ -1,4 +1,5 @@
 import { translateWebSource } from "~/i18n/messages";
+import { useAtomCommand } from "~/state/use-atom-command";
 /**
  * The review half of the floating composer: the summary and the verdict that sends it, together
  * with whatever line comments the review is holding. The count of those lives on the composer's
@@ -9,9 +10,8 @@ import type { EnvironmentId, PullRequestRef, PullRequestReviewVerdict } from "@t
 import { CheckIcon, MessageSquareIcon, XCircleIcon } from "lucide-react";
 import { useState, type ReactNode, type RefObject } from "react";
 
-import { useI18n } from "~/i18n/WebI18nProvider";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { pullRequestEnvironment } from "~/state/pullRequests";
-import { useAtomCommand } from "~/state/use-atom-command";
 
 import { Button } from "../ui/button";
 import { Select, SelectItem, SelectPopup, SelectTrigger } from "../ui/select";
@@ -128,10 +128,17 @@ export function PullRequestReviewForm({
   };
 
   // Forgejo requires a summary when requesting changes, even with inline comments.
-  const canSubmit = (verdict: PullRequestReviewVerdict) =>
+  const canSubmit = (verdict: PullRequestReviewVerdict, summary: string) =>
     verdict === "request-changes" && requestChangesSummaryRequired
-      ? body.trim().length > 0
-      : verdict === "approve" || body.trim().length > 0 || comments.length > 0;
+      ? summary.trim().length > 0
+      : verdict === "approve" || summary.trim().length > 0 || comments.length > 0;
+  // The placeholder asks for exactly what the submit button is waiting on.
+  const placeholder =
+    selectedVerdict === undefined || canSubmit(selectedVerdict.value, "")
+      ? "Summarize your review (optional)"
+      : selectedVerdict.value === "request-changes" && requestChangesSummaryRequired
+        ? "Summarize your review (required to request changes)"
+        : "Summarize your review or add line comments";
 
   return (
     <>
@@ -139,51 +146,53 @@ export function PullRequestReviewForm({
         ref={textareaRef}
         rows={3}
         value={body}
-        placeholder={
-          requestChangesSummaryRequired && verdicts.includes("request-changes")
-            ? translateWebSource(uiLocale, "Summarize your review (required to request changes)")
-            : t("pullRequests.review.summaryPlaceholder")
-        }
+        placeholder={translateWebSource(uiLocale, placeholder)}
         aria-label={t("pullRequests.review.summaryAria")}
         onChange={(event) => setSummary(reviewKey, event.target.value)}
       />
-      <div className="mt-2 flex justify-between gap-2">
-        <Select
-          value={selectedVerdict?.value ?? null}
-          disabled={pending}
-          onValueChange={(value) => {
-            if (value !== null) setRequestedVerdict(value);
-          }}
-        >
-          <SelectTrigger
-            size="xs"
-            className="w-auto min-w-0"
-            aria-label={translateWebSource(uiLocale, "Review verdict")}
+      <div className="mt-2 flex justify-end gap-2">
+        {offered.length > 1 ? (
+          <Select
+            value={selectedVerdict?.value ?? null}
+            disabled={pending}
+            onValueChange={(value) => {
+              if (value !== null) setRequestedVerdict(value);
+            }}
           >
-            <span className="flex items-center gap-1.5">
-              {selectedVerdict?.icon}
-              {selectedVerdict ? verdictLabel(selectedVerdict.value) : null}
-            </span>
-          </SelectTrigger>
-          <SelectPopup side="top" alignItemWithTrigger={false}>
-            {offered.map((verdict) => (
-              <SelectItem key={verdict.value} value={verdict.value}>
-                <span className="flex items-center gap-1.5">
-                  {verdict.icon}
-                  {verdictLabel(verdict.value)}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectPopup>
-        </Select>
+            <SelectTrigger
+              size="xs"
+              className="mr-auto w-auto min-w-0"
+              aria-label={translateWebSource(uiLocale, "Review verdict")}
+            >
+              <span className="flex items-center gap-1.5">
+                {selectedVerdict?.icon}
+                {selectedVerdict ? verdictLabel(selectedVerdict.value) : null}
+              </span>
+            </SelectTrigger>
+            <SelectPopup side="top" alignItemWithTrigger={false}>
+              {offered.map((verdict) => (
+                <SelectItem key={verdict.value} value={verdict.value}>
+                  <span className="flex items-center gap-1.5">
+                    {verdict.icon}
+                    {verdictLabel(verdict.value)}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectPopup>
+          </Select>
+        ) : null}
         <Button
           size="xs"
-          disabled={pending || selectedVerdict === undefined || !canSubmit(selectedVerdict.value)}
+          disabled={
+            pending || selectedVerdict === undefined || !canSubmit(selectedVerdict.value, body)
+          }
           onClick={() => {
             if (selectedVerdict !== undefined) void submit(selectedVerdict);
           }}
         >
-          {pending ? "Submitting..." : "Submit review"}
+          {pending
+            ? t("composer.action.submitting")
+            : translateWebSource(uiLocale, "Submit review")}
         </Button>
       </div>
     </>

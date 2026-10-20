@@ -15,6 +15,8 @@ export function MaterialListRow({
   localizeTitle = true,
   subtitle,
   localizeSubtitle = true,
+  subtitleNumberOfLines,
+  subtitleEllipsizeMode,
   leading,
   trailing,
   className,
@@ -25,6 +27,8 @@ export function MaterialListRow({
   readonly localizeTitle?: boolean;
   readonly subtitle?: string | null;
   readonly localizeSubtitle?: boolean;
+  readonly subtitleNumberOfLines?: ComponentProps<typeof AppText>["numberOfLines"];
+  readonly subtitleEllipsizeMode?: ComponentProps<typeof AppText>["ellipsizeMode"];
   readonly leading?: ReactNode;
   readonly trailing?: ReactNode;
 }) {
@@ -63,7 +67,8 @@ export function MaterialListRow({
           <AppText
             localize={localizeSubtitle}
             className="text-sm text-foreground-muted"
-            numberOfLines={2}
+            ellipsizeMode={subtitleEllipsizeMode}
+            numberOfLines={subtitleNumberOfLines ?? 2}
           >
             {subtitle}
           </AppText>

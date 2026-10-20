@@ -4,18 +4,18 @@ import { GaugeIcon } from "lucide-react";
 
 import { ensureLocalApi } from "../../localApi";
 import { Button } from "../ui/button";
-import { getDriverOption } from "../settings/providerDriverMeta";
+import { providerClients } from "../settings/providerDriverMeta";
 import { RedactedSensitiveText } from "../settings/RedactedSensitiveText";
 import { LimitWindows, ResetCredits } from "../usage/UsageLimits";
 import { ComposerBanner } from "./ComposerBanner";
 import type { ComposerBannerStackItem } from "./ComposerBannerStack";
-import { useI18n, type WebTranslate } from "../../i18n/WebI18nProvider";
+import { useI18n, type WebTranslate } from "../../i18n/WebI18nContext";
 import { translateWebSource } from "../../i18n/messages";
 
 /** Driver name, then the instance when there could be more than one of that driver. */
 function accountLabel(account: UsageLimitsReport["accounts"][number]): string {
   if (!account.instanceId) return account.label;
-  const driver = getDriverOption(account.driver)?.label ?? String(account.driver);
+  const driver = providerClients.get(account.driver)?.label ?? String(account.driver);
   const instance =
     account.displayName?.trim() ||
     (String(account.instanceId) !== String(account.driver) ? account.instanceId : "");

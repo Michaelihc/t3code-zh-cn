@@ -1,5 +1,6 @@
+import { translateWebSource } from "../../i18n/messages";
 import { WizardSteps } from "../ui/wizard";
-import { useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
 import {
   ADD_PROVIDER_WIZARD_STEPS,
   resolveWizardNavigation,
@@ -10,29 +11,39 @@ interface AddProviderInstanceWizardStepsProps {
   readonly currentStep: number;
   readonly summaries: readonly (string | null)[];
   readonly instanceIdError: string | null;
+  readonly steps?: readonly string[];
+  readonly identityStep?: number;
+  readonly prerequisite?: {
+    readonly step: number;
+    readonly error: string | null;
+  };
   readonly onNavigation: (navigation: WizardNavigation) => void;
+  readonly disabled?: boolean;
 }
 
 export function AddProviderInstanceWizardSteps({
   currentStep,
   summaries,
   instanceIdError,
+  steps = ADD_PROVIDER_WIZARD_STEPS,
+  identityStep,
+  prerequisite,
   onNavigation,
+  disabled = false,
 }: AddProviderInstanceWizardStepsProps) {
-  const { t } = useI18n();
+  const { locale } = useI18n();
   return (
     <WizardSteps
-      steps={[
-        t("providers.add.step.driver"),
-        t("providers.add.step.identity"),
-        t("providers.add.step.config"),
-      ]}
+      steps={steps.map((step) => translateWebSource(locale, step))}
       currentStep={currentStep}
       summaries={summaries}
+      isStepDisabled={() => disabled}
       onStepChange={(requestedStep) =>
         onNavigation(
-          resolveWizardNavigation(currentStep, requestedStep, ADD_PROVIDER_WIZARD_STEPS.length, {
+          resolveWizardNavigation(currentStep, requestedStep, steps.length, {
             instanceIdError,
+            ...(identityStep === undefined ? {} : { identityStep }),
+            ...(prerequisite === undefined ? {} : { prerequisite }),
           }),
         )
       }
