@@ -48,59 +48,58 @@ export const make = Effect.gen(function* () {
   const quit = () => currentCallbacks?.quit();
 
   return DesktopTray.of({
-    ensure: (callbacks) =>
-      Effect.gen(function* () {
-        currentCallbacks = callbacks;
-        if (environment.platform !== "win32" || !environment.isPackaged) {
-          return false;
-        }
-        if (tray !== undefined) {
+    ensure: Effect.fn("desktop.tray.ensure")(function* (callbacks: DesktopTrayCallbacks) {
+      currentCallbacks = callbacks;
+      if (environment.platform !== "win32" || !environment.isPackaged) {
+        return false;
+      }
+      if (tray !== undefined) {
+        return true;
+      }
+
+      const iconPath = environment.path.join(environment.resourcesPath, "icon.ico");
+
+      const settings = yield* clientSettings.get.pipe(
+        Effect.catch((error) =>
+          logTrayWarning("Could not read the desktop language setting.", { error }).pipe(
+            Effect.as(Option.none()),
+          ),
+        ),
+      );
+      const systemLocale = yield* electronApp.systemLocale;
+      const appName = environment.displayName;
+      const appLocale = Option.match(settings, {
+        onNone: () => DEFAULT_APP_LOCALE_PREFERENCE,
+        onSome: (value) => value.appLocale,
+      });
+      const messages = resolveDesktopApplicationMenuMessages(appLocale, [systemLocale]);
+
+      return yield* Effect.sync(() => {
+        let nextTray: Electron.Tray | undefined;
+        try {
+          nextTray = new Electron.Tray(iconPath);
+          nextTray.setToolTip(appName);
+          nextTray.setContextMenu(
+            Electron.Menu.buildFromTemplate([
+              { label: messages.open(appName), click: open },
+              { type: "separator" },
+              { label: messages.quit(appName), click: quit },
+            ]),
+          );
+          nextTray.on("click", open);
+          nextTray.on("double-click", open);
+          tray = nextTray;
           return true;
+        } catch (cause) {
+          nextTray?.destroy();
+          throw cause;
         }
-
-        const iconPath = environment.path.join(environment.resourcesPath, "icon.ico");
-
-        const settings = yield* clientSettings.get.pipe(
-          Effect.catch((error) =>
-            logTrayWarning("Could not read the desktop language setting.", { error }).pipe(
-              Effect.as(Option.none()),
-            ),
-          ),
-        );
-        const systemLocale = yield* electronApp.systemLocale;
-        const appName = environment.displayName;
-        const appLocale = Option.match(settings, {
-          onNone: () => DEFAULT_APP_LOCALE_PREFERENCE,
-          onSome: (value) => value.appLocale,
-        });
-        const messages = resolveDesktopApplicationMenuMessages(appLocale, [systemLocale]);
-
-        return yield* Effect.sync(() => {
-          let nextTray: Electron.Tray | undefined;
-          try {
-            nextTray = new Electron.Tray(iconPath);
-            nextTray.setToolTip(appName);
-            nextTray.setContextMenu(
-              Electron.Menu.buildFromTemplate([
-                { label: messages.open(appName), click: open },
-                { type: "separator" },
-                { label: messages.quit(appName), click: quit },
-              ]),
-            );
-            nextTray.on("click", open);
-            nextTray.on("double-click", open);
-            tray = nextTray;
-            return true;
-          } catch (cause) {
-            nextTray?.destroy();
-            throw cause;
-          }
-        }).pipe(
-          Effect.catchCause((cause) =>
-            logTrayWarning("failed to create Windows tray icon", { cause }).pipe(Effect.as(false)),
-          ),
-        );
-      }).pipe(Effect.withSpan("desktop.tray.ensure")),
+      }).pipe(
+        Effect.catchCause((cause) =>
+          logTrayWarning("failed to create Windows tray icon", { cause }).pipe(Effect.as(false)),
+        ),
+      );
+    }),
     markQuitRequested: () => {
       quitRequested = true;
     },

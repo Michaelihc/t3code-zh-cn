@@ -1,4 +1,4 @@
-import { LocalizedAlert as Alert } from "../i18n/LocalizedAlert";
+import * as Dialog from "./ui/Dialog";
 import { useNavigation } from "@react-navigation/native";
 import {
   useCallback,
@@ -45,7 +45,7 @@ function PreviewItemResolver(props: {
   const onRequestClose = useEffectEvent(props.onRequestClose);
   const onResolutionError = useEffectEvent((error: unknown, fallbackMessage: string) => {
     if (props.onOpenError) props.onOpenError(error);
-    else Alert.alert("Could not open preview", fallbackMessage);
+    else Dialog.alert("Could not open preview", fallbackMessage);
     onRequestClose();
   });
   useEffect(() => Keyboard.dismiss(), []);
@@ -148,7 +148,7 @@ function ResolvedFilePreview(props: {
 export function FilePreviewModal(props: {
   readonly source: FilePreviewSource | null;
   readonly onRequestClose: () => void;
-  /** Replaces the default alert when the platform cannot open the document. */
+
   readonly onOpenError?: (error: unknown) => void;
 }) {
   const group = useContext(FilePreviewGallery);

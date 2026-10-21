@@ -1,4 +1,7 @@
+import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import type { DesktopSshPasswordPromptRequest } from "@t3tools/contracts";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Cause from "effect/Cause";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../ui/button";
@@ -12,7 +15,7 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Input } from "../ui/input";
-import { splitWebTranslation, useI18n } from "~/i18n/WebI18nProvider";
+import { splitWebTranslation, useI18n, type WebTranslate } from "~/i18n/WebI18nContext";
 
 function describeSshTarget(request: DesktopSshPasswordPromptRequest): string {
   return request.username ? `${request.username}@${request.destination}` : request.destination;
@@ -22,9 +25,11 @@ function formatRemainingSeconds(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-function getPromptErrorMessage(error: unknown, fallback: string, expired: string): string {
-  const message = error instanceof Error ? error.message : fallback;
-  return message.includes("expired") || message.includes("no longer pending") ? expired : message;
+function getPromptErrorMessage(error: unknown, t: WebTranslate): string {
+  const message = error instanceof Error ? error.message : t("sshPassword.promptFailed");
+  return message.includes("expired") || message.includes("no longer pending")
+    ? t("sshPassword.expiredDescription")
+    : message;
 }
 
 export function SshPasswordPromptDialog() {
@@ -116,25 +121,16 @@ function ActiveSshPasswordPrompt({
     isRespondingRef.current = true;
     setIsResponding(true);
     setResponseError(null);
-    try {
-      await window.desktopBridge?.resolveSshPasswordPrompt(requestId, nextPassword);
+    const result = await settlePromise(async () =>
+      window.desktopBridge?.resolveSshPasswordPrompt(requestId, nextPassword),
+    );
+    if (AsyncResult.isSuccess(result) || nextPassword === null) {
       onRemove(requestId);
-    } catch (error) {
-      if (nextPassword === null) {
-        onRemove(requestId);
-      } else {
-        setResponseError(
-          getPromptErrorMessage(
-            error,
-            t("sshPassword.promptFailed"),
-            t("sshPassword.expiredDescription"),
-          ),
-        );
-      }
-    } finally {
-      isRespondingRef.current = false;
-      setIsResponding(false);
+    } else {
+      setResponseError(getPromptErrorMessage(Cause.squash(result.cause), t));
     }
+    isRespondingRef.current = false;
+    setIsResponding(false);
   };
 
   const dismissExpiredPrompt = () => {

@@ -1,3 +1,5 @@
+import { translateWebSource } from "../../i18n/messages";
+import { useI18n, type WebTranslate } from "../../i18n/WebI18nContext";
 import {
   AuthProvidersManageScope,
   type EnvironmentId,
@@ -9,18 +11,17 @@ import {
 } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import {
-  elapsedShare,
   formatDuration,
   type LimitPace,
   paceOf,
+  paceRemainingPercent,
   remainingPercent,
 } from "@t3tools/shared/usageLimits";
 import { GaugeIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
-import { Fragment, type ReactNode, useState } from "react";
+import { Fragment, type ReactNode, useLayoutEffect, useState } from "react";
 
 import { usePrimarySettings } from "../../hooks/useSettings";
-import { useI18n, type WebTranslate } from "../../i18n/WebI18nContext";
-import { translateWebSource } from "../../i18n/messages";
+import { observeResize } from "../../lib/observeResize";
 import { environmentPresentations } from "../../state/presentation";
 import { useEnvironmentScope, readEnvironmentScope } from "../../state/session";
 import { serverEnvironment } from "../../state/server";
@@ -46,17 +47,11 @@ const PACE: Record<LimitPace, { readonly label: string; readonly icon: typeof Ga
   under: { label: "Under pace: headroom left for the rest of the window", icon: TrendingDownIcon },
 };
 
-/** The series colour the cost chart uses for this driver, so the two views read as one. */
 export function barColor(driver: ServerProvider["driver"]): string {
-  const kind: UsageProviderKind | undefined =
-    driver === "codex"
-      ? "codex"
-      : driver === "claudeAgent"
-        ? "claude"
-        : driver === "antigravity"
-          ? "antigravity"
-          : undefined;
-  return kind ? PROVIDER_PRESENTATION[kind].color : "var(--foreground)";
+  const presentation = Object.values(PROVIDER_PRESENTATION).find(
+    (entry) => entry.driverKind === driver,
+  );
+  return presentation?.color ?? "var(--foreground)";
 }
 
 export function localizedResetsIn(
@@ -72,11 +67,10 @@ export function localizedResetsIn(
     : t("usage.limits.resetsIn", { duration: formatDuration(resetAtMs - now) });
 }
 
-/** Pace as a glyph with the words on hover. */
 export function PaceIcon({ pace }: { readonly pace: LimitPace }) {
   const { locale } = useI18n();
-  const Icon = PACE[pace].icon;
   const label = translateWebSource(locale, PACE[pace].label);
+  const Icon = PACE[pace].icon;
   return (
     <Tooltip>
       <TooltipTrigger
@@ -91,12 +85,43 @@ export function PaceIcon({ pace }: { readonly pace: LimitPace }) {
   );
 }
 
+// The tick sits in a transparent gap cut from the bar, clamped so it stays inside at 0% and 100%.
+// The gap is a clip-path slot rather than a mask: a mask composites its layer and re-antialiases
+// the bar's rounded ends, and the polygon reaches 1px past the box so only the slot edges clip.
+function paceMarkStyles(timeLeft: number | null) {
+  if (timeLeft === null) return null;
+  const at = `clamp(3px, ${timeLeft}%, calc(100% - 3px))`;
+  const [left, right] = [`calc(${at} - 3px)`, `calc(${at} + 3px)`];
+  const [near, far] = ["-1px", "calc(100% + 1px)"];
+  return {
+    tick: { left: at },
+    gap: {
+      clipPath: `polygon(${near} ${near}, ${left} ${near}, ${left} ${far}, ${right} ${far}, ${right} ${near}, ${far} ${near}, ${far} ${far}, ${near} ${far})`,
+    },
+    // For a track painted on an element that also draws focus rings, which a clip would cut.
+    gappedTrack: {
+      backgroundColor: "transparent",
+      backgroundImage: `linear-gradient(to right, var(--color-muted) ${left}, transparent ${left}, transparent ${right}, var(--color-muted) ${right})`,
+    },
+  };
+}
+
 /**
- * One window as a full-width bar from the moment it opened to its reset.
- * The fill is the share of quota spent; the hairline is how far into the
- * window the clock is, which is also where even spending would have put the
- * fill. Hover for the exact figures and reset time.
+ * Pace mark styles for the bar given the returned ref. Below 6px there is no room for the gap
+ * and tick, so the bar draws neither, as the mobile bars do.
  */
+export function usePaceMark(timeLeft: number | null) {
+  const [bar, setBar] = useState<HTMLElement | null>(null);
+  const [roomy, setRoomy] = useState(false);
+  useLayoutEffect(() => {
+    if (!bar) return;
+    const measure = () => setRoomy(bar.getBoundingClientRect().width >= 6);
+    measure();
+    return observeResize(bar, measure);
+  }, [bar]);
+  return [setBar, roomy ? paceMarkStyles(timeLeft) : null] as const;
+}
+
 function WindowBar({
   color,
   window,
@@ -109,9 +134,8 @@ function WindowBar({
   const { t } = useI18n();
   const timestampFormat = usePrimarySettings((settings) => settings.timestampFormat);
   const remaining = remainingPercent(window);
-  const elapsed = elapsedShare(window, now);
-  // The fill is quota left, so the even-spending mark is the time left.
-  const timeLeft = elapsed === null ? null : Math.round((1 - elapsed) * 100);
+  const timeLeft = paceRemainingPercent(window, now);
+  const [barRef, paceMark] = usePaceMark(timeLeft);
   const resetsIn = localizedResetsIn(window, now, t);
   const resetsAt = window.resetsAt
     ? formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)
@@ -119,15 +143,14 @@ function WindowBar({
   const remainingLabel = t("usage.limits.remaining", { percent: remaining });
   const timeLeftLabel =
     timeLeft === null ? null : t("usage.limits.windowRemaining", { percent: timeLeft });
-  const summary = [window.label, remainingLabel, timeLeftLabel, resetsIn]
-    .filter(Boolean)
-    .join(", ");
+  const summary = `${window.label}: ${[remainingLabel, timeLeftLabel, resetsIn].filter(Boolean).join(", ")}`;
 
   return (
     <Tooltip>
       <TooltipTrigger
         render={
           <div
+            ref={barRef}
             role="img"
             aria-label={summary}
             tabIndex={0}
@@ -135,18 +158,21 @@ function WindowBar({
           />
         }
       >
-        <div className="absolute inset-x-0 inset-y-1.5 rounded-full bg-muted" />
-        {remaining > 0 ? (
-          <div
-            className="absolute inset-y-1.5 left-0 rounded-full"
-            style={{ width: `${remaining}%`, backgroundColor: color }}
-          />
-        ) : null}
-        {timeLeft !== null ? (
+        {/* Clip both layers so the gap exposes even a translucent composer surface. */}
+        <div className="absolute inset-0" style={paceMark?.gap}>
+          <div className="absolute inset-x-0 inset-y-1.5 rounded-full bg-muted" />
+          {remaining > 0 ? (
+            <div
+              className="absolute inset-y-1.5 left-0 rounded-full"
+              style={{ width: `${remaining}%`, backgroundColor: color }}
+            />
+          ) : null}
+        </div>
+        {paceMark ? (
           <span
             aria-hidden
-            className="absolute inset-y-0.5 w-px -translate-x-1/2 bg-foreground/60"
-            style={{ left: `${timeLeft}%` }}
+            className="absolute inset-y-1 w-0.5 -translate-x-1/2 rounded-full bg-foreground"
+            style={paceMark.tick}
           />
         ) : null}
       </TooltipTrigger>
@@ -171,10 +197,6 @@ function WindowBar({
   );
 }
 
-/**
- * One account's windows as rows: label and percent, bar, pace and countdown.
- * Compact rows fit the composer panel with narrower columns.
- */
 export function LimitWindows({
   driver,
   windows,
@@ -219,7 +241,6 @@ export function LimitWindows({
   );
 }
 
-/** Everything a redeem needs: where to send it and what to say afterwards. */
 export function useResetCredit(
   environmentId: EnvironmentId,
   input: ProviderConsumeResetCreditInput,
@@ -264,10 +285,9 @@ export function useResetCredit(
 }
 
 /**
- * The confirm for a redeem. Redeeming spends a credit the provider granted the
- * user, so it never fires on a bare click. Mount it outside any popover that
- * holds the button: dialogs stack under popovers, and closing the popover
- * would unmount a dialog rendered inside it.
+ * Redeeming spends a credit the provider granted the user, so it never fires on a bare click.
+ * Mount it outside any popover that holds the button: dialogs stack under popovers, and closing
+ * the popover would unmount a dialog rendered inside it.
  */
 export function ResetCreditDialog({
   open,
@@ -301,7 +321,6 @@ export function ResetCreditDialog({
   );
 }
 
-/** `2 reset credits banked · next expires in 27d 23h`, or the short form for a popover. */
 export function resetCreditsSummary(
   credits: ServerProviderResetCredits,
   now: number,
@@ -321,7 +340,6 @@ export function resetCreditsSummary(
   return `${banked}${expiresIn ? ` · ${t("usage.limits.nextExpires", { duration: expiresIn })}` : ""}`;
 }
 
-/** Banked reset credits with the redeem button and its confirm, self-contained. */
 export function ResetCredits({
   environmentId,
   input,
@@ -366,9 +384,8 @@ export function ResetCredits({
 }
 
 /**
- * Subscription quota across every connected environment's providers and hubs,
- * pooled per provider. The page advances `now` on explicit refresh rather than
- * ticking: a live clock would repaint the page for no decision-changing gain.
+ * The page advances `now` on explicit refresh rather than ticking: a live clock would repaint the
+ * page for no decision-changing gain.
  */
 export function UsageLimitsSection({
   selectedEnvironmentIds,
@@ -381,13 +398,11 @@ export function UsageLimitsSection({
   readonly now: number;
   readonly cursorPrompt?: ReactNode;
 }) {
-  const presentations = useAtomValue(environmentPresentations.presentationsAtom);
+  const presentations = useAtomValue(environmentPresentations.presentationsWithProvidersAtom);
   const hiddenDrivers = new Set<ServerProvider["driver"]>(
     [...hiddenProviders].map((provider) => PROVIDER_PRESENTATION[provider].driverKind),
   );
   const isVisible = (driver: ServerProvider["driver"]) => !hiddenDrivers.has(driver);
-  // Hidden drivers leave both native accounts and hub accounts, so their
-  // bars, notices, and external links all drop out together.
   const selected = new Map(
     [...presentations].flatMap(([id, presentation]) => {
       if (selectedEnvironmentIds !== null && !selectedEnvironmentIds.has(id)) return [];
@@ -401,7 +416,6 @@ export function UsageLimitsSection({
             serverConfig: {
               ...config,
               providers: config.providers.filter((provider) => isVisible(provider.driver)),
-              // A hub left with no visible accounts is dropped, not reported as empty.
               usageLimitSources: config.usageLimitSources?.flatMap((source) => {
                 const accounts = source.accounts.filter((account) => isVisible(account.driver));
                 return accounts.length === 0 && source.accounts.length > 0

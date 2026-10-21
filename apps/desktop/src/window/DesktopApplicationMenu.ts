@@ -71,33 +71,34 @@ const runMainContentsCommand = Effect.fn("desktop.menu.runMainContentsCommand")(
   yield* desktopWindow.runMainContentsCommand(command);
 });
 
-const checkForUpdatesFromMenu = (messages: DesktopApplicationMenuMessages) =>
-  Effect.gen(function* () {
-    const updates = yield* DesktopUpdates.DesktopUpdates;
-    const electronDialog = yield* ElectronDialog.ElectronDialog;
-    const result = yield* updates.check("menu");
-    const updateState = result.state;
+const checkForUpdatesFromMenu = Effect.fn("desktop.menu.checkForUpdates")(function* (
+  messages: DesktopApplicationMenuMessages,
+) {
+  const updates = yield* DesktopUpdates.DesktopUpdates;
+  const electronDialog = yield* ElectronDialog.ElectronDialog;
+  const result = yield* updates.check("menu");
+  const updateState = result.state;
 
-    if (updateState.status === "up-to-date") {
-      yield* electronDialog.showMessageBox({
-        type: "info",
-        title: messages.upToDateTitle,
-        message: messages.upToDateMessage(updateState.currentVersion),
-        buttons: [messages.ok],
-      });
-    } else if (updateState.status === "error") {
-      yield* electronDialog.showMessageBox({
-        type: "warning",
-        title: messages.updateCheckFailedTitle,
-        message: messages.updateCheckFailedMessage,
-        detail: updateState.message ?? messages.unknownUpdateError,
-        buttons: [messages.ok],
-      });
-    }
-  }).pipe(Effect.withSpan("desktop.menu.checkForUpdates"));
+  if (updateState.status === "up-to-date") {
+    yield* electronDialog.showMessageBox({
+      type: "info",
+      title: messages.upToDateTitle,
+      message: messages.upToDateMessage(updateState.currentVersion),
+      buttons: [messages.ok],
+    });
+  } else if (updateState.status === "error") {
+    yield* electronDialog.showMessageBox({
+      type: "warning",
+      title: messages.updateCheckFailedTitle,
+      message: messages.updateCheckFailedMessage,
+      detail: updateState.message ?? messages.unknownUpdateError,
+      buttons: [messages.ok],
+    });
+  }
+});
 
-const handleCheckForUpdatesMenuClick = (messages: DesktopApplicationMenuMessages) =>
-  Effect.gen(function* () {
+const handleCheckForUpdatesMenuClick = Effect.fn("desktop.menu.handleCheckForUpdatesClick")(
+  function* (messages: DesktopApplicationMenuMessages) {
     const updates = yield* DesktopUpdates.DesktopUpdates;
     const electronDialog = yield* ElectronDialog.ElectronDialog;
     const disabledReason = yield* updates.disabledReason;
@@ -115,10 +116,12 @@ const handleCheckForUpdatesMenuClick = (messages: DesktopApplicationMenuMessages
       return;
     }
 
+    // Activate only once the backend is ready; an early main window can get stuck in auth bootstrap.
     const desktopWindow = yield* DesktopWindow.DesktopWindow;
-    yield* desktopWindow.ensureMain;
+    yield* desktopWindow.activate;
     yield* checkForUpdatesFromMenu(messages);
-  }).pipe(Effect.withSpan("desktop.menu.handleCheckForUpdatesClick"));
+  },
+);
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {
@@ -168,8 +171,7 @@ export const make = Effect.gen(function* () {
     // Chromium already pastes as plain text for this chord, so the accelerator
     // needs nothing from the menu: the composer and the terminal each arm
     // themselves from the same keydown. Routing it through the renderer anyway
-    // lands a second, injected paste and doubles the text. Only a menu click,
-    // which produces no keystroke for them to see, needs that round trip.
+    // lands a second, injected paste and doubles the text.
     const pasteAsTextClick = (
       _item: Electron.MenuItem,
       _window: Electron.BaseWindow | undefined,
@@ -273,8 +275,7 @@ export const make = Effect.gen(function* () {
           /*
             Not the reload, DevTools or zoom roles: those act on the focused
             webContents, so with a browser page focused they reload or zoom
-            the guest page and the app UI appears stuck. These always target
-            the main window (see DesktopWindow.zoomMain).
+            the guest page and the app UI appears stuck.
           */
           {
             label: messages.reload,
@@ -300,7 +301,37 @@ export const make = Effect.gen(function* () {
             visible: false,
             click: zoomClick("in"),
           },
+          ...(environment.platform === "darwin"
+            ? [
+                {
+                  label: messages.zoomIn,
+                  accelerator: "CmdOrCtrl+Shift+=",
+                  visible: false,
+                  click: zoomClick("in"),
+                },
+              ]
+            : []),
           { label: messages.zoomOut, accelerator: "CmdOrCtrl+-", click: zoomClick("out") },
+          // The numeric keypad sends its own key codes, so the number-row
+          // accelerators above never match it.
+          {
+            label: messages.actualSize,
+            accelerator: "CmdOrCtrl+num0",
+            visible: false,
+            click: zoomClick("reset"),
+          },
+          {
+            label: messages.zoomIn,
+            accelerator: "CmdOrCtrl+numadd",
+            visible: false,
+            click: zoomClick("in"),
+          },
+          {
+            label: messages.zoomOut,
+            accelerator: "CmdOrCtrl+numsub",
+            visible: false,
+            click: zoomClick("out"),
+          },
           { type: "separator" },
           { role: "togglefullscreen", label: messages.toggleFullScreen },
         ],

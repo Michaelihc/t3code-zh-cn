@@ -1,6 +1,7 @@
+import { localizeMobileString } from "../../../i18n/mobileStrings";
 import { TextInput, View } from "react-native";
 
-import { AppText as Text } from "../../../components/AppText";
+import { AppText as Text } from "../../../components/ui/AppText";
 import type { ComposerEditorSelection } from "../../../components/ComposerEditor";
 import {
   ComposerDictationCancelAction,
@@ -30,7 +31,7 @@ export function ScheduledTaskPromptField(props: {
       <Text className="text-sm text-foreground-muted">Prompt</Text>
       <View className="relative">
         <TextInput
-          accessibilityLabel="Prompt"
+          accessibilityLabel={localizeMobileString("Prompt")}
           value={props.value}
           onChangeText={props.onChange}
           selection={props.selection}

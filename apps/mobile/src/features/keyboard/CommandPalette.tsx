@@ -1,3 +1,4 @@
+import { localizeMobileString } from "../../i18n/mobileStrings";
 import { useNavigation } from "@react-navigation/native";
 import type { EnvironmentThreadSearchMatch } from "@t3tools/client-runtime/state/thread-search";
 import { THREAD_JUMP_KEYBINDING_COMMANDS } from "@t3tools/contracts";
@@ -17,10 +18,10 @@ import {
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { GlassSurface } from "../../components/GlassSurface";
-import { RowPressable } from "../../components/RowPressable";
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
+import { GlassSurface } from "../../components/ui/GlassSurface";
+import { RowPressable } from "../../components/ui/RowPressable";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView, type AppSymbolName } from "../../components/ui/AppSymbol";
 import { cn } from "../../lib/cn";
 import { scopedProjectKey, scopedThreadKey } from "../../lib/scopedEntities";
 import { T3KeyboardCommands } from "../../native/T3KeyboardCommands";
@@ -38,6 +39,7 @@ import {
 } from "./commandPaletteItems";
 import { parseActiveThreadPath, type HardwareKeyboardCommand } from "./hardwareKeyboardCommands";
 import { threadJumpIndex } from "./threadKeyboardShortcuts";
+import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
 
 const PALETTE_COMMANDS: ReadonlyArray<HardwareKeyboardCommand> = [
   "commandPalette",
@@ -59,7 +61,7 @@ const ACTION_ICONS: Record<string, AppSymbolName> = {
   archive: "archivebox",
   files: "doc.text",
   terminal: "terminal",
-  review: "arrow.triangle.pull",
+  review: PullRequestGlyph.pullRequest,
   copyThreadReference: "link",
 };
 
@@ -426,7 +428,7 @@ export function CommandPalette(props: {
           >
             <Pressable
               className="absolute inset-0 bg-backdrop"
-              accessibilityLabel="Close command palette"
+              accessibilityLabel={localizeMobileString("Close command palette")}
               onPress={() => close()}
             />
             <GlassSurface
@@ -450,7 +452,9 @@ export function CommandPalette(props: {
                   />
                   <TextInput
                     ref={inputRef}
-                    accessibilityLabel="Search commands, projects, and threads"
+                    accessibilityLabel={localizeMobileString(
+                      "Search commands, projects, and threads",
+                    )}
                     placeholder="Search commands, projects, and threads…"
                     placeholderTextColorClassName="accent-placeholder"
                     autoCorrect={false}

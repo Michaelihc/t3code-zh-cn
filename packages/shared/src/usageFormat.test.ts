@@ -63,20 +63,64 @@ describe("hourly usage formatting", () => {
 
   it("formats visible dates and hours in Simplified Chinese", () => {
     expect(formatDayShort("2026-08-11", "zh-CN")).toBe("8月11日");
-    expect(formatDateTimeShort("2026-08-11T17:37:00.000Z", "UTC", "zh-CN")).toContain("8月11日");
+    expect(formatDateTimeShort("2026-08-11T17:37:00.000Z", "UTC", true, "zh-CN")).toContain(
+      "8月11日",
+    );
     expect(
       formatRelativeHourShort(
         "2026-08-10T17:37:00.000Z",
         "2026-08-11T14:37:00.000Z",
         "UTC",
+        true,
         "zh-CN",
       ),
     ).toContain("昨天");
   });
 
+  it("honors the time format while preserving Chinese labels", () => {
+    expect(formatHourShort("2026-08-11T17:37:00.000Z", "UTC", false, "zh-CN")).toBe("17:00");
+    expect(formatHourShort("2026-08-11T17:37:00.000Z", "UTC", true, "zh-CN")).toContain("下午5");
+    expect(formatDateTimeShort("2026-08-11T17:37:00.000Z", "UTC", false, "zh-CN")).toContain(
+      "17:00",
+    );
+    expect(
+      formatRelativeHourShort(
+        "2026-08-10T17:37:00.000Z",
+        "2026-08-11T14:37:00.000Z",
+        "UTC",
+        false,
+        "zh-CN",
+      ),
+    ).toBe("昨天 17:00");
+  });
+
   it("disambiguates repeated hours during a fall-back transition", () => {
     expect(formatHourShort("2026-11-01T05:37:00.000Z", "America/New_York")).toBe("1 AM EDT");
     expect(formatHourShort("2026-11-01T06:37:00.000Z", "America/New_York")).toBe("1 AM EST");
+    expect(formatHourShort("2026-11-01T05:37:00.000Z", "America/New_York", false)).toBe(
+      "01:00 EDT",
+    );
+    expect(formatHourShort("2026-11-01T06:37:00.000Z", "America/New_York", false)).toBe(
+      "01:00 EST",
+    );
+  });
+
+  it.each([
+    [true, "2 PM", "12 AM"],
+    [false, "14:00", "00:00"],
+  ])("formats hourly usage labels with hour12=%s", (hour12, afternoon, midnight) => {
+    const instant = "2026-08-11T14:37:00.000Z";
+
+    expect(formatHourShort(instant, "UTC", hour12)).toBe(afternoon);
+    expect(formatHourShort("2026-08-11T00:37:00.000Z", "UTC", hour12)).toBe(midnight);
+    expect(formatDateTimeShort(instant, "UTC", hour12)).toBe(`Aug 11, ${afternoon}`);
+    expect(formatRelativeHourShort(instant, instant, "UTC", hour12)).toBe(`${afternoon} today`);
+    expect(formatRelativeHourShort(instant, "2026-08-12T15:37:00.000Z", "UTC", hour12)).toBe(
+      `${afternoon} yesterday`,
+    );
+    expect(formatRelativeHourShort(instant, "2026-08-14T15:37:00.000Z", "UTC", hour12)).toBe(
+      `Aug 11, ${afternoon}`,
+    );
   });
 
   it("makes hourly tooltip dates relative to the window in its requested time zone", () => {

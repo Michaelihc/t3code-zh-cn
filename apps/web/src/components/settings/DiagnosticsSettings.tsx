@@ -12,7 +12,7 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type {
   ServerProcessDiagnosticsEntry,
   ServerProcessResourceHistorySummary,
@@ -24,11 +24,12 @@ import * as Option from "effect/Option";
 import { cn } from "../../lib/utils";
 import { ensureLocalApi } from "../../localApi";
 import { useOpenInPreferredEditor } from "../../editorPreferences";
-import { formatRelativeTimeLabel, getRelativeTimeState } from "../../timestampFormat";
+import { useRelativeTimeState } from "../../hooks/useRelativeTimeState";
 import { useEnvironmentQuery } from "../../state/query";
 import { serverEnvironment } from "../../state/server";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
-import { splitWebTranslation, useI18n } from "../../i18n/WebI18nProvider";
+import { useI18n } from "../../i18n/WebI18nContext";
+import { splitWebTranslation } from "../../i18n/WebI18nContext";
 import { Button } from "../ui/button";
 import { MorphIcon } from "~/components/MorphIcon";
 import { ScrollArea } from "../ui/scroll-area";
@@ -40,7 +41,7 @@ import {
   ResourceTelemetryDiagnostics,
   translateDiagnosticsRuntimeMessage,
 } from "./ResourceTelemetryDiagnostics";
-import { SettingsPageContainer, SettingsSection, useRelativeTimeTick } from "./settingsLayout";
+import { SettingsPageContainer, SettingsSection } from "./settingsLayout";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useSettingsScope } from "./SettingsScopeContext";
 import { TelemetryExportSettings } from "./TelemetryExportSettings";
@@ -68,13 +69,19 @@ function formatBytes(value: number): string {
   return `${next.toFixed(next >= 10 ? 1 : 2)} ${units[unitIndex]}`;
 }
 
-function formatRelative(value: DateTime.Utc | null, noRecordsLabel: string): string {
-  if (!value) return noRecordsLabel;
-  return formatRelativeTimeLabel(DateTime.formatIso(value));
-}
-
-function formatRelativeNoWrap(value: DateTime.Utc | null, noRecordsLabel: string): string {
-  return formatRelative(value, noRecordsLabel).replaceAll(" ", "\u00a0");
+function RelativeTimeNoWrap(props: { value: DateTime.Utc }) {
+  const { t } = useI18n();
+  const relative = useRelativeTimeState(DateTime.formatIso(props.value));
+  if (relative.status !== "relative") return null;
+  return (
+    relative.value === "just now"
+      ? t("diagnostics.state.justNow")
+      : relative.suffix === "ago"
+        ? t("diagnostics.state.ago", { time: relative.value })
+        : relative.suffix
+          ? `${relative.value} ${relative.suffix}`
+          : relative.value
+  ).replaceAll(" ", "\u00a0");
 }
 
 function shortenTraceId(traceId: string): string {
@@ -305,6 +312,28 @@ function ProcessNameCell({
   );
 }
 
+function visibleProcessTree(
+  processes: ReadonlyArray<ServerProcessDiagnosticsEntry>,
+  collapsedPids: ReadonlySet<number>,
+) {
+  const visible: ServerProcessDiagnosticsEntry[] = [];
+  let hiddenChildDepth: number | null = null;
+
+  for (const process of processes) {
+    if (hiddenChildDepth !== null) {
+      if (process.depth > hiddenChildDepth) continue;
+      hiddenChildDepth = null;
+    }
+
+    visible.push(process);
+    if (collapsedPids.has(process.pid)) {
+      hiddenChildDepth = process.depth;
+    }
+  }
+
+  return visible;
+}
+
 function ProcessDiagnosticsTable({
   processes,
   canMaintainEnvironment,
@@ -319,26 +348,9 @@ function ProcessDiagnosticsTable({
   emptyLabel?: string;
 }) {
   const [collapsedPids, setCollapsedPids] = useState<ReadonlySet<number>>(() => new Set());
-  const visibleProcesses = useMemo(() => {
-    const visible: ServerProcessDiagnosticsEntry[] = [];
-    let hiddenChildDepth: number | null = null;
+  const visibleProcesses = visibleProcessTree(processes, collapsedPids);
 
-    for (const process of processes) {
-      if (hiddenChildDepth !== null) {
-        if (process.depth > hiddenChildDepth) continue;
-        hiddenChildDepth = null;
-      }
-
-      visible.push(process);
-      if (collapsedPids.has(process.pid)) {
-        hiddenChildDepth = process.depth;
-      }
-    }
-
-    return visible;
-  }, [collapsedPids, processes]);
-
-  const toggleProcess = useCallback((pid: number) => {
+  const toggleProcess = (pid: number) => {
     setCollapsedPids((previous) => {
       const next = new Set(previous);
       if (next.has(pid)) {
@@ -348,7 +360,7 @@ function ProcessDiagnosticsTable({
       }
       return next;
     });
-  }, []);
+  };
 
   return (
     <div className="border-t border-border/60">
@@ -673,8 +685,7 @@ function ProcessResourceHistoryTable({
 
 function DiagnosticsLastChecked({ checkedAt }: { checkedAt: DateTime.Utc | null }) {
   const { t } = useI18n();
-  useRelativeTimeTick();
-  const relative = getRelativeTimeState(checkedAt ? DateTime.formatIso(checkedAt) : null);
+  const relative = useRelativeTimeState(checkedAt ? DateTime.formatIso(checkedAt) : null);
 
   if (relative.status === "missing") {
     return (
@@ -746,8 +757,6 @@ function DiagnosticsRefreshButton({
 export function DiagnosticsSettingsPanel() {
   const { locale, t } = useI18n();
   const { environment } = useSettingsScope();
-  // The boundary only mounts this page when the selection resolves to one
-  // connected environment, so the representative is the one to inspect.
   const environmentId = environment?.environmentId ?? null;
   const canMaintainEnvironment = useEnvironmentScope(environmentId, AuthEnvironmentMaintainScope);
   const observability = environment?.serverConfig?.observability;
@@ -817,7 +826,7 @@ export function DiagnosticsSettingsPanel() {
     };
   }, [environmentId]);
 
-  const openLogsDirectory = useCallback(() => {
+  const openLogsDirectory = () => {
     const logsDirectoryPath = observability?.logsDirectoryPath ?? null;
     if (!logsDirectoryPath) return;
 
@@ -840,7 +849,7 @@ export function DiagnosticsSettingsPanel() {
         );
       }
     })();
-  }, [environmentId, observability?.logsDirectoryPath, openInEditor, t]);
+  };
 
   const isInitialLoading = isPending && data === null;
   const isProcessInitialLoading = isProcessPending && processData === null;
@@ -858,109 +867,99 @@ export function DiagnosticsSettingsPanel() {
   ) {
     setExportFormEnvironmentId(environmentId);
   }
-  const signalProcess = useCallback(
-    async (pid: number, signal: ServerProcessSignal) => {
-      const targetEnvironmentId = environmentIdRef.current;
-      const process = processDataRef.current?.processes.find((entry) => entry.pid === pid);
-      if (
-        targetEnvironmentId === null ||
-        process === undefined ||
-        !readEnvironmentScope(targetEnvironmentId, AuthEnvironmentMaintainScope)
-      )
-        return;
-      if (signalingPidRef.current !== null) return;
-      signalingPidRef.current = pid;
-      setSignalingPid(pid);
-      const clearSignaling = () => {
-        signalingPidRef.current = null;
-        setSignalingPid(null);
-      };
-      if (signal === "SIGKILL") {
-        let confirmed = false;
-        try {
-          confirmed = await ensureLocalApi().dialogs.confirm(
-            t("diagnostics.signal.confirmKill", { pid }),
-            { variant: "destructive" },
-          );
-        } catch (error) {
-          clearSignaling();
-          toastManager.add({
-            type: "error",
-            title: t("diagnostics.signal.confirmFailed"),
-            description:
-              error instanceof Error
-                ? error.message
-                : t("diagnostics.signal.sendFailed", { signal }),
-          });
-          return;
-        }
-        if (!confirmed) {
-          clearSignaling();
-          return;
-        }
-      }
-      const currentEnvironmentId = environmentIdRef.current;
-      if (
-        currentEnvironmentId === null ||
-        currentEnvironmentId !== targetEnvironmentId ||
-        !readEnvironmentScope(currentEnvironmentId, AuthEnvironmentMaintainScope)
-      ) {
-        clearSignaling();
-        return;
-      }
-      if (
-        processDataRef.current?.processes.find((entry) => entry.pid === pid)?.startTimeMs !==
-        process.startTimeMs
-      ) {
-        clearSignaling();
-        return;
-      }
-
+  const signalProcess = async (pid: number, signal: ServerProcessSignal) => {
+    const targetEnvironmentId = environmentIdRef.current;
+    const process = processDataRef.current?.processes.find((entry) => entry.pid === pid);
+    if (
+      targetEnvironmentId === null ||
+      process === undefined ||
+      !readEnvironmentScope(targetEnvironmentId, AuthEnvironmentMaintainScope)
+    )
+      return;
+    if (signalingPidRef.current !== null) return;
+    signalingPidRef.current = pid;
+    setSignalingPid(pid);
+    const clearSignaling = () => {
+      signalingPidRef.current = null;
+      setSignalingPid(null);
+    };
+    if (signal === "SIGKILL") {
+      let confirmed = false;
       try {
-        const result = await signalServerProcess({
-          environmentId: targetEnvironmentId,
-          input: { pid, startTimeMs: process.startTimeMs, signal },
-        });
-        if (result._tag === "Failure") {
-          if (!isAtomCommandInterrupted(result)) {
-            const error = squashAtomCommandFailure(result);
-            toastManager.add({
-              type: "error",
-              title: t("diagnostics.signal.sendFailedTitle", { signal }),
-              description:
-                error instanceof Error
-                  ? error.message
-                  : t("diagnostics.signal.sendFailed", { signal }),
-            });
-          }
-          return;
-        }
-        if (!result.value.signaled) {
-          const message = Option.getOrUndefined(result.value.message);
-          refreshProcesses();
-          if (isStaleProcessSignalMessage(message)) {
-            toastManager.add({
-              type: "info",
-              title: t("diagnostics.signal.processExited"),
-              description: t("diagnostics.signal.processExitedDescription"),
-            });
-            return;
-          }
-
-          toastManager.add({
-            type: "error",
-            title: t("diagnostics.signal.sendFailedTitle", { signal }),
-            description: message ?? t("diagnostics.signal.sendFailed", { signal }),
-          });
-          return;
-        }
-        refreshProcesses();
-      } finally {
+        confirmed = await ensureLocalApi().dialogs.confirm(
+          t("diagnostics.signal.confirmKill", { pid }),
+          { variant: "destructive" },
+        );
+      } catch (error) {
         clearSignaling();
+        toastManager.add({
+          type: "error",
+          title: t("diagnostics.signal.confirmFailed"),
+          description:
+            error instanceof Error ? error.message : t("diagnostics.signal.sendFailed", { signal }),
+        });
+        return;
       }
-    },
-    [refreshProcesses, signalServerProcess, t],
-  );
+      if (!confirmed) {
+        clearSignaling();
+        return;
+      }
+    }
+    const currentEnvironmentId = environmentIdRef.current;
+    if (
+      currentEnvironmentId === null ||
+      currentEnvironmentId !== targetEnvironmentId ||
+      !readEnvironmentScope(currentEnvironmentId, AuthEnvironmentMaintainScope)
+    ) {
+      clearSignaling();
+      return;
+    }
+    if (
+      processDataRef.current?.processes.find((entry) => entry.pid === pid)?.startTimeMs !==
+      process.startTimeMs
+    ) {
+      clearSignaling();
+      return;
+    }
+
+    const result = await signalServerProcess({
+      environmentId: targetEnvironmentId,
+      input: { pid, startTimeMs: process.startTimeMs, signal },
+    });
+    clearSignaling();
+    if (result._tag === "Failure") {
+      if (!isAtomCommandInterrupted(result)) {
+        const error = squashAtomCommandFailure(result);
+        toastManager.add({
+          type: "error",
+          title: t("diagnostics.signal.sendFailedTitle", { signal }),
+          description:
+            error instanceof Error ? error.message : t("diagnostics.signal.sendFailed", { signal }),
+        });
+      }
+      return;
+    }
+    if (!result.value.signaled) {
+      const message = Option.getOrUndefined(result.value.message);
+      refreshProcesses();
+      if (isStaleProcessSignalMessage(message)) {
+        toastManager.add({
+          type: "info",
+          title: t("diagnostics.signal.processExited"),
+          description: t("diagnostics.signal.processExitedDescription"),
+        });
+        return;
+      }
+
+      toastManager.add({
+        type: "error",
+        title: t("diagnostics.signal.sendFailedTitle", { signal }),
+        description: message ?? t("diagnostics.signal.sendFailed", { signal }),
+      });
+      return;
+    }
+    refreshProcesses();
+  };
 
   const processDiagnosticsError = processData ? Option.getOrNull(processData.error) : null;
   const processResourceError = resourceData ? Option.getOrNull(resourceData.error) : null;
@@ -1024,7 +1023,7 @@ export function DiagnosticsSettingsPanel() {
           <div className="space-y-2 border-t border-border/60 px-4 py-3 text-xs text-muted-foreground sm:px-5">
             {processDiagnosticsError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
                 <span>
                   {translateDiagnosticsRuntimeMessage(processDiagnosticsError.message, t)}
                 </span>
@@ -1032,7 +1031,7 @@ export function DiagnosticsSettingsPanel() {
             ) : null}
             {processError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
                 <span>{translateDiagnosticsRuntimeMessage(processError, t)}</span>
               </div>
             ) : null}
@@ -1101,13 +1100,13 @@ export function DiagnosticsSettingsPanel() {
           <div className="space-y-2 border-t border-border/60 px-4 py-3 text-xs text-muted-foreground sm:px-5">
             {processResourceError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
                 <span>{translateDiagnosticsRuntimeMessage(processResourceError.message, t)}</span>
               </div>
             ) : null}
             {resourceError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
                 <span>{translateDiagnosticsRuntimeMessage(resourceError, t)}</span>
               </div>
             ) : null}
@@ -1189,7 +1188,7 @@ export function DiagnosticsSettingsPanel() {
           <div className="space-y-2 border-t border-border/60 px-4 py-3 text-xs text-muted-foreground sm:px-5">
             {openLogsDirectoryError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
                 <span>{openLogsDirectoryError}</span>
               </div>
             ) : null}
@@ -1200,7 +1199,7 @@ export function DiagnosticsSettingsPanel() {
                   traceDiagnosticsPartialFailure ? "text-warning-foreground" : "text-destructive",
                 )}
               >
-                <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
                 <span>
                   {traceDiagnosticsPartialFailure
                     ? t("diagnostics.warning.partialTrace", {
@@ -1212,7 +1211,7 @@ export function DiagnosticsSettingsPanel() {
             ) : null}
             {error ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
                 <span>{error}</span>
               </div>
             ) : null}
@@ -1242,7 +1241,7 @@ export function DiagnosticsSettingsPanel() {
                   {formatDuration(failure.durationMs)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 align-top font-mono tabular-nums text-muted-foreground last:sm:pr-5">
-                  {formatRelativeNoWrap(failure.endedAt, t("diagnostics.state.noTraceRecords"))}
+                  <RelativeTimeNoWrap value={failure.endedAt} />
                 </td>
               </tr>
             ))}
@@ -1281,7 +1280,7 @@ export function DiagnosticsSettingsPanel() {
                   <ExpandableText text={failure.cause} />
                 </td>
                 <td className="w-px whitespace-nowrap px-4 py-3 align-top font-mono tabular-nums text-muted-foreground last:sm:pr-5">
-                  {formatRelativeNoWrap(failure.lastSeenAt, t("diagnostics.state.noTraceRecords"))}
+                  <RelativeTimeNoWrap value={failure.lastSeenAt} />
                 </td>
               </tr>
             ))}
@@ -1318,7 +1317,7 @@ export function DiagnosticsSettingsPanel() {
                   {formatDuration(span.durationMs)}
                 </td>
                 <td className="w-px whitespace-nowrap px-4 py-3 align-top font-mono tabular-nums text-muted-foreground">
-                  {formatRelativeNoWrap(span.endedAt, t("diagnostics.state.noTraceRecords"))}
+                  <RelativeTimeNoWrap value={span.endedAt} />
                 </td>
                 <td className="min-w-0 whitespace-nowrap px-4 py-3 align-top text-muted-foreground last:sm:pr-5">
                   <TraceIdCell traceId={span.traceId} />
@@ -1380,7 +1379,7 @@ export function DiagnosticsSettingsPanel() {
                     className="hover:bg-muted/15"
                   >
                     <td className="whitespace-nowrap px-4 py-3 align-top font-mono tabular-nums text-muted-foreground sm:pl-5">
-                      {formatRelativeNoWrap(event.seenAt, t("diagnostics.state.noTraceRecords"))}
+                      <RelativeTimeNoWrap value={event.seenAt} />
                     </td>
                     <td className="px-4 py-3 align-top">
                       <span className="inline-flex rounded bg-muted px-1.5 py-0.5 font-mono text-2xs font-medium uppercase text-foreground/80">

@@ -1,5 +1,4 @@
 import { MessageSquareDashedIcon, PlusIcon } from "lucide-react";
-import { useCallback } from "react";
 
 import { openCommandPalette } from "../commandPaletteBus";
 import { isElectron } from "../env";
@@ -13,7 +12,6 @@ import { useI18n } from "../i18n/WebI18nContext";
 
 export function NoProjectsHero() {
   const { t } = useI18n();
-  const openAddProject = useCallback(() => openCommandPalette({ open: "add-project" }), []);
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const { scratchEnvironmentId, startScratchThread } = useScratchProject();
   const scratchTargetEnvironmentId = scratchEnvironmentId(primaryEnvironmentId);
@@ -33,7 +31,7 @@ export function NoProjectsHero() {
                   : t("home.heroDescriptionWithScratch")}
               </EmptyDescription>
               <div className="mt-6 flex justify-center gap-2">
-                <Button size="sm" onClick={openAddProject}>
+                <Button size="sm" onClick={() => openCommandPalette({ open: "add-project" })}>
                   <PlusIcon className="size-4" />
                   {t("home.addProject")}
                 </Button>

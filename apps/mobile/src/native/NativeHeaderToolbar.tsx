@@ -1,5 +1,5 @@
 import { localizeMobileString } from "../i18n/mobileStrings";
-import { useNavigation, type ParamListBase } from "@react-navigation/native";
+import { useNavigation, useRoute, type ParamListBase } from "@react-navigation/native";
 import type {
   NativeStackHeaderItem,
   NativeStackHeaderItemMenu,
@@ -18,6 +18,7 @@ import {
 import type { ColorValue } from "react-native";
 import type { HeaderBarButtonSearchBarPlacementItem } from "react-native-screens";
 import { NativeWorkspaceTabActivityContext } from "./v5-workspace-context";
+import { NativeStackScreenOptions } from "./StackHeader";
 
 function useNativeStackNavigation(): NativeStackNavigationProp<ParamListBase> | null {
   return useNavigation<NativeStackNavigationProp<ParamListBase>>();
@@ -232,33 +233,15 @@ function NativeHeaderToolbarRoot(props: {
   readonly children?: ReactNode;
 }) {
   const navigation = useNativeStackNavigation();
+  const route = useRoute();
   const tabActivity = use(NativeWorkspaceTabActivityContext);
-  const tabActive = tabActivity?.active ?? true;
   const isTabActive = tabActivity?.isActive;
   const items = useMemo(() => collectToolbarItems(props.children), [props.children]);
-
-  // Update items in place. Clearing them on every render causes UIKit to run a
-  // second transition and detach custom views while the stack is animating.
-  useLayoutEffect(() => {
-    if (!navigation || !tabActive) {
-      return;
-    }
-    if (props.placement === "bottom") {
-      navigation.setOptions({
-        unstable_headerToolbarItems: () => items,
-      } as NativeStackOptionsWithToolbar);
-      return;
-    }
-    // UIKit's search placement item belongs to the toolbar, never a header group.
-    const headerItems = items.filter(
-      (item): item is NativeStackHeaderItem => item.type !== "searchBarPlacement",
-    );
-    if (props.placement === "left") {
-      navigation.setOptions({ unstable_headerLeftItems: () => headerItems });
-      return;
-    }
-    navigation.setOptions({ unstable_headerRightItems: () => headerItems });
-  }, [items, navigation, props.placement, tabActive]);
+  // UIKit's search placement item belongs to the toolbar, never a header group.
+  const headerItems = useMemo(
+    () => items.filter((item): item is NativeStackHeaderItem => item.type !== "searchBarPlacement"),
+    [items],
+  );
 
   useLayoutEffect(() => {
     if (!navigation) return;
@@ -276,7 +259,18 @@ function NativeHeaderToolbarRoot(props: {
     };
   }, [navigation, props.placement, isTabActive]);
 
-  return null;
+  return (
+    <NativeStackScreenOptions
+      optionsVersion={[items, route.params]}
+      options={
+        props.placement === "bottom"
+          ? { unstable_headerToolbarItems: () => items }
+          : props.placement === "left"
+            ? { unstable_headerLeftItems: () => headerItems }
+            : { unstable_headerRightItems: () => headerItems }
+      }
+    />
+  );
 }
 
 function NativeHeaderToolbarButton(_props: {
@@ -326,7 +320,6 @@ function NativeHeaderToolbarMenuAction(_props: {
 }
 NativeHeaderToolbarMenuAction.displayName = "NativeHeaderToolbarMenuAction";
 
-/** Renders an arbitrary element as a bar item, e.g. a spinner standing in for a button. */
 function NativeHeaderToolbarCustom(_props: { readonly children: ReactElement }) {
   return null;
 }

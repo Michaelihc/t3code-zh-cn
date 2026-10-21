@@ -1,11 +1,12 @@
+import { Button } from "../../components/ui/Button";
 import {
   codexFeedbackNotice,
   type CodexFeedbackSubmission,
 } from "@t3tools/client-runtime/state/threads";
 import { Pressable, View } from "react-native";
 
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { copyTextWithHaptic } from "../../lib/copyTextWithHaptic";
 import { localizeMobileString } from "../../i18n/mobileStrings";
 
@@ -48,17 +49,15 @@ export function ComposerFeedback({
           </Text>
         ) : null}
         {submission.status === "sent" ? (
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            label="Copy ID"
+            tone="text"
             onPress={() =>
               copyTextWithHaptic(submission.feedbackId, {
                 target: localizeMobileString("Codex feedback thread ID"),
               })
             }
-            className="self-start py-1 active:opacity-60"
-          >
-            <Text className="text-sm text-foreground">Copy ID</Text>
-          </Pressable>
+          />
         ) : null}
       </View>
     </View>

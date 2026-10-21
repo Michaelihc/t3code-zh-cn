@@ -13,8 +13,6 @@ import * as DesktopWindow from "../../window/DesktopWindow.ts";
 import * as DesktopTray from "../../window/DesktopTray.ts";
 import { getLocalEnvironmentEnabled, setLocalEnvironmentEnabled } from "./localEnvironment.ts";
 
-// `relaunch` declares the lifecycle runtime services as requirements even
-// though the mocked relaunch never touches them.
 const layerUnusedLifecycleRuntime = Layer.mergeAll(
   DesktopShutdown.layer,
   DesktopState.layer,

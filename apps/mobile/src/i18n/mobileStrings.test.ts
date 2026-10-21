@@ -3,6 +3,35 @@ import { describe, expect, it } from "vite-plus/test";
 import { localizeAlertArguments, localizeMobileString } from "./mobileStrings";
 
 describe("mobile strings", () => {
+  it("translates the new commit, linking, webhook, and preview controls", () => {
+    const messages = {
+      "Cancel commit": "取消提交",
+      "Commit on a new branch": "提交到新分支",
+      "Link pull request": "关联拉取请求",
+      "Back to document": "返回文档",
+      "Render math": "渲染数学公式",
+      "Replay key template": "重放去重键模板",
+      "Coalesce window (seconds, 10–3600)": "合并窗口（秒，10–3600）",
+      "Resume queue": "恢复队列",
+    };
+    for (const [source, translated] of Object.entries(messages)) {
+      expect(localizeMobileString(source, "zh-CN")).toBe(translated);
+      expect(localizeMobileString(source, "en")).toBe(source);
+    }
+  });
+
+  it("translates the new commit counts and quota pace without changing account names", () => {
+    expect(localizeMobileString("3 of 8 selected · +1.2k −30", "zh-CN")).toBe(
+      "已选择 3 / 8 个文件 · +1.2k −30",
+    );
+    expect(
+      localizeMobileString("Segment 2, Work Mac, 80% left, 62% of the window left", "zh-CN"),
+    ).toBe("区段 2，Work Mac，剩余 80%，额度周期剩余 62%");
+    expect(localizeMobileString("Segment 2, Work Mac, 80% left", "zh-CN")).toBe(
+      "区段 2，Work Mac，剩余 80%",
+    );
+  });
+
   it("translates project creation and scratch-task copy", () => {
     const messages = {
       "New project": "新建项目",

@@ -28,7 +28,7 @@ import type {
 } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -44,8 +44,9 @@ import { ensureLocalApi } from "../../localApi";
 import { serverEnvironment } from "../../state/server";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { formatRelativeTime } from "../../timestampFormat";
-import { splitWebTranslation, useI18n, type WebTranslate } from "../../i18n/WebI18nProvider";
+import { useI18n, type WebTranslate } from "../../i18n/WebI18nContext";
+import { splitWebTranslation } from "../../i18n/WebI18nContext";
+import { useRelativeTimeState } from "../../hooks/useRelativeTimeState";
 import { Button } from "../ui/button";
 import { MorphIcon } from "~/components/MorphIcon";
 import { ScrollArea } from "../ui/scroll-area";
@@ -58,7 +59,7 @@ import {
   shouldShowResourceMonitorRetry,
   visibleResourceTelemetryProcesses,
 } from "./ResourceTelemetryDiagnostics.logic";
-import { SettingsSection, useRelativeTimeTick } from "./settingsLayout";
+import { SettingsSection } from "./settingsLayout";
 
 const HISTORY_WINDOWS = [
   { label: "5m", windowMs: 5 * 60_000, bucketMs: 15_000 },
@@ -228,16 +229,8 @@ function SourceStatusBadge({
 
 function LastSampleLabel({ sampledAt }: { sampledAt: DateTime.Utc | null }) {
   const { t } = useI18n();
-  useRelativeTimeTick();
-  if (!sampledAt) {
-    return (
-      <span className="text-2xs text-muted-foreground/55">
-        {t("diagnostics.state.waitingSample")}
-      </span>
-    );
-  }
-  const relative = formatRelativeTime(DateTime.formatIso(sampledAt));
-  if (!relative) {
+  const relative = useRelativeTimeState(sampledAt ? DateTime.formatIso(sampledAt) : null);
+  if (relative.status !== "relative") {
     return (
       <span className="text-2xs text-muted-foreground/55">
         {t("diagnostics.state.waitingSample")}
@@ -606,11 +599,8 @@ function ProcessTable({
 }) {
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
-  const visible = useMemo(
-    () => visibleResourceTelemetryProcesses(processes, collapsed),
-    [collapsed, processes],
-  );
-  const toggle = useCallback((process: ResourceTelemetryProcess) => {
+  const visible = visibleResourceTelemetryProcesses(processes, collapsed);
+  const toggle = (process: ResourceTelemetryProcess) => {
     const identityKey = processIdentityKey(process);
     setCollapsed((current) => {
       const next = new Set(current);
@@ -621,7 +611,7 @@ function ProcessTable({
       }
       return next;
     });
-  }, []);
+  };
 
   return (
     <div className="border-t border-border/60">
@@ -942,100 +932,93 @@ export function ResourceTelemetryDiagnostics({
   const snapshot = telemetry.data;
   const allT3 = snapshot?.groups.allT3;
 
-  const signalProcess = useCallback(
-    async (process: ResourceTelemetryProcess, signal: ServerProcessSignal) => {
-      const targetEnvironmentId = environmentIdRef.current;
-      if (
-        targetEnvironmentId === null ||
-        !readEnvironmentScope(targetEnvironmentId, AuthEnvironmentMaintainScope)
-      )
-        return;
-      const identityKey = processIdentityKey(process);
-      if (signalingKeysRef.current.has(identityKey)) return;
-      const nextSignalingKeys = new Set(signalingKeysRef.current).add(identityKey);
-      signalingKeysRef.current = nextSignalingKeys;
-      setSignalingKeys(nextSignalingKeys);
-      const clearSignaling = () => {
-        const next = new Set(signalingKeysRef.current);
-        next.delete(identityKey);
-        signalingKeysRef.current = next;
-        setSignalingKeys(next);
-      };
+  const signalProcess = async (process: ResourceTelemetryProcess, signal: ServerProcessSignal) => {
+    const targetEnvironmentId = environmentIdRef.current;
+    if (
+      targetEnvironmentId === null ||
+      !readEnvironmentScope(targetEnvironmentId, AuthEnvironmentMaintainScope)
+    )
+      return;
+    const identityKey = processIdentityKey(process);
+    if (signalingKeysRef.current.has(identityKey)) return;
+    const nextSignalingKeys = new Set(signalingKeysRef.current).add(identityKey);
+    signalingKeysRef.current = nextSignalingKeys;
+    setSignalingKeys(nextSignalingKeys);
+    const clearSignaling = () => {
+      const next = new Set(signalingKeysRef.current);
+      next.delete(identityKey);
+      signalingKeysRef.current = next;
+      setSignalingKeys(next);
+    };
 
-      if (signal === "SIGKILL") {
-        let confirmed = false;
-        try {
-          confirmed = await ensureLocalApi().dialogs.confirm(
-            t("diagnostics.signal.confirmKill", { pid: process.identity.pid }),
-            { variant: "destructive" },
-          );
-        } catch (error) {
-          clearSignaling();
-          toastManager.add({
-            type: "error",
-            title: t("diagnostics.signal.confirmFailed"),
-            description:
-              error instanceof Error
-                ? error.message
-                : t("diagnostics.signal.sendFailed", { signal }),
-          });
-          return;
-        }
-        if (!confirmed) {
-          clearSignaling();
-          return;
-        }
+    if (signal === "SIGKILL") {
+      let confirmed = false;
+      try {
+        confirmed = await ensureLocalApi().dialogs.confirm(
+          t("diagnostics.signal.confirmKill", { pid: process.identity.pid }),
+          { variant: "destructive" },
+        );
+      } catch (error) {
+        clearSignaling();
+        toastManager.add({
+          type: "error",
+          title: t("diagnostics.signal.confirmFailed"),
+          description:
+            error instanceof Error ? error.message : t("diagnostics.signal.sendFailed", { signal }),
+        });
+        return;
       }
-      if (
-        environmentIdRef.current !== targetEnvironmentId ||
-        !readEnvironmentScope(targetEnvironmentId, AuthEnvironmentMaintainScope)
-      ) {
+      if (!confirmed) {
         clearSignaling();
         return;
       }
-      void signalServerProcess({
-        environmentId: targetEnvironmentId,
-        input: {
-          pid: process.identity.pid,
-          startTimeMs: process.identity.startTimeMs,
-          signal,
-        },
-      })
-        .then((result) => {
-          if (result._tag === "Failure") {
-            if (isAtomCommandInterrupted(result)) return;
-            throw squashAtomCommandFailure(result);
-          }
-          if (result.value.signaled) return;
-          toastManager.add({
-            type: "error",
-            title: t("diagnostics.signal.sendFailedTitle", { signal }),
-            description: Option.getOrElse(result.value.message, () =>
-              t("diagnostics.signal.sendProcessFailed", {
-                signal,
-                pid: process.identity.pid,
-              }),
-            ),
-          });
-        })
-        .catch((error: unknown) => {
-          toastManager.add({
-            type: "error",
-            title: t("diagnostics.signal.sendFailedTitle", { signal }),
-            description:
-              error instanceof Error
-                ? error.message
-                : t("diagnostics.signal.sendFailed", { signal }),
-          });
-        })
-        .finally(() => {
-          clearSignaling();
+    }
+    if (
+      environmentIdRef.current !== targetEnvironmentId ||
+      !readEnvironmentScope(targetEnvironmentId, AuthEnvironmentMaintainScope)
+    ) {
+      clearSignaling();
+      return;
+    }
+    void signalServerProcess({
+      environmentId: targetEnvironmentId,
+      input: {
+        pid: process.identity.pid,
+        startTimeMs: process.identity.startTimeMs,
+        signal,
+      },
+    })
+      .then((result) => {
+        if (result._tag === "Failure") {
+          if (isAtomCommandInterrupted(result)) return;
+          throw squashAtomCommandFailure(result);
+        }
+        if (result.value.signaled) return;
+        toastManager.add({
+          type: "error",
+          title: t("diagnostics.signal.sendFailedTitle", { signal }),
+          description: Option.getOrElse(result.value.message, () =>
+            t("diagnostics.signal.sendProcessFailed", {
+              signal,
+              pid: process.identity.pid,
+            }),
+          ),
         });
-    },
-    [signalServerProcess, t],
-  );
+      })
+      .catch((error: unknown) => {
+        toastManager.add({
+          type: "error",
+          title: t("diagnostics.signal.sendFailedTitle", { signal }),
+          description:
+            error instanceof Error ? error.message : t("diagnostics.signal.sendFailed", { signal }),
+        });
+      })
+      .finally(() => {
+        clearSignaling();
+      });
+  };
 
-  const retryCollector = useCallback(() => {
+  const retryCollector = () => {
     const environmentId = environmentIdRef.current;
     if (
       environmentId === null ||
@@ -1055,7 +1038,7 @@ export function ResourceTelemetryDiagnostics({
       .finally(() => {
         setIsRetrying(false);
       });
-  }, [retryTelemetry]);
+  };
 
   const speedLimit = snapshot ? Option.getOrNull(snapshot.speedLimitPercent) : null;
   const collectorNeedsRetry = shouldShowResourceMonitorRetry({
@@ -1211,7 +1194,7 @@ export function ResourceTelemetryDiagnostics({
           </div>
           {telemetry.error ? (
             <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-4 py-3 text-xs text-destructive sm:px-5">
-              <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+              <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
               <span>{translateDiagnosticsRuntimeMessage(telemetry.error, t)}</span>
             </div>
           ) : null}
@@ -1401,7 +1384,7 @@ export function ResourceTelemetryDiagnostics({
         <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs/5">
           {history.error ? (
             <div className="flex items-start gap-2 border-b border-destructive/20 bg-destructive/5 px-4 py-3 text-xs text-destructive sm:px-5">
-              <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+              <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
               <span>{translateDiagnosticsRuntimeMessage(history.error, t)}</span>
             </div>
           ) : null}

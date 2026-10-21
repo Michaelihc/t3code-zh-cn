@@ -1,11 +1,17 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
+
 import { ComposerSelectControl } from "./chat/ComposerControl";
 import { ComposerContextLabel } from "./ComposerContextLabel";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "./ui/tooltip";
+import { useAtomValue } from "@effect/atom-react";
+import { shortcutLabelForCommand } from "../keybindings";
+import { primaryServerKeybindingsAtom } from "../state/server";
 import type { EnvironmentId } from "@t3tools/contracts";
-import { ScaleIcon } from "lucide-react";
-import { memo, useMemo } from "react";
+import { PlusIcon, ScaleIcon } from "lucide-react";
+import { memo } from "react";
 
-import type { EnvironmentOption } from "./BranchToolbar.logic";
+import { ADD_TO_MACHINE_LABEL_CLASS, type EnvironmentOption } from "./BranchToolbar.logic";
 import { EnvironmentMachineIcon } from "./EnvironmentMachineIcon";
 import { useComposerMenuProps } from "./chat/composerEventScope";
 import {
@@ -24,7 +30,13 @@ interface BranchToolbarEnvironmentSelectorProps {
   environmentId: EnvironmentId;
   availableEnvironments: readonly EnvironmentOption[];
   onEnvironmentChange?: (environmentId: EnvironmentId) => void;
+  onAddToMachine?: (() => void) | undefined;
 }
+
+// Action values cannot collide with server-minted environment IDs.
+const AUTO_VALUE = "action:auto";
+const ADD_MACHINE_VALUE = "action:add-machine";
+const environmentValue = (id: EnvironmentId) => `env:${id}`;
 
 export const BranchToolbarEnvironmentSelector = memo(function BranchToolbarEnvironmentSelector({
   autoEnvironmentLabel,
@@ -33,31 +45,36 @@ export const BranchToolbarEnvironmentSelector = memo(function BranchToolbarEnvir
   environmentId,
   availableEnvironments,
   onEnvironmentChange,
+  onAddToMachine,
 }: BranchToolbarEnvironmentSelectorProps) {
-  const composerFloatingLayerProps = useComposerMenuProps();
-  const activeEnvironment = useMemo(() => {
-    return availableEnvironments.find((env) => env.environmentId === environmentId) ?? null;
-  }, [availableEnvironments, environmentId]);
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
 
-  const environmentItems = useMemo(
-    () => [
-      ...(onAutoEnvironment
-        ? [{ value: "auto", label: autoEnvironmentLabel ?? "Auto balance" }]
-        : []),
-      ...availableEnvironments.map((env) => ({
-        value: env.environmentId,
-        label: env.label,
-      })),
-    ],
-    [availableEnvironments, autoEnvironmentLabel, onAutoEnvironment],
+  const composerFloatingLayerProps = useComposerMenuProps();
+  const shortcutLabel = shortcutLabelForCommand(
+    useAtomValue(primaryServerKeybindingsAtom),
+    "composer.host",
   );
+  const activeEnvironment =
+    availableEnvironments.find((env) => env.environmentId === environmentId) ?? null;
+
+  const environmentItems = [
+    ...(onAutoEnvironment
+      ? [{ value: AUTO_VALUE, label: autoEnvironmentLabel ?? tx("Auto balance") }]
+      : []),
+    ...availableEnvironments.map((env) => ({
+      value: environmentValue(env.environmentId),
+      label: env.label,
+    })),
+    ...(onAddToMachine ? [{ value: ADD_MACHINE_VALUE, label: tx("Add to another machine") }] : []),
+  ];
 
   // The static label carries the xs control's height (h-7 sm:h-6) as well as
   // its padding: the composer context strip has no min-height of its own, and
   // the glass seam joining it to the composer assumes a fixed strip height, so
   // a shorter label would drag the seam out of line whenever this label is the
   // only thing in the strip.
-  if (envLocked || onEnvironmentChange === undefined) {
+  if (envLocked || (onEnvironmentChange === undefined && onAddToMachine === undefined)) {
     const lockedRow = (
       <span
         className="inline-flex h-7 min-w-0 max-w-full items-center gap-1 border border-transparent px-1.75 font-normal text-muted-foreground/70 text-xs sm:h-6"
@@ -67,13 +84,13 @@ export const BranchToolbarEnvironmentSelector = memo(function BranchToolbarEnvir
           kind={activeEnvironment?.machine ?? "server"}
           className="size-3 shrink-0"
         />
-        <ComposerContextLabel>{activeEnvironment?.label ?? "Run on"}</ComposerContextLabel>
+        <ComposerContextLabel>{activeEnvironment?.label ?? tx("Run on")}</ComposerContextLabel>
       </span>
     );
     return (
       <Tooltip>
         <TooltipTrigger render={lockedRow} />
-        <TooltipPopup>{activeEnvironment?.label ?? "Run on"}</TooltipPopup>
+        <TooltipPopup>{activeEnvironment?.label ?? tx("Run on")}</TooltipPopup>
       </Tooltip>
     );
   }
@@ -81,10 +98,16 @@ export const BranchToolbarEnvironmentSelector = memo(function BranchToolbarEnvir
   return (
     <Select
       modal={false}
-      value={autoEnvironmentLabel ? "auto" : environmentId}
-      onValueChange={(value) =>
-        value === "auto" ? onAutoEnvironment?.() : onEnvironmentChange(value as EnvironmentId)
-      }
+      value={autoEnvironmentLabel ? AUTO_VALUE : environmentValue(environmentId)}
+      onValueChange={(value) => {
+        if (value === ADD_MACHINE_VALUE) {
+          onAddToMachine?.();
+        } else if (value === AUTO_VALUE) {
+          onAutoEnvironment?.();
+        } else if (value?.startsWith("env:")) {
+          onEnvironmentChange?.(value.slice(4) as EnvironmentId);
+        }
+      }}
       items={environmentItems}
     >
       <Tooltip>
@@ -93,7 +116,7 @@ export const BranchToolbarEnvironmentSelector = memo(function BranchToolbarEnvir
             <ComposerSelectControl
               size="xs"
               className="min-w-0 max-w-full"
-              aria-label="Run on"
+              aria-label={tx("Run on")}
               data-composer-shortcut="composer.host"
               data-composer-context-control
             />
@@ -111,32 +134,47 @@ export const BranchToolbarEnvironmentSelector = memo(function BranchToolbarEnvir
             <SelectValue />
           </ComposerContextLabel>
         </TooltipTrigger>
-        <TooltipPopup>{autoEnvironmentLabel ?? activeEnvironment?.label ?? "Run on"}</TooltipPopup>
+        <TooltipPopup>
+          {autoEnvironmentLabel ?? activeEnvironment?.label ?? tx("Run on")}
+          {shortcutLabel ? ` · ${shortcutLabel}` : null}
+        </TooltipPopup>
       </Tooltip>
       <SelectPopup alignItemWithTrigger={false} {...composerFloatingLayerProps}>
         <SelectGroup>
-          <SelectGroupLabel>Run on</SelectGroupLabel>
+          <SelectGroupLabel>{tx("Run on")}</SelectGroupLabel>
           {onAutoEnvironment && (
             <SelectItem
-              value="auto"
+              value={AUTO_VALUE}
               onClick={() => {
                 if (autoEnvironmentLabel) onAutoEnvironment?.();
               }}
             >
               <span className="inline-flex items-center gap-1.5">
                 <ScaleIcon className="size-3" aria-hidden="true" />
-                {autoEnvironmentLabel ?? "Auto balance"}
+                {autoEnvironmentLabel ?? tx("Auto balance")}
               </span>
             </SelectItem>
           )}
           {availableEnvironments.map((env) => (
-            <SelectItem key={env.environmentId} value={env.environmentId}>
+            <SelectItem
+              key={env.environmentId}
+              value={environmentValue(env.environmentId)}
+              disabled={onEnvironmentChange === undefined && env.environmentId !== environmentId}
+            >
               <span className="inline-flex items-center gap-1.5">
                 <EnvironmentMachineIcon kind={env.machine} className="size-3" />
                 {env.label}
               </span>
             </SelectItem>
           ))}
+          {onAddToMachine ? (
+            <SelectItem value={ADD_MACHINE_VALUE}>
+              <span className={ADD_TO_MACHINE_LABEL_CLASS}>
+                <PlusIcon aria-hidden="true" className="size-3" />
+                {tx("Add to another machine")}
+              </span>
+            </SelectItem>
+          ) : null}
         </SelectGroup>
       </SelectPopup>
     </Select>

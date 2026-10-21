@@ -27,3 +27,17 @@ export const WebI18nContext = createContext<WebI18nContextValue>({
 export function useI18n(): WebI18nContextValue {
   return useContext(WebI18nContext);
 }
+
+export function splitWebTranslation(
+  t: WebTranslate,
+  key: WebMessageKey,
+  placeholder: string,
+  values: WebMessageValues = {},
+): readonly [before: string, after: string] {
+  const marker = `\u0000t3-${placeholder}\u0000`;
+  const message = t(key, { ...values, [placeholder]: marker });
+  const markerIndex = message.indexOf(marker);
+  return markerIndex === -1
+    ? [message, ""]
+    : [message.slice(0, markerIndex), message.slice(markerIndex + marker.length)];
+}

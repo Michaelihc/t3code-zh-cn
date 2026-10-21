@@ -1,13 +1,17 @@
+import { localizeMobileString } from "../../i18n/mobileStrings";
 import { useIsFocused } from "@react-navigation/native";
 import type { EnvironmentId, PreviewSessionSnapshot, ThreadId } from "@t3tools/contracts";
+import { previewPdfAssetUrl } from "@t3tools/shared/preview";
+import * as Option from "effect/Option";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Pressable, View } from "react-native";
 import Animated, { FadeIn, FadeOut, ReduceMotion } from "react-native-reanimated";
 
-import { SymbolView } from "../../components/AppSymbol";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { browserTabTitle } from "./browserTabs";
 import { PreviewStreamWebView } from "./PreviewStreamWebView";
+import { usePreparedConnection } from "../../state/session";
 
 const PLAYER_LONG_SIDE = 184;
 const PLAYER_ENTERING = FadeIn.duration(180).reduceMotion(ReduceMotion.System);
@@ -27,7 +31,6 @@ export function ThreadBrowserFloat(props: {
     if (!props.loaded) return;
     const previous = known.current;
     known.current = new Map(props.tabs.map((tab) => [tab.tabId, tab.revealRequest?.id]));
-    // The first list is a baseline, so reopening a thread does not resurface old tabs.
     if (previous === null) return;
     const opened = props.tabs.findLast(
       (tab) =>
@@ -78,8 +81,9 @@ function FloatingBrowserPlayer(props: {
   readonly onClose: () => void;
 }) {
   const { themeVariables } = useAppearancePreferences();
+  const prepared = usePreparedConnection(props.environmentId);
+  const httpBaseUrl = Option.isSome(prepared) ? prepared.value.httpBaseUrl : null;
   const [viewport, setViewport] = useState<{ width: number; height: number } | null>(null);
-  // The page keeps its own size; the player scales it into a box of the same shape.
   const aspect = Math.min(Math.max(viewport ? viewport.width / viewport.height : 16 / 10, 0.5), 2);
   const width = aspect >= 1 ? PLAYER_LONG_SIDE : Math.round(PLAYER_LONG_SIDE * aspect);
   const height = Math.round(width / aspect);
@@ -94,7 +98,7 @@ function FloatingBrowserPlayer(props: {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open browser, ${browserTabTitle(props.tab)}`}
-        accessibilityHint="Opens the browser tab full screen"
+        accessibilityHint={localizeMobileString("Opens the browser tab full screen")}
         onPress={props.onOpen}
         className="flex-1"
       >
@@ -103,6 +107,11 @@ function FloatingBrowserPlayer(props: {
             environmentId={props.environmentId}
             threadId={props.threadId}
             tabId={props.tab.tabId}
+            pdfUri={
+              props.tab.navStatus._tag === "Success"
+                ? previewPdfAssetUrl(props.tab.navStatus.url, httpBaseUrl)
+                : null
+            }
             interactive={false}
             background={background}
             compact
@@ -114,7 +123,7 @@ function FloatingBrowserPlayer(props: {
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Close floating preview"
+        accessibilityLabel={localizeMobileString("Close floating preview")}
         hitSlop={8}
         onPress={props.onClose}
         className="absolute right-1.5 top-1.5 size-6 items-center justify-center rounded-full bg-black/55"

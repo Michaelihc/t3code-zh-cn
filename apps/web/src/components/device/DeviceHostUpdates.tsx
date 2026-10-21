@@ -1,10 +1,11 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import type { DeviceServiceState, EnvironmentId } from "@t3tools/contracts";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { deviceEnvironment } from "~/state/device";
 import { useAtomCommand } from "~/state/use-atom-command";
 
-/** Shared by setup, Settings, and the Device panel so automatic updates stay visible. */
 export function DeviceHostUpdates({
   state,
   environmentId,
@@ -12,6 +13,7 @@ export function DeviceHostUpdates({
   state: DeviceServiceState;
   environmentId: EnvironmentId;
 }) {
+  const { locale: newCopyLocale } = useI18n();
   const retry = useAtomCommand(deviceEnvironment.list);
   const [pending, setPending] = useState<string | null>(null);
   if (state.hostStatus === "disabled") return null;
@@ -39,8 +41,10 @@ export function DeviceHostUpdates({
               </p>
               {failed ? (
                 <p className="mt-1 text-muted-foreground">
-                  Check the host connection and network access, then retry. Your device settings are
-                  saved.
+                  {translateWebSource(
+                    newCopyLocale,
+                    "Check the host connection and network access, then retry. Your device settings are saved.",
+                  )}
                 </p>
               ) : null}
             </div>

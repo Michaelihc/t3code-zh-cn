@@ -143,7 +143,21 @@ function downloadElectronArchive(zipPath, version, archiveName) {
     NodeFS.rmSync(partialPath, { force: true });
     const result = NodeChildProcess.spawnSync(
       "curl",
-      ["-fsSL", "--retry", "3", "--retry-delay", "2", url, "-o", partialPath],
+      [
+        "-fsSL",
+        "--retry",
+        "3",
+        "--retry-delay",
+        "2",
+        "--retry-all-errors",
+        "--connect-timeout",
+        "30",
+        "--max-time",
+        "300",
+        url,
+        "-o",
+        partialPath,
+      ],
       { encoding: "utf8", stdio: "inherit" },
     );
     if (result.status === 0) {

@@ -1,5 +1,6 @@
+import { localizeMobileString } from "../../i18n/mobileStrings";
 import { Pressable, ScrollView } from "react-native";
-import { SymbolView } from "../../components/AppSymbol";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { ListFilterMenu } from "../workspace/ListFilterMenu";
 import type { HomeHeaderProps } from "./HomeHeader.types";
 
@@ -28,7 +29,7 @@ export function ThreadListFilters(
     >
       <ListFilterMenu
         label={selectedEnvironment?.label ?? "All environments"}
-        accessibilityLabel="Filter threads by environment"
+        accessibilityLabel={localizeMobileString("Filter threads by environment")}
         active={selectedEnvironment !== undefined}
         actions={[
           {
@@ -57,7 +58,7 @@ export function ThreadListFilters(
       />
       <ListFilterMenu
         label={selectedProject?.label ?? "All projects"}
-        accessibilityLabel="Filter threads by project"
+        accessibilityLabel={localizeMobileString("Filter threads by project")}
         active={selectedProject !== undefined}
         actions={[
           {
@@ -84,7 +85,7 @@ export function ThreadListFilters(
       {props.selectedEnvironmentId !== null || props.selectedProjectKey !== null ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Reset thread filters"
+          accessibilityLabel={localizeMobileString("Reset thread filters")}
           className="h-8 w-8 items-center justify-center"
           onPress={() => {
             props.onEnvironmentChange(null);

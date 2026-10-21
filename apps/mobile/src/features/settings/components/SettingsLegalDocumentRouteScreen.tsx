@@ -1,33 +1,26 @@
+import { localizeMobileString } from "../../../i18n/mobileStrings";
+import { SheetCloseButton } from "../../../components/ui/SheetHeader";
 import { type NavigationProp, type ParamListBase, useNavigation } from "@react-navigation/native";
 import { useCallback, useLayoutEffect, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { WebView } from "react-native-webview";
 
-import { AppActivityIndicator } from "../../../components/AppActivityIndicator";
-import { AppText as Text } from "../../../components/AppText";
-import { LoadingStrip } from "../../../components/LoadingStrip";
-import { SymbolView } from "../../../components/AppSymbol";
+import { Button } from "../../../components/ui/Button";
+import { IconButton } from "../../../components/ui/IconButton";
+import { AppActivityIndicator } from "../../../components/ui/AppActivityIndicator";
+import { AppText as Text } from "../../../components/ui/AppText";
+import { LoadingStrip } from "../../../components/ui/LoadingStrip";
+import { SymbolView } from "../../../components/ui/AppSymbol";
 import { isLegalDocumentUrl, LEGAL_URL } from "../lib/legal-document-url";
 
 export function SettingsLegalDocumentCloseHeaderButton() {
   const navigation = useNavigation();
 
   return (
-    <Pressable
-      accessibilityLabel="Close legal document"
-      accessibilityRole="button"
-      hitSlop={12}
-      onPress={() => navigation.goBack()}
-      className="p-2 active:opacity-60"
-    >
-      <SymbolView
-        name="xmark"
-        size={18}
-        tintColorClassName={"accent-icon"}
-        type="monochrome"
-        weight="semibold"
-      />
-    </Pressable>
+    <SheetCloseButton
+      accessibilityLabel={localizeMobileString("Close legal document")}
+      onClose={() => navigation.goBack()}
+    />
   );
 }
 
@@ -39,21 +32,11 @@ export function SettingsLegalDocumentExternalHeaderButton({
   const safeExternalUrl = isLegalDocumentUrl(externalUrl) ? externalUrl : LEGAL_URL;
 
   return (
-    <Pressable
-      accessibilityLabel="Open legal documents in external browser"
-      accessibilityRole="button"
-      hitSlop={12}
+    <IconButton
+      accessibilityLabel={localizeMobileString("Open legal documents in external browser")}
+      icon="safari"
       onPress={() => void Linking.openURL(safeExternalUrl).catch(() => undefined)}
-      className="p-2 active:opacity-60"
-    >
-      <SymbolView
-        name="safari"
-        size={19}
-        tintColorClassName={"accent-icon"}
-        type="monochrome"
-        weight="regular"
-      />
-    </Pressable>
+    />
   );
 }
 
@@ -108,16 +91,15 @@ export function SettingsLegalDocumentRouteScreen({
           </Text>
         </View>
         <View className="w-full max-w-[320px] gap-2">
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            label="Try Again"
+            tone="contrast"
+            fullWidth
             onPress={() => {
               setLoadError(null);
               setReloadKey((value) => value + 1);
             }}
-            className="items-center rounded-xl bg-foreground px-4 py-3 active:opacity-80"
-          >
-            <Text className="font-t3-bold text-base text-sheet">Try Again</Text>
-          </Pressable>
+          />
           <Pressable
             accessibilityRole="link"
             onPress={() => openExternalUrl(documentUrl)}

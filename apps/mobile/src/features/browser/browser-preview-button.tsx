@@ -1,9 +1,9 @@
+import { localizeMobileString } from "../../i18n/mobileStrings";
 import { Pressable, View } from "react-native";
 
-import { AppText } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
+import { AppText } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
 
-/** Opens the thread's server-hosted browser tabs. Sits beside the device preview button. */
 export function BrowserPreviewButton(props: {
   readonly count: number;
   readonly onPress: () => void;
@@ -14,7 +14,7 @@ export function BrowserPreviewButton(props: {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={props.count === 1 ? "View browser" : `View ${props.count} browser tabs`}
-      accessibilityHint="Watch and control browser tabs open in this thread"
+      accessibilityHint={localizeMobileString("Watch and control browser tabs open in this thread")}
       onPress={props.onPress}
       className={
         compact

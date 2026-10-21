@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import { useState } from "react";
 
 import { Button } from "~/components/ui/button";
@@ -6,20 +8,12 @@ import { describePreviewError } from "./errorCodeMessages";
 
 interface Props {
   url: string;
-  /** Chromium net error code, e.g. -105. */
   code: number;
-  /** Stringified Chromium error, e.g. "ERR_NAME_NOT_RESOLVED". */
   description: string;
   onReload: () => void;
-  /** Reopens the page in a browser that may reach it, such as the environment's. */
   move?: { readonly label: string; readonly onMove: () => void };
 }
 
-/**
- * A server tab's address was a file its browser cannot show (a PDF), so the
- * browser downloaded it. Offers the address in the user's own browser, or the
- * file the server already saved.
- */
 export function PreviewFileNotShown({
   url,
   fileName,
@@ -31,6 +25,7 @@ export function PreviewFileNotShown({
   downloadUrl: string | null;
   onOpen: () => void;
 }) {
+  const { locale: newCopyLocale } = useI18n();
   const host = safeHost(url) ?? url;
   return (
     <div className="scrollbar-gutter-both relative flex h-full min-h-0 w-full overflow-y-auto bg-background">
@@ -40,8 +35,8 @@ export function PreviewFileNotShown({
           This file can&rsquo;t be shown here
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          <span className="font-semibold text-foreground">{fileName}</span> from {host} was
-          downloaded instead.
+          <span className="font-semibold text-foreground">{fileName}</span> from {host}{" "}
+          {translateWebSource(newCopyLocale, "was downloaded instead.")}
         </p>
         <div className="mt-auto flex items-center gap-2 pt-8">
           <div className="flex-1" />
@@ -59,7 +54,6 @@ export function PreviewFileNotShown({
   );
 }
 
-/** Theme-aware tailwind port of Chromium's "This site can't be reached" page. */
 export function PreviewUnreachable({ url, code, description, onReload, move }: Props) {
   const [showDetails, setShowDetails] = useState(false);
   const host = safeHost(url) ?? url;
