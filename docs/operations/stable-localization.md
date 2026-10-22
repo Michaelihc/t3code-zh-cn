@@ -13,8 +13,8 @@ Only `client-release.yml` and `publish-client-candidate.yml` are enabled in this
 
 ## Build and publish separately
 
-Source validation does not create client artifacts. For a release pass, dispatch **简体中文客户端验证与构建** on `main`, set `expected_sha` to its full committed SHA, and enable `build_clients`. Candidate artifacts include unsigned desktop packages and an unsigned, non-installable Android candidate. Inspect the actual packages before publication.
+Source validation does not create client artifacts. For a release pass, dispatch **简体中文客户端验证与构建** on `main`, set `expected_sha` to its full committed SHA, and enable `build_clients`. Set `client_targets` to `windows` for a Windows x64 installer with the embedded WSL runtime, or `all` for every client candidate. Candidate artifacts include unsigned desktop packages and an unsigned, non-installable Android candidate. Inspect the actual packages before publication.
 
-Dispatch **发布已验证的简体中文客户端** only when publishing is requested. It requires the successful candidate run, its exact source SHA, and artifact review. It verifies provenance and publishes those existing desktop artifacts without rebuilding. Android publication remains separate and requires a signing identity.
+Dispatch **发布已验证的简体中文客户端** only when publishing is requested. It requires the successful candidate run, its exact source SHA, and artifact review. Select the same `client_targets` value as the reviewed build. It verifies provenance and publishes those existing desktop artifacts without rebuilding. Android publication remains separate and requires a signing identity.
 
 Chinese desktop versions have no automatic update feed. Downloads and provenance belong to `Michaelihc/t3code-zh-cn`; the original Chinese repository and official T3 Code releases are upstream sources, not this fork's update channel.

@@ -3,6 +3,12 @@ name: 发布已验证的简体中文客户端
 on:
   workflow_dispatch:
     inputs:
+      client_targets:
+        description: Reviewed client platforms to publish
+        required: true
+        default: all
+        type: choice
+        options: [all, windows]
       candidate_run_id:
         description: Successful client-release.yml run whose desktop artifacts you reviewed
         required: true
@@ -36,13 +42,14 @@ jobs:
       manifest_sha256: ${{ steps.verify.outputs.manifest_sha256 }}
     steps:
       # Never check out or execute code from the candidate in this workflow.
-      - name: Validate run and download four exact immutable artifacts
+      - name: Validate run and download exact immutable artifacts
         id: verify
         env:
           GH_TOKEN: ${{ github.token }}
           CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           REVIEWED_ARTIFACTS: ${{ inputs.reviewed_artifacts }}
+          CLIENT_TARGETS: ${{ inputs.client_targets }}
         shell: bash
         run: |
           set -euo pipefail
@@ -53,6 +60,8 @@ jobs:
           branch = 'main'
           run_id = os.environ['CANDIDATE_RUN_ID']
           sha = os.environ['EXPECTED_SHA']
+          targets = os.environ['CLIENT_TARGETS']
+          assert targets in ('all', 'windows')
           assert re.fullmatch(r'[1-9][0-9]{0,17}', run_id), 'Invalid run ID'
           assert re.fullmatch(r'[0-9a-f]{40}', sha), 'Expected full lowercase SHA'
           assert os.environ['REVIEWED_ARTIFACTS'] == 'true', 'Review the actual candidate artifacts before dispatch'
@@ -86,7 +95,14 @@ jobs:
               'Desktop win x64 (unsigned)', 'Desktop mac arm64 (unsigned)', 'Desktop mac x64 (unsigned)',
               'Android arm64 unsigned candidate (NOT installable)',
           }
-          assert jobs['total_count'] == len(required_jobs) == len(jobs['jobs']), 'Missing or unexpected candidate jobs'
+          skipped_jobs = set()
+          if targets == 'windows':
+              skipped_jobs = {'Android arm64 unsigned candidate (NOT installable)'}
+              required_jobs -= skipped_jobs | {'Desktop mac arm64 (unsigned)', 'Desktop mac x64 (unsigned)'}
+          assert jobs['total_count'] == len(required_jobs | skipped_jobs) == len(jobs['jobs']), 'Missing or unexpected candidate jobs'
+          assert {j['name'] for j in jobs['jobs']} == required_jobs | skipped_jobs
+          for name in skipped_jobs:
+              assert next(j for j in jobs['jobs'] if j['name'] == name)['conclusion'] == 'skipped', name
           for name in required_jobs:
               matches = [j for j in jobs['jobs'] if j['name'] == name]
               assert len(matches) == 1 and matches[0]['conclusion'] == 'success' and matches[0]['status'] == 'completed', name
@@ -100,6 +116,8 @@ jobs:
               'client-mac-arm64': ({prefix + 'arm64.dmg'}, {prefix + 'arm64.zip'}),
               'client-mac-x64': ({prefix + 'x64.dmg'}, {prefix + 'x64.zip'}),
           }
+          if targets == 'windows':
+              specifications = {'client-win-x64': specifications['client-win-x64']}
           def artifacts_snapshot():
               result = api(run_path + '/artifacts?per_page=100')
               assert result['total_count'] <= 100, 'Unexpected artifact count'
@@ -119,7 +137,7 @@ jobs:
                   # Reject retained artifacts from an earlier failed attempt.
                   assert a['created_at'] >= run['run_started_at'], 'Artifact predates current run attempt'
                   selected.append({k: a[k] for k in ('id', 'name', 'size_in_bytes', 'digest', 'created_at', 'updated_at', 'expires_at')})
-              assert len({a['id'] for a in selected}) == 4
+              assert len({a['id'] for a in selected}) == len(specifications)
               return selected
           artifacts = artifacts_snapshot()
           output = pathlib.Path('verified-assets')
@@ -154,7 +172,7 @@ jobs:
           assert run_snapshot() == run, 'Candidate was rerun or changed during verification'
           assert artifacts_snapshot() == artifacts, 'Candidate artifacts changed during verification'
           asset_records.sort(key=lambda a: a['name'])
-          manifest = {'repository': repo, 'version': '0.1.1-zh.1', 'source_sha': sha,
+          manifest = {'repository': repo, 'version': '0.1.1-zh.1', 'source_sha': sha, 'client_targets': targets,
                       'run_url': f'https://github.com/{repo}/actions/runs/{run_id}/attempts/{run["run_attempt"]}',
                       'run': run, 'artifacts': artifacts, 'assets': asset_records}
           manifest_path = output / 'BUILD-PROVENANCE.json'
@@ -196,6 +214,7 @@ jobs:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
           MANIFEST_SHA256: ${{ needs.verify.outputs.manifest_sha256 }}
+          CLIENT_TARGETS: ${{ inputs.client_targets }}
         with:
           script: |
             const fs = require('node:fs');
@@ -215,9 +234,11 @@ jobs:
             assert.equal(m.source_sha, process.env.EXPECTED_SHA);
             assert.equal(String(m.run.id), process.env.CANDIDATE_RUN_ID);
             assert.match(m.source_sha, /^[0-9a-f]{40}$/);
-            const mandatory = ['T3-Code-0.1.1-zh.1-x86_64.AppImage', 'T3-Code-0.1.1-zh.1-x64.exe',
+            assert.equal(m.client_targets, process.env.CLIENT_TARGETS);
+            const windowsOnly = m.client_targets === 'windows';
+            const mandatory = windowsOnly ? ['T3-Code-0.1.1-zh.1-x64.exe'] : ['T3-Code-0.1.1-zh.1-x86_64.AppImage', 'T3-Code-0.1.1-zh.1-x64.exe',
               'T3-Code-0.1.1-zh.1-arm64.dmg', 'T3-Code-0.1.1-zh.1-x64.dmg'];
-            const allowed = new Set([...mandatory, 'T3-Code-0.1.1-zh.1-amd64.deb',
+            const allowed = new Set(windowsOnly ? mandatory : [...mandatory, 'T3-Code-0.1.1-zh.1-amd64.deb',
               'T3-Code-0.1.1-zh.1-arm64.zip', 'T3-Code-0.1.1-zh.1-x64.zip']);
             const names = m.assets.map(a => a.name);
             assert.equal(new Set(names).size, names.length);
@@ -250,7 +271,7 @@ jobs:
               assert.equal((await publicAPI(`/git/ref/heads/${branch}`)).object.sha, m.source_sha);
               const artifacts = await publicAPI(`/actions/runs/${m.run.id}/artifacts?per_page=100`);
               assert(artifacts.total_count <= 100);
-              assert.equal(artifacts.artifacts.filter(a => a.name.startsWith('client-')).length, 4);
+              assert.equal(artifacts.artifacts.filter(a => a.name.startsWith('client-')).length, windowsOnly ? 1 : 4);
               for (const expected of m.artifacts) {
                 const found = artifacts.artifacts.filter(a => a.id === expected.id);
                 assert.equal(found.length, 1);
@@ -270,7 +291,13 @@ jobs:
             assert(!releases.some(r => r.tag_name === tag), 'Existing draft/release; refusing replacement');
             // Atomic ref creation prevents accidentally publishing on a raced existing tag.
             await github.rest.git.createRef({...repo, ref: `refs/tags/${tag}`, sha: m.source_sha});
-            const body = `基于上游稳定版 v0.1.1 的简体中文社区桌面预发布：${m.version}。\n\n` +
+            const body = windowsOnly
+              ? `Windows x64 简体中文社区版 ${m.version}，基于官方稳定版 v0.1.1。\n\n` +
+                `Source: ${m.source_sha}\nBuild: ${m.run_url}\n\n` +
+                '选择 Settings → General → Language → 简体中文。内含 Windows 和 WSL 运行时。Windows 安装包未进行 Authenticode 签名，系统可能显示安全提示。此版本使用手动下载更新，不提供自动更新源。\n\n' +
+                'V2 首次启动会复制并导入 V1 数据，此后两份数据不再同步；V1 客户端不能连接 V2 服务器。安装前请备份现有 T3 数据。不要将此安装包安装到正在使用的 nightly 目录。\n\n' +
+                '该精确提交已通过 lint、类型检查、完整测试和 Windows 打包。产物经校验后直接发布，没有重新构建。SHA256SUMS.txt 和 BUILD-PROVENANCE.json 记录完整性和来源；这不等于人工安装验证。\n'
+              : `基于上游稳定版 v0.1.1 的简体中文社区桌面预发布：${m.version}。\n\n` +
               `精确源码：${m.source_sha}\n构建记录：${m.run_url}\n上游版本：https://github.com/pingdotgg/t3code/releases/tag/v0.1.1\n\n` +
               '本版同步上游 v0.1.1 稳定版修复和改进，补齐界面汉化，并保留简体中文桌面菜单、Windows 关闭窗口后驻留托盘等社区功能。\n\n' +
               '升级必读：V2 首次启动会复制并导入 V1 数据，两个版本此后的数据不会互相同步。请先备份数据并更新所有连接的服务器和客户端；V1 客户端无法连接 V2 服务器。历史社区 Android APK 不能连接本版，Android 新签名发布完成前请改用新版网页客户端。OpenCode 2 会迁移其共享数据库，不要与 OpenCode 1 并行运行。详细迁移说明：https://github.com/pingdotgg/t3code/issues/14871 。\n\n' +
@@ -278,7 +305,7 @@ jobs:
               'Android 暂未发布：新签名的安全备份仍待确认，未签名候选包不可安装。新签名不能直接覆盖历史 APK，卸载旧版前请先备份设置；卸载可能丢失本地数据。\n\n' +
               '该精确提交的 lint、类型检查、测试、桌面打包和 Android 未签名候选构建均已通过。桌面产物经校验后直接发布，没有重新构建；云端验证不等于所有系统上的人工安装测试。SHA256SUMS.txt 和 BUILD-PROVENANCE.json 记录完整性与来源，不代表商业签名。请手动下载，本版不提供自动更新源。\n';
             const {data: release} = await github.rest.repos.createRelease({...repo, tag_name: tag,
-              target_commitish: m.source_sha, name: `T3 Code 中文版 ${m.version} (unsigned desktop clients)`,
+              target_commitish: m.source_sha, name: `T3 Code 中文版 ${m.version} (${windowsOnly ? 'Windows x64, unsigned' : 'unsigned desktop clients'})`,
               body, draft: true, prerelease: true, make_latest: 'false'});
             // A failure leaves a draft for investigation; never overwrite or auto-delete it.
             for (const name of files) {

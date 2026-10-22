@@ -9,6 +9,12 @@ on:
         description: Exact full commit SHA to validate and build
         required: true
         type: string
+      client_targets:
+        description: Client platforms to package
+        required: true
+        default: all
+        type: choice
+        options: [all, windows]
       build_clients:
         description: Build unsigned desktop and Android candidate artifacts after validation
         required: true
@@ -40,6 +46,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       sha: ${{ steps.source.outputs.sha }}
+      desktop_matrix: ${{ steps.source.outputs.desktop_matrix }}
     steps:
       - uses: actions/github-script@v8
         id: source
@@ -90,6 +97,16 @@ jobs:
                 !['ahead', 'identical'].includes(comparison.data.status)) {
               throw new Error('The selected source does not include the pinned stable upstream tag.');
             }
+            const targets = context.payload.inputs?.client_targets || 'all';
+            if (!['all', 'windows'].includes(targets)) throw new Error('Invalid client targets.');
+            const desktops = [
+              {runner: 'windows-2022', platform: 'win', arch: 'x64', target: 'nsis', rust_target: 'x86_64-pc-windows-msvc'},
+              {runner: 'macos-15', platform: 'mac', arch: 'arm64', target: 'dmg', rust_target: 'aarch64-apple-darwin'},
+              {runner: 'macos-15-intel', platform: 'mac', arch: 'x64', target: 'dmg', rust_target: 'x86_64-apple-darwin'},
+            ];
+            core.setOutput('desktop_matrix', JSON.stringify({
+              include: desktops.filter(desktop => targets === 'all' || desktop.platform === 'win'),
+            }));
             core.setOutput('sha', context.sha);
             core.summary.addRaw(`Source: ${context.sha}\nVersion: ${process.env.CLIENT_VERSION}\nUpstream: v${version} (${ref.sha})\n`);
             await core.summary.write();
@@ -222,8 +239,14 @@ jobs:
         run: vp install --frozen-lockfile
       - name: Install Linux native build libraries
         run: |
+          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources; do
+            if [[ -f "$source" ]]; then
+              sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu/|https://archive.ubuntu.com/ubuntu/|g' "$source"
+            fi
+          done
+          printf 'Acquire::Retries "2";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-t3-ci-timeouts > /dev/null
           sudo apt-get update
-          sudo apt-get install -y libsecret-1-dev pkg-config build-essential imagemagick
+          sudo apt-get install -y --no-install-recommends libsecret-1-dev pkg-config build-essential imagemagick
       - run: node scripts/update-release-package-versions.ts "$CLIENT_VERSION"
       - run: vp run build:desktop
       - run: node apps/desktop/scripts/verify-preload-bundle.mjs
@@ -264,8 +287,14 @@ jobs:
         run: vp install --frozen-lockfile
       - name: Install Linux native build libraries
         run: |
+          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources; do
+            if [[ -f "$source" ]]; then
+              sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu/|https://archive.ubuntu.com/ubuntu/|g' "$source"
+            fi
+          done
+          printf 'Acquire::Retries "2";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-t3-ci-timeouts > /dev/null
           sudo apt-get update
-          sudo apt-get install -y libsecret-1-dev pkg-config build-essential imagemagick
+          sudo apt-get install -y --no-install-recommends libsecret-1-dev pkg-config build-essential imagemagick
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: stable
@@ -275,7 +304,11 @@ jobs:
         with:
           name: community-js-bundle
           path: apps
+      - name: Build embedded WSL native resource monitor
+        if: inputs.client_targets == 'windows'
+        run: cargo build --locked --release --manifest-path native/resource-monitor/Cargo.toml --target x86_64-unknown-linux-gnu
       - name: Package Linux client
+        if: inputs.client_targets != 'windows'
         run: vp run dist:desktop:artifact --platform linux --target AppImage --arch x64 --build-version "$CLIENT_VERSION" --skip-build --verbose
       - name: Build embedded WSL executable
         env:
@@ -294,6 +327,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@v7
+        if: inputs.client_targets != 'windows'
         with:
           name: client-linux-x64
           path: |
@@ -312,23 +346,7 @@ jobs:
         shell: bash
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - runner: windows-2022
-            platform: win
-            arch: x64
-            target: nsis
-            rust_target: x86_64-pc-windows-msvc
-          - runner: macos-15
-            platform: mac
-            arch: arm64
-            target: dmg
-            rust_target: aarch64-apple-darwin
-          - runner: macos-15-intel
-            platform: mac
-            arch: x64
-            target: dmg
-            rust_target: x86_64-apple-darwin
+      matrix: ${{ fromJSON(needs.source.outputs.desktop_matrix) }}
     steps:
       - name: Checkout exact source without credentials
         shell: bash
@@ -397,6 +415,7 @@ jobs:
           retention-days: 14
 
   android:
+    if: inputs.client_targets != 'windows'
     name: Android arm64 unsigned candidate (NOT installable)
     needs: [source, quality, tests, bundle]
     runs-on: ubuntu-24.04
