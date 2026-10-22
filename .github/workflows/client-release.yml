@@ -2,13 +2,18 @@ name: 简体中文客户端验证与构建
 
 on:
   push:
-    branches: [maintenance/v0.1.1-zh-cloud]
+    branches: [main]
   workflow_dispatch:
     inputs:
       expected_sha:
         description: Exact full commit SHA to validate and build
         required: true
         type: string
+      build_clients:
+        description: Build unsigned desktop and Android candidate artifacts after validation
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -18,7 +23,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  UPSTREAM_VERSION: 0.1.1
   CLIENT_VERSION: 0.1.1-zh.1
+  T3CODE_DESKTOP_UPDATE_REPOSITORY: Michaelihc/t3code-zh-cn
   CI: "true"
   CSC_IDENTITY_AUTO_DISCOVERY: "false"
   T3CODE_DESKTOP_SIGNED: "false"
@@ -40,22 +47,48 @@ jobs:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
         with:
           script: |
-            if (context.repo.owner !== 'ZhiweiXiao98' || context.repo.repo !== 't3code') {
-              throw new Error('This workflow is scoped to ZhiweiXiao98/t3code.');
+            if (context.repo.owner !== 'Michaelihc' || context.repo.repo !== 't3code-zh-cn') {
+              throw new Error('This workflow is scoped to Michaelihc/t3code-zh-cn.');
             }
             if (context.payload.repository.private !== false) {
               throw new Error('Standard hosted runners are free for public repositories only.');
             }
-            if (context.ref !== 'refs/heads/maintenance/v0.1.1-zh-cloud') {
-              throw new Error('Dispatch must select maintenance/v0.1.1-zh-cloud.');
+            if (context.ref !== 'refs/heads/main') {
+              throw new Error('Validation and candidate builds must select committed main.');
             }
             if (context.eventName === 'workflow_dispatch' &&
                 (!/^[0-9a-f]{40}$/.test(process.env.EXPECTED_SHA || '') ||
                  process.env.EXPECTED_SHA !== context.sha)) {
               throw new Error('Expected SHA must equal the selected branch commit exactly.');
             }
+            const version = process.env.UPSTREAM_VERSION;
+            if (!/^\d+\.\d+\.\d+$/.test(version) ||
+                !new RegExp(`^${version.replaceAll('.', '\\.')}\\-zh\\.\\d+$`).test(process.env.CLIENT_VERSION)) {
+              throw new Error('Only stable upstream versions with a Chinese build suffix are supported.');
+            }
+            const release = await github.rest.repos.getReleaseByTag({
+              owner: 'pingdotgg', repo: 't3code', tag: `v${version}`,
+            });
+            if (release.data.prerelease || release.data.draft) {
+              throw new Error('The upstream base must be an official stable release.');
+            }
+            let ref = (await github.rest.git.getRef({
+              owner: 'pingdotgg', repo: 't3code', ref: `tags/v${version}`,
+            })).data.object;
+            while (ref.type === 'tag') {
+              ref = (await github.rest.git.getTag({
+                owner: 'pingdotgg', repo: 't3code', tag_sha: ref.sha,
+              })).data.object;
+            }
+            const comparison = await github.rest.repos.compareCommitsWithBasehead({
+              ...context.repo, basehead: `${ref.sha}...${context.sha}`,
+            });
+            if (comparison.data.behind_by !== 0 ||
+                !['ahead', 'identical'].includes(comparison.data.status)) {
+              throw new Error('The selected source does not include the pinned stable upstream tag.');
+            }
             core.setOutput('sha', context.sha);
-            core.summary.addRaw(`Source: ${context.sha}\nVersion: 0.1.1-zh.1\n`);
+            core.summary.addRaw(`Source: ${context.sha}\nVersion: ${process.env.CLIENT_VERSION}\nUpstream: v${version} (${ref.sha})\n`);
             await core.summary.write();
 
   quality:
@@ -154,6 +187,7 @@ jobs:
   bundle:
     name: Build validated desktop bundle
     needs: [source, quality, tests]
+    if: github.event_name == 'workflow_dispatch' && inputs.build_clients
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

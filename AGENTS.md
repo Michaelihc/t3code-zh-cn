@@ -1,5 +1,13 @@
 # T3 Code
 
+## Stable Chinese fork
+
+This repository is `Michaelihc/t3code-zh-cn`, based on `pingdotgg/t3code` and the Simplified Chinese implementation from `ZhiweiXiao98/t3code`.
+
+- Track official **stable release tags**, not upstream `main`, nightly, or preview builds. The pinned base and Chinese client version are in `.github/workflows/client-release.yml`.
+- Preserve Chinese localization across web, desktop, and mobile when integrating a stable release, and retain upstream attribution and commit history.
+- Source updates and client shipments are separate passes. Keep inherited upstream nightly and deployment workflows disabled; use this fork's client validation and publication workflows.
+
 T3 Code is a minimal GUI for coding agents. A Node WebSocket server wraps provider CLIs and agents (Codex, Claude Code, Cursor, Grok, OpenCode, Antigravity) and serves web, desktop, and mobile clients.
 
 You can think of T3 Code as an open source "bring-your-own-subscription" alternative to apps like Claude Desktop, Codex App, Cursor Glass and Conductor.

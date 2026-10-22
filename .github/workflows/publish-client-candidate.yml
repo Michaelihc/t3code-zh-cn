@@ -49,8 +49,8 @@ jobs:
           python3 <<'PY'
           import datetime, hashlib, json, os, pathlib, re, shutil, stat, subprocess, zipfile
 
-          repo = 'ZhiweiXiao98/t3code'
-          branch = 'maintenance/v0.1.1-zh-cloud'
+          repo = 'Michaelihc/t3code-zh-cn'
+          branch = 'main'
           run_id = os.environ['CANDIDATE_RUN_ID']
           sha = os.environ['EXPECTED_SHA']
           assert re.fullmatch(r'[1-9][0-9]{0,17}', run_id), 'Invalid run ID'
@@ -202,15 +202,15 @@ jobs:
             const crypto = require('node:crypto');
             const assert = require('node:assert/strict');
             const hash = data => crypto.createHash('sha256').update(data).digest('hex');
-            const repo = {owner: 'ZhiweiXiao98', repo: 't3code'};
-            const branch = 'maintenance/v0.1.1-zh-cloud';
+            const repo = {owner: 'Michaelihc', repo: 't3code-zh-cn'};
+            const branch = 'main';
             const tag = 'v0.1.1-zh.1';
             assert.equal(context.repo.owner, repo.owner);
             assert.equal(context.repo.repo, repo.repo);
             const manifestBytes = fs.readFileSync('assets/BUILD-PROVENANCE.json');
             assert.equal(hash(manifestBytes), process.env.MANIFEST_SHA256);
             const m = JSON.parse(manifestBytes);
-            assert.equal(m.repository, 'ZhiweiXiao98/t3code');
+            assert.equal(m.repository, 'Michaelihc/t3code-zh-cn');
             assert.equal(m.version, '0.1.1-zh.1');
             assert.equal(m.source_sha, process.env.EXPECTED_SHA);
             assert.equal(String(m.run.id), process.env.CANDIDATE_RUN_ID);
@@ -234,7 +234,7 @@ jobs:
             // This job has no actions:read permission. Recheck the PUBLIC repository
             // through unauthenticated, fixed-origin REST requests; fail closed on errors.
             async function publicAPI(path) {
-              const response = await fetch(`https://api.github.com/repos/ZhiweiXiao98/t3code${path}`, {
+              const response = await fetch(`https://api.github.com/repos/Michaelihc/t3code-zh-cn${path}`, {
                 headers: {'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'},
                 redirect: 'error'
               });

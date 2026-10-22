@@ -1,92 +1,41 @@
-# T3 Code 简体中文社区版
+# T3 Code 简体中文稳定版分支
 
-> [!IMPORTANT]
-> 本 Fork / 简体中文社区版已恢复维护，跟进上游稳定版本并补齐汉化。客户端在 GitHub 云端构建，只有通过测试和构建验证的产物才会发布。
+这是由 Michaelihc 维护的非官方简体中文分支，基于 [T3 Code 官方稳定版](https://github.com/pingdotgg/t3code)及 [ZhiweiXiao98 的汉化实现](https://github.com/ZhiweiXiao98/t3code)，与官方团队没有隶属关系。
 
-> [!IMPORTANT]
-> 这是由社区维护的非官方汉化版本，与 T3 Code 官方团队没有隶属关系。维护范围为 Windows、macOS、Linux 和 Android；iOS 仅提供官方原版入口。
+当前源码基于上游 **v0.1.1**，包含其完整提交 `fe27e8e3dc12dcbb108e9a28fd9b8cb65f34ae92`。`main` 跟进官方稳定发布。
 
-本分支为 T3 Code 增加简体中文界面，并保留英文和“跟随系统”选项。Provider 名称、模型名称、命令、快捷键、路径、URL、Git 标识符等技术内容保持原样，避免翻译影响实际操作。
+## 下载与运行
 
-## 下载与安装
+- [本分支 Releases](https://github.com/Michaelihc/t3code-zh-cn/releases)：当前尚未发布安装包。
+- [源码验证结果](https://github.com/Michaelihc/t3code-zh-cn/actions/workflows/client-release.yml)
 
-- [社区版 Releases 与本次发布状态](https://github.com/ZhiweiXiao98/t3code/releases)：请以每个发布页实际列出的系统、架构和资产为准
-- [iOS 官方原版（未汉化）](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824)，开发者 T3Tools；本仓库不构建或上架 iOS
+官方网页上的安装程序及 `npx t3` 安装的是官方英文版。汉化桌面版使用手动下载，不提供自动更新源。
 
-当前桌面版为基于上游 `v0.0.45` 的[社区预发布版 `v0.0.45-zh.1`](https://github.com/ZhiweiXiao98/t3code/releases/tag/v0.0.45-zh.1)，于 2026 年 10 月 3 日发布，提供 Windows x64、macOS Apple Silicon / Intel 和 Linux x64 安装包。该精确提交的 12 项云端验证任务全部通过，包含 18,403 项通过的测试（另有 16 项跳过）、lint、类型检查、桌面打包与 Android 未签名候选构建；[构建记录](https://github.com/ZhiweiXiao98/t3code/actions/runs/37131562744)可供查验。发布页同时提供 SHA-256 和构建来源记录。云端验证不等于所有系统上的人工安装测试；升级前请备份现有数据。Windows / macOS 社区安装包没有正式代码签名，macOS 也未公证，系统可能显示安全提示。
+从源码运行需要 Node.js `^24.13.1` 和 [Vite+](https://viteplus.dev/)，依赖版本由仓库锁定：
 
-Android 的原有升级签名无法提供，后续安装包将使用新的发布签名，不能直接覆盖历史 APK。请先备份设置，再卸载旧版；卸载可能丢失本地数据。新签名完成安全备份前不会发布可安装 APK。Actions 中明确标记的未签名 Android 候选包不可安装，不是正式下载。
+```sh
+vp install --frozen-lockfile
+vp run dev --home-dir ./.t3
+```
 
-### 升级到上游 v0.1.x / Orchestrator V2 前
-
-维护分支正在集成并验证基于 `v0.1.1` 的候选版本，以下说明不代表候选包已经发布：
-
-- 请先备份数据。V2 首次启动会复制并导入 V1 数据；两个版本此后的数据不会互相同步。
-- V1 与 V2 的服务器和客户端不能互连，连接的所有机器、桌面端和移动端都需要更新。
-- 历史社区 Android APK 不能连接 V2 服务器。新的社区 Android 签名发布完成前，请使用新版网页客户端；官方移动应用需升级到 2.0，但不包含本 Fork 的汉化。
-- OpenCode 2 会迁移自己的共享数据库，不要与 OpenCode 1 在同一台机器上并行运行。
-- 详见[官方 v0.1.0 升级说明](https://github.com/pingdotgg/t3code/releases/tag/v0.1.0)和[迁移指南](https://github.com/pingdotgg/t3code/issues/14871)。
-
-### 历史社区安装包
-
-- [Windows x64 历史版 `0.0.39-cn.3`](https://github.com/ZhiweiXiao98/t3code/releases/tag/zh-cn-v0.0.39-cn.3)
-- [Android 历史版 `1.0.4-cn.10`（旧签名）](https://github.com/ZhiweiXiao98/t3code/releases/tag/zh-cn-mobile-v1.0.4-cn.10)
-
-这些历史社区安装包并非通过应用商店分发；Windows 没有商业代码签名，Android 使用的历史签名身份需要核实。Windows SmartScreen 或 Android 系统可能显示安全提醒，请只从本仓库 Releases 下载，并在安装前核对发布页提供的 SHA-256。
-
-Android 版使用独立应用标识 `com.zhiweixiao.t3code.zhcn`，可以与官方版同时安装，并已关闭官方 OTA 更新，避免汉化界面被英文更新覆盖。它支持与本地 T3 Code 后端配对；依赖官方应用签名或云端凭据的 T3 Connect 登录、推送通知等功能可能受限。
-
-T3 Code 需要至少一个已安装并完成登录的 Provider CLI：
-
-- Codex：安装 [Codex CLI](https://developers.openai.com/codex/cli)，运行 `codex login`
-- Claude：安装 [Claude Code](https://claude.com/product/claude-code)，运行 `claude auth login`
-- Cursor：安装 [Cursor CLI](https://cursor.com/cli)，运行 `agent login`
-- Grok Build：安装 [Grok Build CLI](https://x.ai/cli)，运行 `grok login`
-- OpenCode：安装 [OpenCode](https://opencode.ai)，运行 `opencode auth login`
+请打开启动日志中的完整配对地址。这里显式指定了工作目录内的数据路径。
 
 ## 切换语言
 
-打开 `设置 → 常规 → 语言`，选择：
+打开 `Settings → General → Language`，选择 `简体中文`、`English` 或 `跟随系统`。
 
-- `跟随系统`
-- `English`
-- `简体中文`
+网页及桌面界面已汉化，包括设置、任务、项目、Pull Request、用量统计、常用弹窗和桌面原生菜单。模型名称、命令、快捷键、路径、URL、终端输出、Agent 回复和第三方原始错误保留原文。Windows 托盘菜单在启动时读取语言，切换语言后重启应用即可同步。
 
-选择“跟随系统”时，应用会根据浏览器或操作系统语言自动显示中文或英文。Windows 托盘菜单目前在启动时读取语言；切换语言后重启应用即可同步托盘文字。
+Android 源码继承了社区汉化，但本仓库尚无经过签名的 Android 安装包。官方 iOS 应用为英文版。
 
-## 已覆盖界面
+## 维护与反馈
 
-- 首页、侧栏、任务列表、编辑器与常用操作
-- 设置中心、快捷键、服务提供方、连接和源代码管理
-- 命令面板、项目添加与项目操作弹窗
-- Pull Request、用量统计和常见空状态
-- 配对、更新提醒、确认提示和错误提示
-- Windows 桌面原生菜单
+- 仓库：[Michaelihc/t3code-zh-cn](https://github.com/Michaelihc/t3code-zh-cn)
+- 问题反馈：[Issues](https://github.com/Michaelihc/t3code-zh-cn/issues)
+- 维护说明：[Stable localization maintenance](./docs/operations/stable-localization.md)
 
-少量 Provider 返回的动态状态、第三方错误信息和底层技术值会继续显示原文。
-
-Android 社区安装包固定使用简体中文；桌面版仍可在设置中切换语言。
-
-## 开发状态
-
-- 汉化分支：`feature/i18n-zh-cn`
-- 上游项目：[pingdotgg/t3code](https://github.com/pingdotgg/t3code)
-- 实现与审查记录：[Fork PR #1](https://github.com/ZhiweiXiao98/t3code/pull/1)
-- 问题反馈：[Issues](https://github.com/ZhiweiXiao98/t3code/issues)
-
-本分支恢复跟进上游稳定发布，先在维护分支迁移和验证，再发布对应客户端。由于改动范围较大，当前以社区 Fork 形式交付；如果官方维护者希望采用其中的国际化基础设施，可以再拆分成小型、可独立审查的提交。
-
-## 从源码运行
-
-需要 Node.js `^24.13.1` 和 Corepack。依赖使用项目锁定的 pnpm 版本安装：
-
-```bash
-corepack pnpm install --frozen-lockfile
-corepack pnpm exec vp run dev --home-dir ./.t3
-```
-
-请根据启动日志中的完整 `pairingUrl` 打开本地界面。
+源码更新与客户端发布分开执行。只有已提交到 `main` 并经过验证的源码可以进入客户端候选构建；发布使用独立工作流。
 
 ## 许可证
 
-本项目沿用上游的 [MIT License](./LICENSE)。汉化维护：肖志伟。
+本项目保留上游和原汉化分支的提交历史，沿用 [MIT License](./LICENSE)。原始汉化作者：肖志伟。
