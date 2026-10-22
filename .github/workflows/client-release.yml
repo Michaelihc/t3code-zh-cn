@@ -157,8 +157,14 @@ jobs:
         run: vp install --frozen-lockfile
       - name: Install Linux native build libraries
         run: |
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends libsecret-1-dev pkg-config build-essential imagemagick
+          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources; do
+            if [[ -f "$source" ]]; then
+              sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu/|https://archive.ubuntu.com/ubuntu/|g' "$source"
+            fi
+          done
+          printf 'Acquire::Retries "2";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-t3-ci-timeouts > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libsecret-1-dev pkg-config build-essential imagemagick
       - run: vp run --filter @t3tools/desktop ensure:electron
         if: matrix.suite == 'clients'
       - name: Install Chromium for web and server browser tests

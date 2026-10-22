@@ -131,7 +131,9 @@ const imageUrl = `data:image/svg+xml,${encodeURIComponent(
 
 function addFiles(paths: string[]) {
   state.entries = paths.map((path) => ({ path, kind: "file" }));
-  for (const path of paths) state.assets.set(path, Atom.make<AssetResult>(AsyncResult.initial()));
+  for (const path of paths) {
+    state.assets.set(path, Atom.make<AssetResult>(AsyncResult.initial()).pipe(Atom.keepAlive));
+  }
 }
 
 function fileRow(path: string) {
