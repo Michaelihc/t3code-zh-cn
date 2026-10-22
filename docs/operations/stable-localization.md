@@ -7,7 +7,7 @@ This repository tracks official stable releases of `pingdotgg/t3code`. Chinese l
 1. Fetch the official stable tag and merge it in a task worktree. Keep new work on a task branch until ready.
 2. Adapt Chinese translations and callers in web, desktop, and mobile. Run focused localization tests and typechecks for affected clients.
 3. Update `UPSTREAM_VERSION` and `CLIENT_VERSION` in `.github/workflows/client-release.yml`, the version references in `.github/workflows/publish-client-candidate.yml`, and the READMEs. Use an official stable base such as `v0.1.1` and a Chinese version such as `0.1.1-zh.1`.
-4. Merge ready changes into clean, committed `main`. Push source without tags. The client workflow validates the official stable base and runs lint, typechecks, and tests. Its source gate requires the stable tag to be an ancestor of the selected commit.
+4. Push the task branch without tags. The client workflow validates `chore/**`, `fix/**`, and `feat/**` branches as well as `main`, running lint, typechecks, and tests. Its source gate requires the stable tag to be an ancestor of the selected commit. Merge ready, validated changes into clean, committed `main`.
 
 Only `client-release.yml` and `publish-client-candidate.yml` are enabled in this repository. Keep inherited upstream nightly, deployment, and publication workflows disabled in GitHub Actions settings.
 

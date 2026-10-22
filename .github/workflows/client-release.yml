@@ -2,7 +2,7 @@ name: 简体中文客户端验证与构建
 
 on:
   push:
-    branches: [main]
+    branches: [main, "chore/**", "fix/**", "feat/**"]
   workflow_dispatch:
     inputs:
       expected_sha:
@@ -53,8 +53,11 @@ jobs:
             if (context.payload.repository.private !== false) {
               throw new Error('Standard hosted runners are free for public repositories only.');
             }
-            if (context.ref !== 'refs/heads/main') {
-              throw new Error('Validation and candidate builds must select committed main.');
+            if (!context.ref.startsWith('refs/heads/')) {
+              throw new Error('Validation must select a committed source branch.');
+            }
+            if (context.payload.inputs?.build_clients === 'true' && context.ref !== 'refs/heads/main') {
+              throw new Error('Client candidate builds must select committed main.');
             }
             if (context.eventName === 'workflow_dispatch' &&
                 (!/^[0-9a-f]{40}$/.test(process.env.EXPECTED_SHA || '') ||
