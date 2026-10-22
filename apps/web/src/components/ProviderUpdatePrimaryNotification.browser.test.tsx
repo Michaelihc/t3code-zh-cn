@@ -78,7 +78,8 @@ vi.mock("../i18n/WebI18nContext", () => ({
   }),
 }));
 vi.mock("./chat/providerIconUtils", () => ({ PROVIDER_ICON_BY_PROVIDER: {} }));
-vi.mock("./ui/toast", () => ({
+vi.mock("./ui/toast", async () => ({
+  ...(await import("./ui/toastHelpers")),
   stackedThreadToast: <T,>(value: T) => value,
   toastManager: {
     add: toastState.add,

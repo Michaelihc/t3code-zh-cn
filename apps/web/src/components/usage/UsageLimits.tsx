@@ -58,13 +58,16 @@ export function localizedResetsIn(
   window: ServerProviderUsageWindow,
   now: number,
   t: ReturnType<typeof useI18n>["t"],
+  compact = false,
 ): string | null {
   if (window.resetsAt === undefined) return null;
   const resetAtMs = Date.parse(window.resetsAt);
   if (!Number.isFinite(resetAtMs)) return null;
-  return resetAtMs <= now
-    ? t("usage.limits.resetsNow")
-    : t("usage.limits.resetsIn", { duration: formatDuration(resetAtMs - now) });
+  if (resetAtMs <= now) return t("usage.limits.resetsNow");
+  if (resetAtMs - now < 60_000) return t("usage.limits.resetsMomentarily");
+  return t(compact ? "usage.limits.countdown" : "usage.limits.resetsIn", {
+    duration: formatDuration(resetAtMs - now),
+  });
 }
 
 export function PaceIcon({ pace }: { readonly pace: LimitPace }) {

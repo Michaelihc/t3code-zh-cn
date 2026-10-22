@@ -634,15 +634,12 @@ describe("MessagesTimeline messages", () => {
   });
 
   it("does not show markdown titles in user messages", async () => {
+    const imageUrl = new URL("/favicon-16x16.png", window.location.origin).href;
     await using screen = await renderTimeline([
-      message(
-        '[link](https://example.com "link tip") ![image](https://example.com/image.png "image tip")',
-      ),
+      message(`[link](https://example.com "link tip") ![image](${imageUrl} "image tip")`),
     ]);
     expect(screen.container.querySelector('a[href="https://example.com"]')).not.toBeNull();
-    expect(
-      screen.container.querySelector('img[src="https://example.com/image.png"]'),
-    ).not.toBeNull();
+    expect(screen.container.querySelector(`img[src="${imageUrl}"]`)).not.toBeNull();
     expect(screen.container.querySelector('[title="link tip"], [title="image tip"]')).toBeNull();
   });
 

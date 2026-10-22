@@ -298,7 +298,7 @@ export function SourceControlWritingSettingsSection() {
               }}
               rows={4}
               placeholder={t("sourceControl.writingStyle.customPlaceholder")}
-              aria-label={t("sourceControl.writingStyle.custom")}
+              aria-label={t("sourceControl.writingStyle.customAriaLabel")}
             />
           </div>
         ) : null}

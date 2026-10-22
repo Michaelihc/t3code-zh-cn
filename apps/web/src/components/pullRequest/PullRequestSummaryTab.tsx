@@ -963,7 +963,12 @@ export function PullRequestSummaryTab({
           <>
             {detail.commentsTruncated ? (
               <p className="mb-2 rounded-md border border-warning/30 bg-warning-surface px-2 py-1.5 text-xs">
-                {t("pullRequests.comments.truncated", { count: commentCount })}
+                {t(
+                  commentCount === 1
+                    ? "pullRequests.comments.truncatedOne"
+                    : "pullRequests.comments.truncated",
+                  { count: commentCount },
+                )}
               </p>
             ) : null}
             {items.length === 0 ? (

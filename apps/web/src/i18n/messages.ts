@@ -924,6 +924,8 @@ export const EN_MESSAGES = {
   "providers.title": "Providers",
   "providers.accent.customHex": "Custom hex accent color",
   "providers.accent.chooseFor": "Choose accent color for {provider}",
+  "providers.accent.addFor": "Add accent color for {provider}",
+  "providers.accent.changeFor": "Change accent color for {provider}",
   "providers.accent.clear": "Clear color",
   "providers.accent.label": "Accent color",
   "providers.healthCheck.title": "Health check interval",
@@ -942,7 +944,7 @@ export const EN_MESSAGES = {
   "providers.action.refresh": "Refresh provider status",
   "providers.action.toggleDetails": "Toggle {provider} details",
   "providers.action.enable": "Enable {provider}",
-  "providers.action.delete": "Delete provider instance {instance}",
+  "providers.action.delete": "Delete instance {instance}",
   "providers.action.deleteShort": "Delete instance",
   "providers.action.copyUpdate": "Copy update command",
   "providers.action.copyCommand": "Copy command",
@@ -1064,7 +1066,7 @@ export const EN_MESSAGES = {
   "providers.instance.selectAccent": "Select accent color {color}",
   "providers.instance.clearAccent": "Clear accent color for {provider}",
   "providers.instance.environmentVariables": "Environment variables",
-  "providers.instance.addVariable": "Add",
+  "providers.instance.addVariable": "Add variable",
   "providers.instance.environmentVariablesDescription":
     "Add variables to pass API keys, base URLs, or other per-instance CLI settings.",
   "providers.instance.sensitiveDescription":
@@ -1106,7 +1108,7 @@ export const EN_MESSAGES = {
   "providers.models.moveDownNamed": "Move {model} down",
   "providers.models.show": "Show in picker",
   "providers.models.hide": "Hide from picker",
-  "providers.models.showNamed": "Show {model}",
+  "providers.models.showNamed": "Show {model} in the model picker",
   "providers.models.hideNamed": "Hide {model}",
   "providers.models.add": "Add",
   "providers.models.addCustom": "Add custom model",
@@ -1449,6 +1451,7 @@ export const EN_MESSAGES = {
   "sourceControl.writingStyle.conventionalCommitsDescription":
     "Uses Conventional Commit prefixes for change descriptions; change request titles and descriptions stay concise.",
   "sourceControl.writingStyle.custom": "Custom instructions",
+  "sourceControl.writingStyle.customAriaLabel": "Custom source control writing instructions",
   "sourceControl.writingStyle.customDescription":
     "Applies your instructions to change descriptions and change request titles and descriptions in every project.",
   "sourceControl.writingStyle.customPlaceholder":
@@ -2168,7 +2171,9 @@ export const EN_MESSAGES = {
   "pullRequests.comments.newestFirst": "Newest first",
   "pullRequests.comments.oldestFirst": "Oldest first",
   "pullRequests.comments.truncated":
-    "This conversation is longer than this page reads in one go. The most recent {count} are here; open it on the host to read the rest.",
+    "This conversation is only partially loaded. {count} comments are loaded; open it on the host to read the rest.",
+  "pullRequests.comments.truncatedOne":
+    "This conversation is only partially loaded. {count} comment is loaded; open it on the host to read the rest.",
   "pullRequests.comments.empty": "No comments yet.",
   "pullRequests.comments.resolved": "Resolved",
   "pullRequests.comments.approvalDismissed": "Approval dismissed",
@@ -2531,7 +2536,9 @@ export const EN_MESSAGES = {
   "usage.limits.creditsBanked": "{count} reset credits banked",
   "usage.limits.nextExpires": "next expires in {duration}",
   "usage.limits.useFailed": "Could not use the reset credit.",
-  "usage.limits.usingCredit": "Using credit…",
+  "usage.limits.usingCredit": "Using…",
+  "usage.limits.countdown": "{duration}",
+  "usage.limits.resetsMomentarily": "Resets momentarily",
   "usage.limits.useReset": "Use reset",
   "usage.limits.expiresIn": "expires in {duration}",
   "usage.limits.useResetCredit": "Use a reset credit",
@@ -4061,6 +4068,8 @@ export const ZH_CN_MESSAGES = {
   "providers.title": "服务提供方",
   "providers.accent.customHex": "自定义十六进制强调色",
   "providers.accent.chooseFor": "为 {provider} 选择强调色",
+  "providers.accent.addFor": "为 {provider} 添加强调色",
+  "providers.accent.changeFor": "更改 {provider} 的强调色",
   "providers.accent.clear": "清除颜色",
   "providers.accent.label": "强调色",
   "providers.healthCheck.title": "健康检查间隔",
@@ -4192,7 +4201,7 @@ export const ZH_CN_MESSAGES = {
   "providers.instance.selectAccent": "选择强调色 {color}",
   "providers.instance.clearAccent": "清除 {provider} 的强调色",
   "providers.instance.environmentVariables": "环境变量",
-  "providers.instance.addVariable": "添加",
+  "providers.instance.addVariable": "添加变量",
   "providers.instance.environmentVariablesDescription":
     "添加要传给此实例 CLI 的 API 密钥、基础 URL 或其他变量。",
   "providers.instance.sensitiveDescription": "敏感值会单独存储，保存后不会再返回到应用。",
@@ -4232,7 +4241,7 @@ export const ZH_CN_MESSAGES = {
   "providers.models.moveDownNamed": "下移 {model}",
   "providers.models.show": "在选择器中显示",
   "providers.models.hide": "从选择器中隐藏",
-  "providers.models.showNamed": "显示 {model}",
+  "providers.models.showNamed": "在模型选择器中显示 {model}",
   "providers.models.hideNamed": "隐藏 {model}",
   "providers.models.add": "添加",
   "providers.models.addCustom": "添加自定义模型",
@@ -4554,6 +4563,7 @@ export const ZH_CN_MESSAGES = {
   "sourceControl.writingStyle.conventionalCommitsDescription":
     "更改说明使用 Conventional Commit 前缀，变更请求的标题和说明保持简洁。",
   "sourceControl.writingStyle.custom": "自定义说明",
+  "sourceControl.writingStyle.customAriaLabel": "自定义源代码管理提交说明",
   "sourceControl.writingStyle.customDescription":
     "在每个项目中，将你的说明应用于更改说明以及变更请求的标题和说明。",
   "sourceControl.writingStyle.customPlaceholder": "标题保持简洁，说明使用简短的项目符号。",
@@ -5239,7 +5249,9 @@ export const ZH_CN_MESSAGES = {
   "pullRequests.comments.newestFirst": "最新优先",
   "pullRequests.comments.oldestFirst": "最早优先",
   "pullRequests.comments.truncated":
-    "此对话内容较长，当前显示最近 {count} 条；请在托管服务中查看其余内容。",
+    "此对话仅加载了部分内容，当前已加载 {count} 条评论；请在托管服务中查看其余内容。",
+  "pullRequests.comments.truncatedOne":
+    "此对话仅加载了部分内容，当前已加载 {count} 条评论；请在托管服务中查看其余内容。",
   "pullRequests.comments.empty": "暂无评论。",
   "pullRequests.comments.resolved": "已解决",
   "pullRequests.comments.approvalDismissed": "批准已撤销",
@@ -5593,6 +5605,8 @@ export const ZH_CN_MESSAGES = {
   "usage.limits.nextExpires": "下一个额度将在 {duration} 后过期",
   "usage.limits.useFailed": "无法使用重置额度。",
   "usage.limits.usingCredit": "正在使用额度…",
+  "usage.limits.countdown": "{duration}",
+  "usage.limits.resetsMomentarily": "即将重置",
   "usage.limits.useReset": "使用重置额度",
   "usage.limits.expiresIn": "{duration} 后过期",
   "usage.limits.useResetCredit": "使用重置额度",

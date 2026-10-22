@@ -25,6 +25,7 @@ vi.mock(import("../../state/usage"), async (original) => ({
 import { UsagePage } from "./UsagePage";
 import { WebI18nContext } from "../../i18n/WebI18nContext";
 import { translateWebMessage } from "../../i18n/messages";
+import { readUsagePagePreferences, saveUsagePagePreferences } from "./usagePagePreferences";
 const environments = [
   {
     environmentId: EnvironmentId.make("test-environment"),
@@ -127,6 +128,13 @@ describe("UsagePage Escape navigation", () => {
 
 it("keeps the extracted usage overview localized", async () => {
   setup();
+  const previousPreferences = readUsagePagePreferences();
+  using _preferences = {
+    [Symbol.dispose]() {
+      saveUsagePagePreferences(previousPreferences);
+    },
+  };
+  saveUsagePagePreferences({ metric: "tokens", windowDays: 30 });
   await using screen = await render(
     <WebI18nContext
       value={{
