@@ -295,22 +295,8 @@ describe("provider update launch notification logic", () => {
   });
 
   it("localizes the update prompt without changing the provider name or version", () => {
-    const translateChinese: ProviderUpdateInitialTranslate = (key, values) => {
-      switch (key) {
-        case "providerUpdate.title.single":
-          return `可用更新：${String(values?.provider)} ${String(values?.version)}`;
-        case "providerUpdate.title.multiple":
-          return `有 ${String(values?.count)} 个服务提供方可更新`;
-        case "providerUpdate.description.installOrSettings":
-          return "立即安装更新，或前往服务提供方设置查看。";
-        case "providerUpdate.description.settingsOnly":
-          return `可前往服务提供方设置更新 ${String(values?.providers)}。`;
-        case "providerUpdate.providerList.two":
-          return `${String(values?.first)} 和 ${String(values?.second)}`;
-        case "providerUpdate.providerList.many":
-          return `${String(values?.leading)} 和 ${String(values?.last)}`;
-      }
-    };
+    const translateChinese: ProviderUpdateInitialTranslate = (key, values) =>
+      translateWebMessage("zh-CN", key, values);
     const candidate = updateCandidate({
       driver: driver("claudeAgent"),
       latestVersion: "2.1.232",

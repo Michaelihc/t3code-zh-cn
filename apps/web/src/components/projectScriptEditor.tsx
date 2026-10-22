@@ -428,7 +428,9 @@ function ProjectScriptEditorForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{isEditing ? "Edit Action" : "Add Action"}</DialogTitle>
+        <DialogTitle>
+          {t(isEditing ? "projectAction.dialog.editTitle" : "projectAction.dialog.addTitle")}
+        </DialogTitle>
         <DialogDescription>{t("projectAction.dialog.description")}</DialogDescription>
       </DialogHeader>
       <DialogPanel>
@@ -469,7 +471,7 @@ function ProjectScriptEditorForm({
                             }}
                           >
                             <ScriptIcon icon={entry.id} className="size-4" />
-                            <span>{entry.label}</span>
+                            <span>{t(entry.labelKey)}</span>
                           </button>
                         );
                       })}
