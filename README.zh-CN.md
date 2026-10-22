@@ -6,10 +6,19 @@
 
 ## 下载与运行
 
-- [本分支 Releases](https://github.com/Michaelihc/t3code-zh-cn/releases)：当前尚未发布安装包。
+- [Windows x64 安装程序（0.1.1-zh.1）](https://github.com/Michaelihc/t3code-zh-cn/releases/download/v0.1.1-zh.1/T3-Code-0.1.1-zh.1-x64.exe) · [发布说明与校验值](https://github.com/Michaelihc/t3code-zh-cn/releases/tag/v0.1.1-zh.1)
 - [源码验证结果](https://github.com/Michaelihc/t3code-zh-cn/actions/workflows/client-release.yml)
 
-官方网页上的安装程序及 `npx t3` 安装的是官方英文版。汉化桌面版使用手动下载，不提供自动更新源。
+此 Windows 安装包是基于官方稳定版 v0.1.1 的未签名社区预发布，应用名称沿用上游的 **T3 Code (Beta)**。官方网页上的安装程序及 `npx t3` 安装的是官方英文版。汉化桌面版使用手动下载，不提供自动更新源。
+
+从 nightly 切换前，请先关闭其他 T3 桌面应用并备份现有数据。安装包沿用上游的应用标识和 Electron 配置目录。若要隔离服务端数据，请每次启动时指定独立的 `T3CODE_HOME`。例如，在 PowerShell 中将下列程序路径替换为实际安装路径：
+
+```powershell
+$env:T3CODE_HOME = "$env:USERPROFILE\.t3-zh-cn"
+& "C:\path\to\T3 Code (Beta).exe"
+```
+
+该环境变量仅对当前 PowerShell 会话生效，每次启动汉化版时都需要指定。它隔离的是服务端数据；Electron 配置目录仍然共用，因此启动前请关闭其他 T3 桌面应用。
 
 从源码运行需要 Node.js `^24.13.1` 和 [Vite+](https://viteplus.dev/)，依赖版本由仓库锁定：
 

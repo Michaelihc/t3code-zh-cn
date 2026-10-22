@@ -8,7 +8,18 @@ This unofficial fork adds a Simplified Chinese interface to **official stable T3
 
 Choose **Settings → General → Language → 简体中文**. English and system-language selection are also available. Model names, commands, paths, terminal output, and agent replies keep their original text.
 
-This repository currently provides source code; there are no installers published here yet. Installers and `npx t3` from the official T3 website install the official English version. Chinese desktop builds use manual downloads and have no automatic update feed.
+Download the [Windows x64 installer (0.1.1-zh.1)](https://github.com/Michaelihc/t3code-zh-cn/releases/download/v0.1.1-zh.1/T3-Code-0.1.1-zh.1-x64.exe), or read the [release notes and checksums](https://github.com/Michaelihc/t3code-zh-cn/releases/tag/v0.1.1-zh.1). This is an unsigned community prerelease based on official stable v0.1.1. The Windows application name remains **T3 Code (Beta)**. Updates use manual downloads.
+
+Installers and `npx t3` from the official T3 website install the official English version.
+
+Close other T3 desktop apps and back up existing data before switching from nightly. This installer retains upstream's application identity and Electron profile. To keep server data separate, set `T3CODE_HOME` to a dedicated directory whenever launching this build. For example, in PowerShell, replace the executable path with your installed app:
+
+```powershell
+$env:T3CODE_HOME = "$env:USERPROFILE\.t3-zh-cn"
+& "C:\path\to\T3 Code (Beta).exe"
+```
+
+The environment setting applies to that PowerShell session; use it each time you launch the localized app. It isolates server data; close other T3 desktop apps before launch because the Electron profile is shared.
 
 Desktop and locally served web clients are localized. The inherited Android source is localized, but this repository has no signed Android release. The official iOS app is English-only.
 
