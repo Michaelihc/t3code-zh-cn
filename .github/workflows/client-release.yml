@@ -140,6 +140,35 @@ jobs:
       - run: vp run --filter @t3tools/desktop ensure:electron
       - run: vp run lint
       - run: vp run typecheck
+
+  mobile_static:
+    name: Mobile native static analysis
+    needs: source
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact source without credentials
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ needs.source.outputs.sha }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "$SOURCE_SHA"
+          git sparse-checkout set --no-cone '/*' '!/.repos/'
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          node-version-file: package.json
+          cache: true
+          run-install: false
+      - name: Install locked dependencies
+        run: vp install --frozen-lockfile
+      - name: Install mobile native analysis tools
+        run: brew bundle install --file apps/mobile/Brewfile
       - run: vp run lint:mobile
 
   tests:
@@ -212,7 +241,7 @@ jobs:
 
   bundle:
     name: Build validated desktop bundle
-    needs: [source, quality, tests]
+    needs: [source, quality, mobile_static, tests]
     if: github.event_name == 'workflow_dispatch' && inputs.build_clients
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -417,7 +446,7 @@ jobs:
   android:
     if: inputs.client_targets != 'windows'
     name: Android arm64 unsigned candidate (NOT installable)
-    needs: [source, quality, tests, bundle]
+    needs: [source, quality, mobile_static, tests, bundle]
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -495,7 +524,7 @@ jobs:
           fi
           unzip -t "$apk"
           "$build_tools/aapt" dump badging "$apk" | tee "$RUNNER_TEMP/android-badging.txt"
-          grep -F "package: name='com.zhiweixiao.t3code.zhcn' versionCode='10101' versionName='$CLIENT_VERSION'" "$RUNNER_TEMP/android-badging.txt"
+          grep -F "package: name='com.zhiweixiao.t3code.zhcn' versionCode='$T3CODE_MOBILE_VERSION_CODE' versionName='$CLIENT_VERSION'" "$RUNNER_TEMP/android-badging.txt"
           mkdir -p android-candidate
           cp "$apk" "android-candidate/T3-Code-zh-CN-Android-$CLIENT_VERSION-arm64-UNSIGNED-NOT-INSTALLABLE.apk"
           printf '%s\n' 'BLOCKED: This candidate is unsigned and is not installable. Android publication requires a verified signing certificate, confirmed secure key backup, and a monotonic versionCode. A replacement certificate does not permit an in-place upgrade over older installations; release notes must disclose that limitation. No private signing material is included in this artifact.' > android-candidate/SIGNING-BLOCKER.txt
