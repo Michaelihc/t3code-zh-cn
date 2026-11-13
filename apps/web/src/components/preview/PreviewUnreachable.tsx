@@ -25,6 +25,7 @@ export function PreviewFileNotShown({
   downloadUrl: string | null;
   onOpen: () => void;
 }) {
+  const { locale: translationLocale } = useI18n();
   const { locale: newCopyLocale } = useI18n();
   const host = safeHost(url) ?? url;
   return (
@@ -45,7 +46,7 @@ export function PreviewFileNotShown({
           </Button>
           {downloadUrl ? (
             <Button type="button" size="sm" render={<a href={downloadUrl} download={fileName} />}>
-              Download
+              {translateWebSource(translationLocale, "Download")}{" "}
             </Button>
           ) : null}
         </div>
@@ -55,6 +56,7 @@ export function PreviewFileNotShown({
 }
 
 export function PreviewUnreachable({ url, code, description, onReload, move }: Props) {
+  const { locale: translationLocale } = useI18n();
   const [showDetails, setShowDetails] = useState(false);
   const host = safeHost(url) ?? url;
   const friendly = describePreviewError(description);
@@ -105,7 +107,7 @@ export function PreviewUnreachable({ url, code, description, onReload, move }: P
             </Button>
           ) : null}
           <Button type="button" size="sm" onClick={onReload}>
-            Reload
+            {translateWebSource(translationLocale, "Reload")}{" "}
           </Button>
         </div>
       </div>

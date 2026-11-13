@@ -9,7 +9,7 @@ import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
 import { useEnvironments, type EnvironmentPresentation } from "../../state/environments";
 import { EnvironmentMachineIcon } from "../EnvironmentMachineIcon";
 import { ProjectFavicon } from "../ProjectFavicon";
-import { InlineButton } from "../ui/button";
+import { Button } from "../ui/button";
 import {
   Combobox,
   ComboboxEmpty,
@@ -45,9 +45,15 @@ import {
 } from "./settingsScopeAxis";
 
 export const SETTINGS_DEVICE_ONLY_PATHS: ReadonlySet<string> = new Set([
+  "/settings/general",
   "/settings/appearance",
+  "/settings/chat",
+  "/settings/diffs",
   "/settings/snap-shot",
   "/settings/connections",
+  // Access picks its environment on the page itself.
+  "/settings/access",
+  "/settings/about",
 ]);
 
 interface SettingsScopeMenuProps {
@@ -71,7 +77,7 @@ export function SettingsScopeSentence() {
     onChange: scope.selectScope,
   };
   return (
-    <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 px-3 text-base text-muted-foreground sm:px-4">
+    <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 px-3 text-sm text-muted-foreground sm:px-4">
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="shrink-0">Applying settings for</span>
         <ProjectScopeMenu {...props} />
@@ -95,6 +101,7 @@ interface ScopeOption {
 }
 
 function ScopeOptionLabel({ option }: { option: ScopeOption }) {
+  const { locale: translationLocale } = useI18n();
   return (
     <>
       {option.icon}
@@ -105,7 +112,9 @@ function ScopeOptionLabel({ option }: { option: ScopeOption }) {
         ) : null}
       </span>
       {option.offline ? (
-        <span className="shrink-0 text-xs text-muted-foreground">Offline</span>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {translateWebSource(translationLocale, "Offline")}
+        </span>
       ) : null}
     </>
   );
@@ -136,12 +145,16 @@ function ScopeMenu({
   const trigger = (
     <Trigger
       aria-label={`${ariaLabel}: ${label}`}
-      render={<InlineButton tone="picker" />}
+      render={<Button variant="outline" size="sm" />}
       className="min-w-0 max-w-72"
     >
       {icon}
       <span className="min-w-0 truncate">{label}</span>
-      <ChevronDownIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+      <ChevronDownIcon
+        aria-hidden
+        strokeWidth={1.75}
+        className="-me-0.5 size-3.5 shrink-0 text-muted-foreground opacity-70"
+      />
     </Trigger>
   );
   const choices = allOption ? [allOption, ...options] : options;
@@ -225,6 +238,7 @@ function EnvironmentScopeMenu({
   onChange,
   singleEnvironment,
 }: SettingsScopeMenuProps) {
+  const { locale: translationLocale } = useI18n();
   const resolved = resolveSettingsScope(value, groups, environments);
   const environmentValue = environmentAxisValue(
     value,
@@ -269,7 +283,7 @@ function EnvironmentScopeMenu({
           ? null
           : {
               value: ALL_ENVIRONMENTS_VALUE,
-              label: "All environments",
+              label: translateWebSource(translationLocale, "All environments"),
               icon: <LayersIcon aria-hidden className="size-3.5 shrink-0" />,
             }
       }
@@ -297,6 +311,7 @@ function EnvironmentScopeMenu({
 }
 
 function ProjectScopeMenu({ value, groups, environments, onChange }: SettingsScopeMenuProps) {
+  const { locale: translationLocale } = useI18n();
   const selected = groups.find((group) => group.projectKey === value.project);
   const projects = projectScopeMenuGroups(groups, value).map((group) => ({
     group,
@@ -310,24 +325,28 @@ function ProjectScopeMenu({ value, groups, environments, onChange }: SettingsSco
       value={projectAxisValue(value)}
       onChange={(next) => onChange(selectProjectAxis(value, next))}
       searchLabel="Search projects"
-      allOption={{ value: ALL_PROJECTS_VALUE, label: "All projects" }}
+      allOption={{
+        value: ALL_PROJECTS_VALUE,
+        label: translateWebSource(translationLocale, "All projects"),
+      }}
       options={projects.map(({ group, machines }) => {
         const sameName = projects.filter(
           (other) =>
             other.group.projectKey !== group.projectKey &&
             other.group.displayName === group.displayName,
         );
+        const location =
+          sameName.length === 0
+            ? environments.length > 1
+              ? group.workspaceRoot
+              : ""
+            : sameName.some((other) => other.machines === machines)
+              ? `${machines} · ${group.workspaceRoot}`
+              : machines;
         return {
           value: group.projectKey,
           label: group.displayName,
-          secondary:
-            sameName.length === 0
-              ? environments.length > 1
-                ? group.workspaceRoot
-                : ""
-              : sameName.some((other) => other.machines === machines)
-                ? `${machines} · ${group.workspaceRoot}`
-                : machines,
+          secondary: group.archived ? ["Archived", location].filter(Boolean).join(" · ") : location,
           icon: <ProjectFavicon project={group} className="size-3.5 shrink-0" />,
         };
       })}

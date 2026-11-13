@@ -1,5 +1,8 @@
-import { AuthProvidersManageScope } from "@t3tools/contracts";
-import { useEnvironmentScope } from "../../state/session";
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
+import { useAtomValue } from "@effect/atom-react";
+import { AuthProvidersManageScope, ProviderDriverKind } from "@t3tools/contracts";
+import { readPreparedConnection, useEnvironmentScope } from "../../state/session";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -27,14 +30,16 @@ import {
 } from "react";
 
 import { ensureLocalApi } from "../../localApi";
-import {
-  useEnvironmentHttpBaseUrl,
-  usePrimaryEnvironmentId,
-  useEnvironment,
-} from "../../state/environments";
+import { managedInstanceLocks, useManagedPolicy } from "../../state/managedPolicy";
+import { ManagedControl } from "../ManagedPolicy";
+import { useEnvironmentHttpBaseUrl } from "../../state/environments";
+import { environmentPresentations } from "../../state/presentation";
+import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
 import { useEnvironmentQuery } from "../../state/query";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { appAtomRegistry } from "../../rpc/atomRegistry";
+import { waitForQuerySettled } from "../../state/waitForQuerySettled";
 import { Button } from "../ui/button";
 import { ChatGptConnectionButton } from "./ChatGptConnectionButton";
 import { ChatGptUsageButton } from "./ChatGptUsageButton";
@@ -46,8 +51,44 @@ import { SettingsRow } from "./settingsLayout";
 import { AddCodexAccountDialog } from "./AddCodexAccountDialog";
 import { getOnboardingProviderState } from "../../onboarding/providerReadiness.logic";
 import { getProviderSummary } from "./providerStatus";
+import {
+  settleAuthorizationPage,
+  settleHandoffAuthorizationPage,
+  settleProviderInstall,
+} from "./CodexSetupSection.logic";
 
 const noop = () => undefined;
+
+const isLoopbackUrl = (url: string | null) => url !== null && isLoopbackHost(new URL(url).hostname);
+
+// A loopback server can receive the provider's callback itself, unless the
+// desktop shell offers to catch it on the client.
+const prefersClientCallback = (local: boolean) => !local || window.desktopBridge !== undefined;
+
+/**
+ * How a sign-in started now reaches the provider. Read at use time, because a
+ * sign-in can start minutes after the click that asked for it (once an install
+ * finishes), and the primary environment may have connected in between.
+ */
+function readSignInRouting(environmentId: EnvironmentId) {
+  const local = isLoopbackUrl(readPreparedConnection(environmentId)?.httpBaseUrl ?? null);
+  const clientCallback = prefersClientCallback(local);
+  const primaryEnvironmentId = appAtomRegistry.get(primaryEnvironmentIdAtom);
+  const primaryAuthEnvironmentId =
+    !local &&
+    primaryEnvironmentId !== null &&
+    appAtomRegistry.get(environmentPresentations.presentationAtom(primaryEnvironmentId))?.connection
+      .phase === "connected" &&
+    isLoopbackUrl(readPreparedConnection(primaryEnvironmentId)?.httpBaseUrl ?? null) &&
+    (window.desktopBridge !== undefined || isLoopbackHost(window.location.hostname))
+      ? primaryEnvironmentId
+      : null;
+  return {
+    clientCallback,
+    remoteWeb: clientCallback && !window.desktopBridge,
+    primaryAuthEnvironmentId,
+  };
+}
 
 interface CodexSetupSectionProps {
   readonly environmentId: EnvironmentId;
@@ -56,6 +97,8 @@ interface CodexSetupSectionProps {
   readonly mode: "managed" | "existing";
   readonly enabled: boolean;
   readonly readOnly?: boolean;
+  // Onboarding's "Use existing CLI" opens a terminal, which this session may not be allowed.
+  readonly existingCliDisabled?: boolean;
   readonly presentation?: "settings" | "onboarding";
   readonly onModeChange: (mode: "managed" | "existing") => void;
   readonly autoStart?: boolean;
@@ -65,7 +108,14 @@ interface CodexSetupSectionProps {
 }
 
 export function CodexSetupSection(props: CodexSetupSectionProps) {
+  const { locale: translationLocale } = useI18n();
   const [requested, setRequested] = useState(false);
+  // A policy that owns Codex's launch settings also rules out ChatGPT's own runtime.
+  const codexLocks = managedInstanceLocks(
+    useManagedPolicy(props.environmentId),
+    ProviderDriverKind.make("codex"),
+  );
+  const chatGptDenial = codexLocks?.configKeys.has("setupMode") ? codexLocks.reason : undefined;
   const existingState = getOnboardingProviderState(props.provider);
   const existingReady = props.enabled && existingState === "ready";
   const existingAuthenticated = props.provider?.auth.status === "authenticated";
@@ -79,7 +129,7 @@ export function CodexSetupSection(props: CodexSetupSectionProps) {
           existingReady ? (
             props.provider?.auth.email?.trim() ? (
               <>
-                Signed in as{" "}
+                {translateWebSource(translationLocale, "Signed in as")}{" "}
                 <RedactedSensitiveText
                   value={props.provider.auth.email.trim()}
                   ariaLabel="Toggle account email visibility"
@@ -104,28 +154,37 @@ export function CodexSetupSection(props: CodexSetupSectionProps) {
           existingReady ? (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-foreground">
               <CheckIcon className="size-3.5" />
-              Ready
+              {translateWebSource(translationLocale, "Ready")}{" "}
             </span>
           ) : existingChecking ? (
-            <span className="text-xs text-muted-foreground">Checking...</span>
+            <span className="text-xs text-muted-foreground">
+              {translateWebSource(translationLocale, "Checking...")}
+            </span>
           ) : existingAuthenticated ? (
             <span className="text-xs text-muted-foreground">{existingSummary.headline}</span>
           ) : (
-            <ChatGptConnectionButton
-              size="sm"
-              disabled={props.readOnly}
-              onClick={() => {
-                setRequested(true);
-                props.onModeChange("managed");
-              }}
-            >
-              Continue with ChatGPT
-            </ChatGptConnectionButton>
+            <ManagedControl reason={chatGptDenial}>
+              <ChatGptConnectionButton
+                size="sm"
+                disabled={props.readOnly}
+                onClick={() => {
+                  setRequested(true);
+                  props.onModeChange("managed");
+                }}
+              >
+                Continue with ChatGPT
+              </ChatGptConnectionButton>
+            </ManagedControl>
           )
         }
         secondaryControl={
           !existingAuthenticated && !existingReady && !existingChecking ? (
-            <Button size="sm" variant="ghost-muted" onClick={() => props.onModeChange("existing")}>
+            <Button
+              size="sm"
+              variant="ghost-muted"
+              disabled={props.existingCliDisabled}
+              onClick={() => props.onModeChange("existing")}
+            >
               Use existing CLI
             </Button>
           ) : null
@@ -138,12 +197,12 @@ export function CodexSetupSection(props: CodexSetupSectionProps) {
           description={<CodexSignInDescription />}
           control={
             <Button size="sm" variant="outline" className="min-w-44" disabled>
-              Open sign-in page
+              {translateWebSource(translationLocale, "Open sign-in page")}{" "}
             </Button>
           }
           secondaryControl={
             <Button size="sm" variant="ghost-muted" disabled>
-              Cancel
+              {translateWebSource(translationLocale, "Cancel")}{" "}
             </Button>
           }
         />
@@ -211,6 +270,7 @@ function ManagedCodexSetup({
   autoStart,
   onAutoStartConsumed,
   allowExistingCli = true,
+  existingCliDisabled,
   presentation,
   displayName,
   onSignInCancelled,
@@ -219,6 +279,7 @@ function ManagedCodexSetup({
   readonly onAutoStartConsumed: () => void;
   readonly allowExistingCli?: boolean;
 }) {
+  const { locale: translationLocale } = useI18n();
   const target = { environmentId, input: { instanceId } };
   const authQuery = useEnvironmentQuery(serverEnvironment.providerAuthState(target));
   const installQuery = useEnvironmentQuery(serverEnvironment.providerInstallState(target));
@@ -240,32 +301,23 @@ function ManagedCodexSetup({
   const url = auth?.interaction?.type === "browser" ? auth.interaction.url : auth?.authorizationUrl;
   const installation = installQuery.data;
   const httpBaseUrl = useEnvironmentHttpBaseUrl(environmentId);
-  const local = httpBaseUrl !== null && isLoopbackHost(new URL(httpBaseUrl).hostname);
+  const local = isLoopbackUrl(httpBaseUrl);
   const options = { reportFailure: false, reportDefect: false };
   const startAuth = useAtomCommand(serverEnvironment.startProviderAuth, options);
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, options);
   const completeAuth = useAtomCommand(serverEnvironment.completeProviderAuth, options);
   const cancelAuth = useAtomCommand(serverEnvironment.cancelProviderAuth, options);
   const logoutAuth = useAtomCommand(serverEnvironment.logoutProviderAuth, options);
+  const removeAuthMethod = useAtomCommand(serverEnvironment.removeProviderAuthMethod, options);
+  const canRemoveAuthMethod = useAtomValue(
+    serverEnvironment.removeProviderAuthMethod.permissionAtom(environmentId),
+  );
   const startInstall = useAtomCommand(serverEnvironment.startProviderInstall, options);
   const cancelInstall = useAtomCommand(serverEnvironment.cancelProviderInstall, options);
   const reconnectProfile = useAtomCommand(serverEnvironment.chatGptReconnectProfile, options);
   const importProfile = useAtomCommand(serverEnvironment.chatGptImportProfile, options);
-  const clientCallback =
-    !handoff && (!local || window.desktopBridge?.receiveProviderAuthCallback !== undefined);
-  const remoteWeb = clientCallback && !window.desktopBridge?.receiveProviderAuthCallback;
-  const primaryEnvironmentId = usePrimaryEnvironmentId();
-  const primaryEnvironment = useEnvironment(primaryEnvironmentId);
-  const primaryHttpBaseUrl = useEnvironmentHttpBaseUrl(primaryEnvironmentId);
-  const primaryAuthEnvironmentId =
-    !local &&
-    primaryEnvironmentId &&
-    primaryEnvironment?.connection.phase === "connected" &&
-    primaryHttpBaseUrl &&
-    isLoopbackHost(new URL(primaryHttpBaseUrl).hostname) &&
-    (window.desktopBridge !== undefined || isLoopbackHost(window.location.hostname))
-      ? primaryEnvironmentId
-      : null;
+  const clientCallback = !handoff && prefersClientCallback(local);
+  const remoteWeb = clientCallback && !window.desktopBridge;
   const returnUrl = new URL(window.location.href);
   if (returnUrl.pathname === "/welcome") returnUrl.hash = `agents:${environmentId}`;
   if (returnUrl.pathname === "/settings/providers")
@@ -279,9 +331,20 @@ function ManagedCodexSetup({
   const [awaitingProvider, setAwaitingProvider] = useState<"sign-in" | "handoff" | null>(null);
   const pendingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const continueWithSignIn = useRef<string | null>(null);
-  const openRequested = useRef(false);
-  const openedFlow = useRef<string | null>(null);
+  // The setup or sign-in this client started. Its follow-up steps (sign in
+  // once the install lands, open the page once the flow waits) belong to it
+  // alone, so Cancel, a new attempt, or unmounting abort them.
+  const operation = useRef<AbortController | null>(null);
+  const beginOperation = () => {
+    operation.current?.abort();
+    const controller = new AbortController();
+    operation.current = controller;
+    return controller.signal;
+  };
+  const abortOperation = () => operation.current?.abort();
+  // Once the card unmounts, nothing may start a sign-in or open a page on its behalf.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- aborts the in-flight setup or sign-in AbortController on unmount
+  useEffect(() => () => operation.current?.abort(), []);
   const [autoStartHandled, setAutoStartHandled] = useState(false);
   const installed = installation?.installedVersion != null;
   const authenticated = provider?.auth.status === "authenticated";
@@ -300,6 +363,9 @@ function ManagedCodexSetup({
   ) {
     setAwaitingProvider(null);
   }
+  // The server does not refresh the provider snapshot when a sign-in flow
+  // succeeds, and the flow can finish elsewhere (callback, pasted redirect URL).
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- asks the server to refresh the provider snapshot once the sign-in flow succeeds
   useEffect(() => {
     if (awaitingProvider && auth?.phase === "succeeded") {
       void refreshProviders({ environmentId, input: { instanceId } });
@@ -369,6 +435,7 @@ function ManagedCodexSetup({
   const transferFinishedProfile = useEffectEvent((profile: ChatGptTransferredProfile) =>
     transferProfile(profile),
   );
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- imports the finished handoff profile to the server once per attempt when the handoff query completes
   useEffect(() => {
     if (!handoff || handoffQuery.data?.phase !== "finished") return;
     const attemptId = handoff.input.attemptId;
@@ -398,102 +465,15 @@ function ManagedCodexSetup({
     return run(() => cancelAuth({ environmentId, input: { instanceId, flowId: auth!.flowId! } }));
   };
 
-  const signIn = async (methodId = "chatgpt") => {
-    if (pendingRef.current) return;
-    openRequested.current = true;
-    setTransferFailed(false);
-    setRequestedMethodId(methodId);
-    const returnUrl = new URL(window.location.href);
-    if (returnUrl.pathname === "/welcome") returnUrl.hash = `agents:${environmentId}`;
-    if (returnUrl.pathname === "/settings/providers")
-      returnUrl.searchParams.set("instanceId", instanceId);
-    if (primaryAuthEnvironmentId) {
-      const attemptId = `${handoffId}:${++handoffSequence.current}`;
-      const succeeded = await run(
-        () => reconnectProfile({ environmentId, input: { instanceId, methodId } }),
-        (profile) =>
-          setHandoff({
-            environmentId: primaryAuthEnvironmentId,
-            input: {
-              instanceId,
-              environmentId,
-              attemptId,
-              returnUrl: returnUrl.toString(),
-              profile,
-            },
-          }),
-      );
-      if (!succeeded) openRequested.current = false;
-      return;
-    }
-    if (
-      !(await run(
-        () =>
-          startAuth({
-            environmentId,
-            input: {
-              instanceId,
-              methodId,
-              returnUrl: returnUrl.toString(),
-              callbackMode: clientCallback ? "client" : "server",
-            },
-          }),
-        () => setAwaitingProvider("sign-in"),
-      ))
-    ) {
-      openRequested.current = false;
-    }
-  };
-
-  const setup = async (methodId = "chatgpt") => {
-    if (unavailable || busy) return;
-    if (installed && !updateAvailable) {
-      await signIn(methodId);
-    } else {
-      continueWithSignIn.current = methodId;
-      if (!(await run(() => startInstall({ environmentId, input: { instanceId } })))) {
-        continueWithSignIn.current = null;
-      }
-    }
-  };
-
-  if (
-    autoStart &&
-    !autoStartHandled &&
-    !unavailable &&
-    !busy &&
-    installation !== null &&
-    provider?.setup?.canInstall
-  ) {
-    setAutoStartHandled(true);
-  }
-  const startAutomatically = useEffectEvent(() => {
-    onAutoStartConsumed();
-    void setup();
-  });
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect -- Starting setup dispatches a server command, which marks itself pending before it awaits.
-    if (autoStartHandled) startAutomatically();
-  }, [autoStartHandled]);
-
-  const signInAfterInstall = useEffectEvent((methodId: string) => signIn(methodId));
-  useEffect(() => {
-    if (!continueWithSignIn.current || pending || installActive) return;
-    if (installation?.phase === "failed" || installation?.phase === "cancelled") {
-      continueWithSignIn.current = null;
-    } else if (installed) {
-      const methodId = continueWithSignIn.current;
-      continueWithSignIn.current = null;
-      void signInAfterInstall(methodId);
-    }
-  }, [pending, installActive, installation?.phase, installed]);
-
   const receivingCallback = useRef<string | null>(null);
-  const flowId = auth?.flowId;
-  const openPage = async (authorizationUrl: string) => {
+  const openPage = async (
+    authorizationUrl: string,
+    flowId: string | null,
+    viaClientCallback: boolean,
+  ) => {
     try {
       const receive = window.desktopBridge?.receiveProviderAuthCallback;
-      if (receive && clientCallback && flowId) {
+      if (receive && viaClientCallback && flowId) {
         if (receivingCallback.current === authorizationUrl) {
           await ensureLocalApi().shell.openExternal(authorizationUrl);
           return;
@@ -514,32 +494,128 @@ function ManagedCodexSetup({
       );
     }
   };
-  const openPageForFlow = useEffectEvent((authorizationUrl: string) => {
-    void openPage(authorizationUrl);
-  });
 
+  const signIn = async (methodId: string, signal: AbortSignal) => {
+    if (pendingRef.current) return;
+    setTransferFailed(false);
+    setRequestedMethodId(methodId);
+    const returnUrl = new URL(window.location.href);
+    if (returnUrl.pathname === "/welcome") returnUrl.hash = `agents:${environmentId}`;
+    if (returnUrl.pathname === "/settings/providers")
+      returnUrl.searchParams.set("instanceId", instanceId);
+    const { clientCallback, remoteWeb, primaryAuthEnvironmentId } =
+      readSignInRouting(environmentId);
+    if (primaryAuthEnvironmentId) {
+      const attemptId = `${handoffId}:${++handoffSequence.current}`;
+      await run(
+        () => reconnectProfile({ environmentId, input: { instanceId, methodId } }),
+        (profile) => {
+          const nextHandoff = {
+            environmentId: primaryAuthEnvironmentId,
+            input: {
+              instanceId,
+              environmentId,
+              attemptId,
+              returnUrl: returnUrl.toString(),
+              profile,
+            },
+          };
+          setHandoff(nextHandoff);
+          void waitForQuerySettled({
+            registry: appAtomRegistry,
+            atom: serverEnvironment.chatGptHandoffState(nextHandoff),
+            settle: settleHandoffAuthorizationPage,
+            signal,
+          }).then((page) => {
+            if (page && !signal.aborted) void openPage(page, null, false);
+          });
+        },
+      );
+      return;
+    }
+    await run(
+      () =>
+        startAuth({
+          environmentId,
+          input: {
+            instanceId,
+            methodId,
+            returnUrl: returnUrl.toString(),
+            callbackMode: clientCallback ? "client" : "server",
+          },
+        }),
+      (started) => {
+        setAwaitingProvider("sign-in");
+        const startedFlowId = started.flowId;
+        // A remote browser cannot receive the callback, so the user opens the page from the card.
+        if (remoteWeb || startedFlowId === null) return;
+        const startedPage = settleAuthorizationPage(started, startedFlowId);
+        void (
+          startedPage !== undefined
+            ? Promise.resolve(startedPage)
+            : waitForQuerySettled({
+                registry: appAtomRegistry,
+                atom: serverEnvironment.providerAuthState(target),
+                settle: (state) => settleAuthorizationPage(state, startedFlowId),
+                signal,
+              })
+        ).then((page) => {
+          if (page && !signal.aborted) void openPage(page, startedFlowId, clientCallback);
+        });
+      },
+    );
+  };
+
+  const setup = async (methodId = "chatgpt") => {
+    if (unavailable || busy) return;
+    const signal = beginOperation();
+    if (installed && !updateAvailable) {
+      await signIn(methodId, signal);
+      return;
+    }
+    await run(
+      () => startInstall({ environmentId, input: { instanceId } }),
+      (started) => {
+        void waitForQuerySettled({
+          registry: appAtomRegistry,
+          atom: serverEnvironment.providerInstallState(target),
+          settle: (current) => settleProviderInstall(started, current),
+          signal,
+        }).then((ready) => {
+          if (ready && !signal.aborted) void signIn(methodId, signal);
+        });
+      },
+    );
+  };
+
+  if (
+    autoStart &&
+    !autoStartHandled &&
+    !unavailable &&
+    !busy &&
+    installation !== null &&
+    provider?.setup?.canInstall
+  ) {
+    setAutoStartHandled(true);
+  }
+  const startAutomatically = useEffectEvent(() => {
+    onAutoStartConsumed();
+    void setup();
+  });
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- dispatches the automatic setup server command after the auto-start flag commits
   useEffect(() => {
-    if (!clientCallback || !url || !window.desktopBridge?.cancelProviderAuthCallback) return;
+    // oxlint-disable-next-line react/set-state-in-effect -- Starting setup dispatches a server command, which marks itself pending before it awaits.
+    if (autoStartHandled) startAutomatically();
+  }, [autoStartHandled]);
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- cancels the desktop bridge provider auth callback when the URL changes or the card unmounts
+  useEffect(() => {
+    if (!clientCallback || !url || !window.desktopBridge) return;
     return () => {
       if (receivingCallback.current === url) receivingCallback.current = null;
-      void window.desktopBridge?.cancelProviderAuthCallback?.(url).catch(() => undefined);
+      void window.desktopBridge?.cancelProviderAuthCallback(url).catch(() => undefined);
     };
   }, [clientCallback, url]);
-
-  useEffect(() => {
-    if (
-      !openRequested.current ||
-      auth?.phase !== "waiting" ||
-      !auth.flowId ||
-      !url ||
-      openedFlow.current === auth.flowId
-    )
-      return;
-    openedFlow.current = auth.flowId;
-    openRequested.current = false;
-    // oxlint-disable-next-line react/set-state-in-effect -- Opening the page may complete the flow through a server command, which marks itself pending.
-    if (!remoteWeb) openPageForFlow(url);
-  }, [auth?.phase, auth?.flowId, url, remoteWeb]);
 
   const runtimeDescription =
     installation?.phase === "downloading"
@@ -564,7 +640,7 @@ function ManagedCodexSetup({
   ) : authenticated ? (
     provider?.auth.email?.trim() ? (
       <>
-        Signed in as{" "}
+        {translateWebSource(translationLocale, "Signed in as")}{" "}
         <RedactedSensitiveText
           value={provider.auth.email.trim()}
           ariaLabel="Toggle account email visibility"
@@ -606,7 +682,7 @@ function ManagedCodexSetup({
       onClick={() => {
         if (handoffQuery.data?.phase === "finished")
           void transferProfile(handoffQuery.data.profile);
-        else if (url) void openPage(url);
+        else if (url) void openPage(url, auth?.flowId ?? null, clientCallback);
       }}
     >
       {finishingSignIn
@@ -664,7 +740,7 @@ function ManagedCodexSetup({
             type="submit"
             disabled={pending || readOnly || !callbackUrl.trim()}
           >
-            Connect
+            {translateWebSource(translationLocale, "Connect")}{" "}
           </Button>
         </form>
         {!remoteWeb ? (
@@ -714,6 +790,12 @@ function ManagedCodexSetup({
       open={accountPickerOpen}
       methods={auth?.methods ?? []}
       onClose={() => setAccountPickerOpen(false)}
+      disabled={unavailable || busy}
+      canRemove={canRemoveAuthMethod}
+      error={error}
+      onRemove={(methodId) => {
+        void run(() => removeAuthMethod({ environmentId, input: { instanceId, methodId } }));
+      }}
       onSelect={(methodId) => {
         setAccountPickerOpen(false);
         void setup(
@@ -748,7 +830,7 @@ function ManagedCodexSetup({
             ) : authenticated ? (
               provider?.auth.email?.trim() ? (
                 <>
-                  Signed in as{" "}
+                  {translateWebSource(translationLocale, "Signed in as")}{" "}
                   <RedactedSensitiveText
                     value={provider.auth.email.trim()}
                     ariaLabel="Toggle account email visibility"
@@ -783,7 +865,7 @@ function ManagedCodexSetup({
             authenticated && !busy ? (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-foreground">
                 <CheckIcon className="size-3.5" />
-                Ready
+                {translateWebSource(translationLocale, "Ready")}{" "}
               </span>
             ) : authActive ? (
               waitingControl
@@ -815,8 +897,7 @@ function ManagedCodexSetup({
                 variant="ghost-muted"
                 disabled={pending || readOnly}
                 onClick={() => {
-                  openRequested.current = false;
-                  continueWithSignIn.current = null;
+                  abortOperation();
                   if (handoff || (authActive && auth?.flowId)) void cancelSignIn();
                   else if (installation?.operationId)
                     void run(() =>
@@ -827,7 +908,7 @@ function ManagedCodexSetup({
                     );
                 }}
               >
-                Cancel
+                {translateWebSource(translationLocale, "Cancel")}{" "}
               </Button>
             ) : !authActive && !authenticated && hasSavedAccount ? (
               <Button
@@ -842,7 +923,7 @@ function ManagedCodexSetup({
               <Button
                 size="sm"
                 variant="ghost-muted"
-                disabled={readOnly || busy}
+                disabled={readOnly || busy || existingCliDisabled}
                 onClick={() => onModeChange("existing")}
               >
                 Use existing CLI
@@ -868,7 +949,7 @@ function ManagedCodexSetup({
         title="ChatGPT account"
         description={accountDescription}
         control={
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex max-w-88 flex-wrap items-center justify-end gap-2">
             {authActive ? (
               <>
                 {waitingControl}
@@ -879,12 +960,12 @@ function ManagedCodexSetup({
                     disabled={pending || readOnly}
                     onClick={() => {
                       if (!handoff && !auth?.flowId) return;
-                      openRequested.current = false;
+                      abortOperation();
                       void cancelSignIn();
                       onSignInCancelled?.();
                     }}
                   >
-                    Cancel
+                    {translateWebSource(translationLocale, "Cancel")}{" "}
                   </Button>
                 )}
               </>
@@ -895,7 +976,7 @@ function ManagedCodexSetup({
                 disabled={pending || readOnly}
                 onClick={() => {
                   if (!installation?.operationId) return;
-                  continueWithSignIn.current = null;
+                  abortOperation();
                   void run(() =>
                     cancelInstall({
                       environmentId,
@@ -904,7 +985,7 @@ function ManagedCodexSetup({
                   );
                 }}
               >
-                Cancel
+                {translateWebSource(translationLocale, "Cancel")}{" "}
               </Button>
             ) : authenticated ? (
               <>
@@ -922,7 +1003,7 @@ function ManagedCodexSetup({
                   disabled={unavailable || busy}
                   onClick={() => void run(() => logoutAuth(target))}
                 >
-                  Disconnect
+                  {translateWebSource(translationLocale, "Disconnect")}{" "}
                 </Button>
               </>
             ) : (
@@ -953,6 +1034,16 @@ function ManagedCodexSetup({
                     onClick={() => void setup("chatgpt-change-account")}
                   >
                     Use a different account
+                  </Button>
+                ) : null}
+                {allowExistingCli ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={readOnly || busy}
+                    onClick={() => onModeChange("existing")}
+                  >
+                    Use existing CLI
                   </Button>
                 ) : null}
               </>
@@ -992,6 +1083,7 @@ export function CodexManagedRuntimeFields({
   readonly instanceId: ProviderInstanceId;
   readonly provider: ServerProvider | undefined;
 }) {
+  const { locale: translationLocale } = useI18n();
   const installation = useEnvironmentQuery(
     serverEnvironment.providerInstallState({
       environmentId,
@@ -1002,7 +1094,7 @@ export function CodexManagedRuntimeFields({
   return (
     <>
       <SettingsRow
-        title="Binary path"
+        title={translateWebSource(translationLocale, "Binary path")}
         description="Selected by T3 Code."
         control={
           <div className="w-full sm:w-80">
@@ -1017,7 +1109,7 @@ export function CodexManagedRuntimeFields({
         }
       />
       <SettingsRow
-        title="CODEX_HOME path"
+        title={translateWebSource(translationLocale, "CODEX_HOME path")}
         description="Shared Codex config, sessions, and state."
         control={
           <div className="w-full sm:w-80">
@@ -1025,14 +1117,14 @@ export function CodexManagedRuntimeFields({
               aria-label="Codex home path"
               value={provider?.runtimePaths?.homePath ?? ""}
               title={provider?.runtimePaths?.homePath}
-              placeholder="Unavailable"
+              placeholder={translateWebSource(translationLocale, "Unavailable")}
               disabled
             />
           </div>
         }
       />
       <SettingsRow
-        title="Shadow home path"
+        title={translateWebSource(translationLocale, "Shadow home path")}
         description={
           provider?.runtimePaths?.shadowHomePath
             ? "Account-specific home sharing the Codex state above."

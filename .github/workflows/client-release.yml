@@ -29,8 +29,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  UPSTREAM_VERSION: 0.1.1
-  CLIENT_VERSION: 0.1.1-zh.1
+  UPSTREAM_VERSION: 0.1.9
+  CLIENT_VERSION: 0.1.9-zh.1
   T3CODE_DESKTOP_UPDATE_REPOSITORY: Michaelihc/t3code-zh-cn
   CI: "true"
   CSC_IDENTITY_AUTO_DISCOVERY: "false"
@@ -422,9 +422,9 @@ jobs:
     timeout-minutes: 120
     env:
       APP_VARIANT: community
-      T3CODE_MOBILE_VERSION: 0.1.1-zh.1
+      T3CODE_MOBILE_VERSION: 0.1.9-zh.1
       # Candidate only. A publishable versionCode must exceed the installed release.
-      T3CODE_MOBILE_VERSION_CODE: "10101"
+      T3CODE_MOBILE_VERSION_CODE: "10901"
       T3CODE_MOBILE_UPDATES_ENABLED: "0"
       EXPO_NO_GIT_STATUS: "1"
       EXPO_NO_TELEMETRY: "1"

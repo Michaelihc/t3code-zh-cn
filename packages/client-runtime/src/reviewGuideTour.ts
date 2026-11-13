@@ -14,12 +14,6 @@ export function stopFilePaths(stop: PullRequestReviewGuideStop): ReadonlyArray<s
   ];
 }
 
-export function stopSubline(stop: PullRequestReviewGuideStop): string {
-  const count = stopFilePaths(stop).length;
-  if (count === 0) return "Context, no code";
-  return count === 1 ? "1 file" : `${count} files`;
-}
-
 function noteMarker(index: number): string {
   return index < 26 ? String.fromCharCode(65 + index) : String(index + 1);
 }
@@ -140,7 +134,10 @@ export function rowsToPatch(
     const oldStart = oldCount === 0 ? Math.max(head.oldAt - 1, 0) : head.oldAt;
     const newStart = newCount === 0 ? Math.max(head.newAt - 1, 0) : head.newAt;
     lines.push(`@@ -${oldStart},${oldCount} +${newStart},${newCount} @@`);
-    for (const row of group) lines.push(`${ROW_PREFIX[row.kind]}${row.text.replace(/\r?\n$/, "")}`);
+    for (const row of group) {
+      lines.push(`${ROW_PREFIX[row.kind]}${row.text.replace(/\n$/, "")}`);
+      if (!row.text.endsWith("\n")) lines.push("\\ No newline at end of file");
+    }
     start = end + 1;
   }
   return `${lines.join("\n")}\n`;
@@ -165,15 +162,11 @@ export function excerptExpansionOldContents(
     oldBefore >= prefix.length
       ? [...Array.from({ length: oldBefore - prefix.length }, () => "\n"), ...prefix]
       : prefix.slice(prefix.length - oldBefore);
-  const oldRows = rows
-    .filter((row) => row.oldLine !== null)
-    .map((row) => (row.text.endsWith("\n") ? row.text : `${row.text}\n`));
-  return [...oldPrefix, ...oldRows, ...newLines.slice(before + newCount)].join("");
-}
-
-export interface LetteredNote<Note> {
-  readonly marker: string;
-  readonly note: Note;
+  const oldRows = rows.filter((row) => row.oldLine !== null).map((row) => row.text);
+  const suffix = newLines.slice(before + newCount);
+  // Synthetic context still needs its own line after an old EOF row.
+  if (suffix.length > 0 && oldRows.at(-1)?.endsWith("\n") === false) oldRows.push("\n");
+  return [...oldPrefix, ...oldRows, ...suffix].join("");
 }
 
 export function letterStopNotes(stop: PullRequestReviewGuideStop) {

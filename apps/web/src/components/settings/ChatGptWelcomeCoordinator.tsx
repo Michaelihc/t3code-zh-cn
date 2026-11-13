@@ -1,3 +1,5 @@
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { useAtomValue } from "@effect/atom-react";
 import { usesChatGptSharing } from "@t3tools/shared/usageLimits";
 import { useState } from "react";
@@ -27,6 +29,7 @@ function readAcknowledgedProfiles(): string[] {
 }
 
 export function ChatGptWelcomeCoordinator() {
+  const { locale: translationLocale } = useI18n();
   const presentations = useAtomValue(environmentPresentations.presentationsAtom);
   const providersByEnvironment = useAtomValue(environmentPresentations.providersByEnvironmentAtom);
   const [acknowledged, setAcknowledged] = useState(readAcknowledgedProfiles);
@@ -75,7 +78,7 @@ export function ChatGptWelcomeCoordinator() {
         </DialogHeader>
         <DialogFooter>
           <ChatGptUsageButton />
-          <Button onClick={dismiss}>Continue</Button>
+          <Button onClick={dismiss}>{translateWebSource(translationLocale, "Continue")}</Button>
         </DialogFooter>
       </DialogPopup>
     </Dialog>

@@ -3,7 +3,7 @@ import type { AlertButton, AlertOptions } from "react-native";
 export type MobileLocale = "en" | "zh-CN";
 
 export const MOBILE_LOCALE: MobileLocale =
-  process.env.EXPO_PUBLIC_APP_LOCALE === "zh-CN" ? "zh-CN" : "en";
+  process.env.EXPO_PUBLIC_APP_LOCALE === "en" ? "en" : "zh-CN";
 
 const ZH_CN_MESSAGES = {
   "Some attachments could not be copied. Reconnect to the source environment and copy them again.":

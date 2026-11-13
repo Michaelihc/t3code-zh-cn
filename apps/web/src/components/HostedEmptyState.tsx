@@ -12,7 +12,7 @@ import { hasCloudPublicConfig } from "~/cloud/publicConfig";
 import { isElectron } from "../env";
 import { isLocalEnvironmentDisabled } from "../localEnvironment";
 import { useRelayEnvironmentDiscovery } from "../state/environments";
-import { CommandBlock } from "./CommandBlock";
+import { InstallT3Commands } from "./InstallT3Commands";
 import { useT3ConnectAuthPrompt } from "./clerk/useT3ConnectAuthPrompt";
 import { CloudEnvironmentConnectRows } from "./cloud/CloudEnvironmentConnectList";
 import { Button } from "./ui/button";
@@ -55,7 +55,7 @@ export function HostedEmptyState() {
           <EmptyContent>
             {localEnvironmentOff ? (
               <Button render={<Link to="/settings/connections" />} size="sm">
-                {tx("Open Connections")}
+                Open Environments
               </Button>
             ) : (
               <ol className="w-full space-y-4 text-left">
@@ -69,10 +69,9 @@ export function HostedEmptyState() {
   );
 }
 
-export function T3ConnectSteps() {
-  const { locale } = useI18n();
-  const tx = (source: string) => translateWebSource(locale, source);
-
+function T3ConnectSteps() {
+  const { locale: sourceLocale } = useI18n();
+  const tx = (source: string) => translateWebSource(sourceLocale, source);
   const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const { openAuthPrompt } = useT3ConnectAuthPrompt();
   // Adding the first computer unmounts this screen. Wait for all health checks
@@ -97,7 +96,7 @@ export function T3ConnectSteps() {
         )}
       </SetupStep>
       <SetupStep number={2}>
-        <RunOnComputer command="npx t3 connect" />
+        <RunOnComputer command="t3 connect" />
         {isSignedIn ? (
           <div className="mt-4 space-y-1.5">
             <CloudEnvironmentConnectRows
@@ -133,7 +132,7 @@ function PairingSteps() {
   return (
     <>
       <SetupStep number={1}>
-        <RunOnComputer command="npx t3 pair" />
+        <RunOnComputer command="t3 pair" />
       </SetupStep>
       <SetupStep number={2}>
         <Button render={<Link to="/settings/connections" />} size="sm">
@@ -166,7 +165,7 @@ function RunOnComputer({ command }: { readonly command: string }) {
   return (
     <>
       <p>{tx("Run on your computer:")}</p>
-      <CommandBlock command={command} className="mt-2" />
+      <InstallT3Commands command={command} className="mt-2" />
       <a
         className="mt-2 inline-block text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
         href={DESKTOP_DOWNLOAD_URL}

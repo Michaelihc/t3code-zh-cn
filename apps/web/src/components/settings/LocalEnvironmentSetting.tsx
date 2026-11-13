@@ -1,3 +1,5 @@
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { useState } from "react";
 
 import { isLocalEnvironmentDisabled } from "../../localEnvironment";
@@ -16,9 +18,9 @@ import { Switch } from "../ui/switch";
 import { SettingsRow } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
 
-// Toggling relaunches the desktop app, so the switch only reflects the value
-// this process started with; there is no live state to keep in sync.
+// Toggling relaunches desktop; the switch reflects startup state.
 export function LocalEnvironmentSetting() {
+  const { locale: translationLocale } = useI18n();
   const setEnabled = window.desktopBridge?.setLocalEnvironmentEnabled;
   const [enabled] = useState(() => !isLocalEnvironmentDisabled());
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -77,7 +79,7 @@ export function LocalEnvironmentSetting() {
           {error ? <p className="px-6 pb-4 text-sm text-destructive">{error}</p> : null}
           <AlertDialogFooter>
             <AlertDialogClose disabled={isUpdating} render={<Button variant="outline" />}>
-              Cancel
+              {translateWebSource(translationLocale, "Cancel")}{" "}
             </AlertDialogClose>
             <Button
               variant={enabled ? "destructive" : "default"}
@@ -87,7 +89,7 @@ export function LocalEnvironmentSetting() {
               {isUpdating ? (
                 <>
                   <Spinner size="sm" />
-                  Restarting…
+                  {translateWebSource(translationLocale, "Restarting…")}{" "}
                 </>
               ) : enabled ? (
                 "Restart and turn off"

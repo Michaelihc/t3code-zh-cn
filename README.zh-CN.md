@@ -2,14 +2,14 @@
 
 这是由 Michaelihc 维护的非官方简体中文分支，基于 [T3 Code 官方稳定版](https://github.com/pingdotgg/t3code)及 [ZhiweiXiao98 的汉化实现](https://github.com/ZhiweiXiao98/t3code)，与官方团队没有隶属关系。
 
-当前源码基于上游 **v0.1.1**，包含其完整提交 `fe27e8e3dc12dcbb108e9a28fd9b8cb65f34ae92`。`main` 跟进官方稳定发布。
+当前源码基于上游 **v0.1.9**，包含其完整提交 `24e77473ecf41bc1f7142529c7911c1c1aae1d76`。`main` 跟进官方稳定发布。
 
 ## 下载与运行
 
-- [Windows x64 安装程序（0.1.1-zh.1）](https://github.com/Michaelihc/t3code-zh-cn/releases/download/v0.1.1-zh.1/T3-Code-0.1.1-zh.1-x64.exe) · [发布说明与校验值](https://github.com/Michaelihc/t3code-zh-cn/releases/tag/v0.1.1-zh.1)
+- [Windows x64 安装程序（0.1.9-zh.1）](https://github.com/Michaelihc/t3code-zh-cn/releases/download/v0.1.9-zh.1/T3-Code-0.1.9-zh.1-x64.exe) · [发布说明与校验值](https://github.com/Michaelihc/t3code-zh-cn/releases/tag/v0.1.9-zh.1)
 - [源码验证结果](https://github.com/Michaelihc/t3code-zh-cn/actions/workflows/client-release.yml)
 
-此 Windows 安装包是基于官方稳定版 v0.1.1 的未签名社区预发布，应用名称沿用上游的 **T3 Code (Beta)**。官方网页上的安装程序及 `npx t3` 安装的是官方英文版。汉化桌面版使用手动下载，不提供自动更新源。
+此 Windows 安装包是基于官方稳定版 v0.1.9 的未签名社区预发布，应用名称沿用上游的 **T3 Code (Beta)**。官方网页上的安装程序及 `npx t3` 安装的是官方英文版。汉化桌面版使用手动下载，不提供自动更新源。
 
 从 nightly 切换前，请先关闭其他 T3 桌面应用并备份现有数据。安装包沿用上游的应用标识和 Electron 配置目录。若要隔离服务端数据，请每次启动时指定独立的 `T3CODE_HOME`。例如，在 PowerShell 中将下列程序路径替换为实际安装路径：
 

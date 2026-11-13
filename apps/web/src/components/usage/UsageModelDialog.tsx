@@ -50,6 +50,7 @@ export function UsageModelDialog({
   readonly onSetPrice: () => void;
   readonly onClose: () => void;
 }) {
+  const { locale: translationLocale } = useI18n();
   const { locale: sourceLocale } = useI18n();
   const usage = mergeAnsweredUsage(
     environments,
@@ -61,8 +62,14 @@ export function UsageModelDialog({
   const hitRate = cacheHitRate(model);
   const perMillion = costPerMillionTokens(model);
   const stats = [
-    { label: "Cost", value: costUnknown ? "Unpriced" : formatUsd(model.costUsd) },
-    { label: "Tokens", value: formatTokens(model.totalTokens) },
+    {
+      label: translateWebSource(translationLocale, "Cost"),
+      value: costUnknown ? "Unpriced" : formatUsd(model.costUsd),
+    },
+    {
+      label: translateWebSource(translationLocale, "Tokens"),
+      value: formatTokens(model.totalTokens),
+    },
     perMillion === null ? null : { label: "Per 1M tokens", value: formatUsd(perMillion) },
     hitRate === null ? null : { label: "Cache hit", value: formatPercent(hitRate) },
   ].filter((stat) => stat !== null);

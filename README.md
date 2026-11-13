@@ -1,6 +1,6 @@
 # T3 Code — Simplified Chinese, stable upstream
 
-This unofficial fork adds a Simplified Chinese interface to **official stable T3 Code releases**. The current source includes upstream **v0.1.1** (`fe27e8e3dc12dcbb108e9a28fd9b8cb65f34ae92`) and the Chinese community maintenance branch from [ZhiweiXiao98/t3code](https://github.com/ZhiweiXiao98/t3code).
+This unofficial fork adds a Simplified Chinese interface to **official stable T3 Code releases**. The current source includes upstream **v0.1.9** (`24e77473ecf41bc1f7142529c7911c1c1aae1d76`) and the Chinese community maintenance branch from [ZhiweiXiao98/t3code](https://github.com/ZhiweiXiao98/t3code).
 
 [简体中文说明](./README.zh-CN.md) · [Releases](https://github.com/Michaelihc/t3code-zh-cn/releases) · [Validation](https://github.com/Michaelihc/t3code-zh-cn/actions/workflows/client-release.yml)
 
@@ -8,7 +8,7 @@ This unofficial fork adds a Simplified Chinese interface to **official stable T3
 
 Choose **Settings → General → Language → 简体中文**. English and system-language selection are also available. Model names, commands, paths, terminal output, and agent replies keep their original text.
 
-Download the [Windows x64 installer (0.1.1-zh.1)](https://github.com/Michaelihc/t3code-zh-cn/releases/download/v0.1.1-zh.1/T3-Code-0.1.1-zh.1-x64.exe), or read the [release notes and checksums](https://github.com/Michaelihc/t3code-zh-cn/releases/tag/v0.1.1-zh.1). This is an unsigned community prerelease based on official stable v0.1.1. The Windows application name remains **T3 Code (Beta)**. Updates use manual downloads.
+Download the [Windows x64 installer (0.1.9-zh.1)](https://github.com/Michaelihc/t3code-zh-cn/releases/download/v0.1.9-zh.1/T3-Code-0.1.9-zh.1-x64.exe), or read the [release notes and checksums](https://github.com/Michaelihc/t3code-zh-cn/releases/tag/v0.1.9-zh.1). This is an unsigned community prerelease based on official stable v0.1.9. The Windows application name remains **T3 Code (Beta)**. Updates use manual downloads.
 
 Installers and `npx t3` from the official T3 website install the official English version.
 
