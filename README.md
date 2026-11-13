@@ -6,7 +6,7 @@ This unofficial fork adds a Simplified Chinese interface to **official stable T3
 
 ## Use the localized client
 
-Choose **Settings → General → Language → 简体中文**. English and system-language selection are also available. Model names, commands, paths, terminal output, and agent replies keep their original text.
+Simplified Chinese is selected automatically on first launch. No settings change is needed. English and system-language selection are available under **Settings → General → Language**. Model names, commands, paths, terminal output, and agent replies keep their original text.
 
 Download the [Windows x64 installer (0.1.9-zh.1)](https://github.com/Michaelihc/t3code-zh-cn/releases/download/v0.1.9-zh.1/T3-Code-0.1.9-zh.1-x64.exe), or read the [release notes and checksums](https://github.com/Michaelihc/t3code-zh-cn/releases/tag/v0.1.9-zh.1). This is an unsigned community prerelease based on official stable v0.1.9. The Windows application name remains **T3 Code (Beta)**. Updates use manual downloads.
 
