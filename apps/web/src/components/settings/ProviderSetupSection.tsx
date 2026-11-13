@@ -143,29 +143,31 @@ function ProviderSetupActions({
   const queryError = authQuery.error ?? installQuery.error;
   const actionsDisabled = pendingLabel !== null || queryError !== null;
   const installationStatusMessage =
-    installation?.phase === "downloading"
-      ? t("providers.setup.install.downloading", {
-          downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
-          total:
-            installation.totalBytes === null
-              ? ""
-              : t("providers.setup.install.ofTotal", {
-                  total: (installation.totalBytes / 1_000_000).toFixed(1),
-                }),
-        })
-      : installation?.phase === "extracting"
-        ? t("providers.setup.install.extracting")
-        : installation?.phase === "verifying"
-          ? t("providers.setup.install.verifying")
-          : installed
-            ? "Installed."
-            : usesCustomBinary
-              ? enabled
-                ? t("providers.setup.install.customUnavailable")
-                : t("providers.setup.install.customUnchecked")
-              : installation?.totalBytes
-                ? `${Math.ceil(installation.totalBytes / 1_000_000)} MB download.`
-                : "Not installed.";
+    installation === null
+      ? "Checking the Antigravity runtime."
+      : installation?.phase === "downloading"
+        ? t("providers.setup.install.downloading", {
+            downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
+            total:
+              installation.totalBytes === null
+                ? ""
+                : t("providers.setup.install.ofTotal", {
+                    total: (installation.totalBytes / 1_000_000).toFixed(1),
+                  }),
+          })
+        : installation?.phase === "extracting"
+          ? t("providers.setup.install.extracting")
+          : installation?.phase === "verifying"
+            ? t("providers.setup.install.verifying")
+            : installed
+              ? "Installed."
+              : usesCustomBinary
+                ? enabled
+                  ? "The configured Antigravity runtime is unavailable."
+                  : "The configured Antigravity runtime has not been checked."
+                : installation?.totalBytes
+                  ? `${Math.ceil(installation.totalBytes / 1_000_000)} MB download.`
+                  : "Not installed.";
 
   async function runCommand<A, E>(
     label: string,
@@ -204,7 +206,8 @@ function ProviderSetupActions({
 
   return (
     <div className="divide-y divide-border/50">
-      {/* Keep the live region first so the last visible row is not followed by a sibling that adds its divider. */}
+      {/* Keep the live region first so sibling divider rules do not add a divider after the last visible
+       * row. */}
       <p className="sr-only" role="status">
         {pendingLabel ? `${pendingLabel}.` : null}
       </p>
@@ -281,7 +284,7 @@ function ProviderSetupActions({
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={actionsDisabled || installation === null || authActive}
+                    disabled={actionsDisabled || authActive}
                     onClick={() =>
                       void runCommand(t("providers.setup.pending.startingInstall"), () =>
                         startInstall(target),

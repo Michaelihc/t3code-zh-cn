@@ -1,3 +1,4 @@
+import { translateWebSource } from "~/i18n/messages";
 import type { RelayClientDeviceRecord } from "@t3tools/contracts/relay";
 import { SmartphoneIcon } from "lucide-react";
 import { useI18n } from "~/i18n/WebI18nContext";
@@ -102,6 +103,7 @@ function EmptyMobileClients() {
 }
 
 export function MobileClientsUserProfilePage() {
+  const { locale: translationLocale } = useI18n();
   const { t } = useI18n();
   const devicesState = useManagedRelayDevices();
   const devices = devicesState.data ?? [];
@@ -133,7 +135,7 @@ export function MobileClientsUserProfilePage() {
               <p className="mt-0.5 text-xs text-muted-foreground">{devicesState.error}</p>
             </div>
             <Button size="xs" variant="outline" onClick={devicesState.refresh}>
-              Try again
+              {translateWebSource(translationLocale, "Try again")}
             </Button>
           </div>
         ) : null}

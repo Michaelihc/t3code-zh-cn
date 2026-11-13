@@ -80,7 +80,7 @@ function PullRequestRowImpl({
   statsKey,
   statsRef,
   onSelect,
-  speedMode,
+  onIntent,
   hostActions,
   onActed,
   closing = false,
@@ -93,20 +93,20 @@ function PullRequestRowImpl({
   showProvider: boolean;
   environmentLabel?: string;
   matchedElsewhere?: boolean;
-  /** Used by the list's shared visibility observer to defer optional line-count reads. */
+  /** Visibility key for deferred line-count reads. */
   statsKey?: string;
   statsRef?: RefCallback<HTMLDivElement>;
   onSelect: (entry: PullRequestRowTarget) => void;
-  speedMode: boolean;
+  /** The row the pointer or focus rests on, or null when it leaves. */
+  onIntent?: (entry: PullRequestRowTarget | null) => void;
   hostActions: ReadonlySet<PullRequestAction>;
   onActed: (result: PullRequestSpeedActionResult) => void;
   closing?: boolean;
   sweeping?: boolean;
   onCloseSweepStart?: (entry: EnvironmentPullRequestEntry, event: PointerEvent) => void;
 }) {
-  const { locale: uiLocale } = useI18n();
-  const { t } = useI18n();
-  const { Icon, providerName } = getSourceControlPresentationForKind(entry.provider);
+  const { t, locale: uiLocale } = useI18n();
+  const { Icon, providerName, terminology } = getSourceControlPresentationForKind(entry.provider);
   return (
     <div
       ref={statsRef}
@@ -121,6 +121,14 @@ function PullRequestRowImpl({
         type="button"
         aria-current={selected ? "true" : undefined}
         onClick={() => onSelect(entry)}
+        onPointerEnter={() => onIntent?.(entry)}
+        onPointerLeave={(event) => {
+          if (event.currentTarget !== document.activeElement) onIntent?.(null);
+        }}
+        onFocus={() => onIntent?.(entry)}
+        onBlur={(event) => {
+          if (!event.currentTarget.matches(":hover")) onIntent?.(null);
+        }}
         className={cn(
           PULL_REQUEST_ROW_CLASS,
           PAGE_ROW_CLASS,
@@ -249,7 +257,7 @@ function PullRequestRowImpl({
         <PullRequestSpeedActions
           entry={entry}
           hostActions={hostActions}
-          visible={speedMode}
+          terminology={terminology}
           onActed={onActed}
           closing={closing}
           sweeping={sweeping}

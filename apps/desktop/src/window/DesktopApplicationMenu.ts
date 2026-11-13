@@ -5,7 +5,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
-import type * as Electron from "electron";
+import * as Electron from "electron";
 
 import { makeComponentLogger } from "../app/DesktopObservability.ts";
 import * as ElectronApp from "../electron/ElectronApp.ts";
@@ -116,14 +116,14 @@ const handleCheckForUpdatesMenuClick = Effect.fn("desktop.menu.handleCheckForUpd
       return;
     }
 
-    // Activate only once the backend is ready; an early main window can get stuck in auth bootstrap.
+    // Opening a window before backend confirmation can strand it on failed auth bootstrap.
     const desktopWindow = yield* DesktopWindow.DesktopWindow;
     yield* desktopWindow.activate;
     yield* checkForUpdatesFromMenu(messages);
   },
 );
 
-/** @public Service construction is part of the canonical Effect module API. */
+/** @public */
 export const make = Effect.gen(function* () {
   const electronMenu = yield* ElectronMenu.ElectronMenu;
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
@@ -168,10 +168,7 @@ export const make = Effect.gen(function* () {
     const settingsClick = () => {
       runMenuEffect("open-settings", dispatchMenuAction("open-settings"));
     };
-    // Chromium already pastes as plain text for this chord, so the accelerator
-    // needs nothing from the menu: the composer and the terminal each arm
-    // themselves from the same keydown. Routing it through the renderer anyway
-    // lands a second, injected paste and doubles the text.
+    // Chromium and the renderer already handle this chord; injecting another paste duplicates text.
     const pasteAsTextClick = (
       _item: Electron.MenuItem,
       _window: Electron.BaseWindow | undefined,
@@ -230,12 +227,20 @@ export const make = Effect.gen(function* () {
                 { type: "separator" as const },
               ]),
           {
-            role: environment.platform === "darwin" ? "close" : "quit",
-            label:
-              environment.platform === "darwin"
-                ? messages.closeWindow
-                : messages.quit(environment.displayName),
+            label: "Close Developer Tools",
+            accelerator: "CmdOrCtrl+W",
+            visible: false,
+            click: () => {
+              Electron.webContents
+                .getAllWebContents()
+                .find((contents) => !contents.isDestroyed() && contents.isDevToolsFocused())
+                ?.closeDevTools();
+            },
           },
+          // Cmd/Ctrl+W belongs to the renderer's tab close; it must never close the window.
+          environment.platform === "darwin"
+            ? { label: messages.closeWindow, click: (_item, window) => window?.close() }
+            : { role: "quit", label: messages.quit(environment.displayName) },
         ],
       },
       {
@@ -272,11 +277,7 @@ export const make = Effect.gen(function* () {
       {
         label: messages.view,
         submenu: [
-          /*
-            Not the reload, DevTools or zoom roles: those act on the focused
-            webContents, so with a browser page focused they reload or zoom
-            the guest page and the app UI appears stuck.
-          */
+          /* Native reload/DevTools/zoom roles target focused guests; these commands must target the app. */
           {
             label: messages.reload,
             accelerator: "CmdOrCtrl+R",
@@ -312,8 +313,7 @@ export const make = Effect.gen(function* () {
               ]
             : []),
           { label: messages.zoomOut, accelerator: "CmdOrCtrl+-", click: zoomClick("out") },
-          // The numeric keypad sends its own key codes, so the number-row
-          // accelerators above never match it.
+          // Keypad codes do not match number-row accelerators.
           {
             label: messages.actualSize,
             accelerator: "CmdOrCtrl+num0",
@@ -337,17 +337,18 @@ export const make = Effect.gen(function* () {
         ],
       },
       {
+        // Electron's default Window submenu adds a Ctrl+W close role off macOS.
         role: "windowMenu",
         label: messages.window,
         submenu: [
           { role: "minimize", label: messages.minimize },
+          { role: "zoom", label: messages.zoomWindow },
           ...(environment.platform === "darwin"
             ? [
-                { role: "zoom" as const, label: messages.zoomWindow },
                 { type: "separator" as const },
                 { role: "front" as const, label: messages.bringAllToFront },
               ]
-            : [{ role: "close" as const, label: messages.closeWindow }]),
+            : []),
         ],
       },
       {

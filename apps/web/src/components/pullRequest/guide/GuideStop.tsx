@@ -263,9 +263,7 @@ export function GuideStop({
                       aria-hidden
                       className="size-3.5 h-lh shrink-0 text-muted-foreground"
                     />
-                    <span className="sr-only">
-                      {translateWebSource(uiLocale, "Ask an agent:")}{" "}
-                    </span>
+                    <span className="sr-only">{translateWebSource(uiLocale, "Ask an agent:")}</span>
                     <span>
                       <GuideProse text={question} plain />
                     </span>
@@ -284,10 +282,8 @@ export function GuideStop({
 
         <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-border/60 pt-4">
           {nextTitle !== null ? (
-            <Button className="min-w-0" onClick={() => onStep(1)}>
-              <span className="min-w-0 truncate">
-                {t("pullRequests.guide.next", { title: nextTitle ?? "" })}
-              </span>
+            <Button size="multiline" className="max-w-full" onClick={() => onStep(1)}>
+              <span className="min-w-0 break-words">Next: {nextTitle}</span>
               <ArrowRightIcon aria-hidden />
             </Button>
           ) : onFinish !== null ? (

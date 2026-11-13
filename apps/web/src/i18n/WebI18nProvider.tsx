@@ -6,12 +6,7 @@ import { useClientSettings, updateClientSettings } from "../hooks/useSettings";
 import { translateWebMessage } from "./messages";
 import { WebI18nContext, type WebI18nContextValue, type WebTranslate } from "./WebI18nContext";
 
-export {
-  useI18n,
-  splitWebTranslation,
-  type WebI18nContextValue,
-  type WebTranslate,
-} from "./WebI18nContext";
+export { type WebI18nContextValue, type WebTranslate } from "./WebI18nContext";
 
 function readRuntimeLocales(): ReadonlyArray<string> {
   const desktopLocale =
@@ -31,6 +26,7 @@ export function WebI18nProvider({ children }: { readonly children: ReactNode }) 
   const appLocale = useClientSettings((settings) => settings.appLocale);
   const [runtimeLocales, setRuntimeLocales] = useState(readRuntimeLocales);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to operating-system language changes while mounted
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -41,6 +37,7 @@ export function WebI18nProvider({ children }: { readonly children: ReactNode }) 
 
   const locale = resolveAppLocale(appLocale, runtimeLocales);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- keeps the document language aligned with the selected UI locale
   useEffect(() => {
     if (typeof document !== "undefined") {
       document.documentElement.lang = locale;

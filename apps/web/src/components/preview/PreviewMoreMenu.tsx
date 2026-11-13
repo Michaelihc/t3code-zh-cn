@@ -1,5 +1,5 @@
-"use client";
-
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import type { DesktopPreviewColorScheme } from "@t3tools/contracts";
 import { Minus, MoreVertical, Plus as PlusIcon, RotateCcw } from "lucide-react";
 
@@ -79,6 +79,7 @@ export function PreviewMoreMenu({
   profileName,
   move,
 }: Props) {
+  const { locale: translationLocale } = useI18n();
   const zoomLabel = `${Math.round(zoomFactor * 100)}%`;
   const disabled = !enabled;
   return (
@@ -105,7 +106,9 @@ export function PreviewMoreMenu({
           {deviceToolbarVisible ? "Hide device toolbar" : "Show device toolbar"}
         </MenuItem>
         <MenuSub>
-          <MenuSubTrigger disabled={disabled}>Appearance</MenuSubTrigger>
+          <MenuSubTrigger disabled={disabled}>
+            {translateWebSource(translationLocale, "Appearance")}
+          </MenuSubTrigger>
           <MenuSubPopup>
             <MenuRadioGroup
               value={colorScheme}
@@ -164,10 +167,6 @@ export function PreviewMoreMenu({
           </span>
         </MenuItem>
         <MenuSeparator />
-        {/*
-         * Grouped so the heading has a `MenuGroup` ancestor — `MenuGroupLabel`
-          reads its context and throws without one.
-         */}
         <MenuGroup>
           {profileName ? (
             <MenuGroupLabel className="max-w-64">

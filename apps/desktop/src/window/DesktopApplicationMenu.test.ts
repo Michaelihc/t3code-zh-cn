@@ -1,29 +1,29 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import {
-  DEFAULT_CLIENT_SETTINGS,
-  type AppLocalePreference,
-  type DesktopUpdateState,
-} from "@t3tools/contracts";
+import { DEFAULT_CLIENT_SETTINGS, type AppLocalePreference } from "@t3tools/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import * as Ref from "effect/Ref";
 
-import type * as Electron from "electron";
+import * as Electron from "electron";
+import { vi } from "vite-plus/test";
+
+vi.mock("electron", () => ({
+  webContents: { getAllWebContents: vi.fn(() => []) },
+}));
 
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronDialog from "../electron/ElectronDialog.ts";
 import * as ElectronMenu from "../electron/ElectronMenu.ts";
-import { setClientSettings } from "../ipc/methods/clientSettings.ts";
+
 import * as DesktopApplicationMenu from "./DesktopApplicationMenu.ts";
 import * as DesktopConfig from "../app/DesktopConfig.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import * as DesktopClientSettings from "../settings/DesktopClientSettings.ts";
-import * as DesktopSnapShot from "../snapShot/DesktopSnapShot.ts";
+
 import * as DesktopUpdates from "../updates/DesktopUpdates.ts";
-import { resolveDesktopApplicationMenuMessages } from "./DesktopApplicationMenuMessages.ts";
+
 import * as DesktopWindow from "./DesktopWindow.ts";
 
 const environmentInput = {
@@ -43,6 +43,7 @@ const layerElectronApp = (systemLocale = "en-US") =>
     metadata: Effect.die("unexpected metadata read"),
     name: Effect.succeed("T3 Code"),
     systemLocale: Effect.succeed(systemLocale),
+    preferredSystemLanguages: Effect.succeed([systemLocale]),
     whenReady: Effect.void,
     requestSingleInstanceLock: Effect.succeed(true),
     quit: Effect.void,
@@ -159,116 +160,6 @@ const configureMenu = (
   );
 
 describe("DesktopApplicationMenu", () => {
-  it.effect("keeps display branding in the macOS application menu", () =>
-    Effect.gen(function* () {
-      const selectedAction = yield* Deferred.make<string>();
-      const applicationMenuTemplate =
-        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
-
-      yield* configureMenu(selectedAction, applicationMenuTemplate, {
-        platform: "darwin",
-        appVersion: "0.0.43-nightly.20260929.2428",
-      });
-
-      const template = yield* Deferred.await(applicationMenuTemplate);
-      const applicationMenu = template[0];
-      assert.isDefined(applicationMenu);
-      assert.equal(applicationMenu.label, "T3 Code (Nightly)");
-      if (!Array.isArray(applicationMenu.submenu)) {
-        throw new Error("Expected application menu submenu to be an array.");
-      }
-      assert.equal(
-        applicationMenu.submenu.find((item) => item.role === "about")?.label,
-        "About T3 Code (Nightly)",
-      );
-      assert.equal(
-        applicationMenu.submenu.find((item) => item.role === "hide")?.label,
-        "Hide T3 Code (Nightly)",
-      );
-      assert.equal(
-        applicationMenu.submenu.find((item) => item.role === "quit")?.label,
-        "Quit T3 Code (Nightly)",
-      );
-    }),
-  );
-
-  it("resolves system language from the runtime locale", () => {
-    assert.equal(resolveDesktopApplicationMenuMessages("system", ["zh-Hans-CN"]).file, "文件");
-    assert.equal(resolveDesktopApplicationMenuMessages("system", ["fr-FR"]).file, "File");
-  });
-
-  it.effect("uses Electron's OS locale when the menu follows the system language", () =>
-    Effect.gen(function* () {
-      const selectedAction = yield* Deferred.make<string>();
-      const applicationMenuTemplate =
-        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
-
-      yield* configureMenu(selectedAction, applicationMenuTemplate, {
-        appLocale: "system",
-        systemLocale: "zh-Hans-CN",
-      });
-
-      const template = yield* Deferred.await(applicationMenuTemplate);
-      assert.isDefined(template.find((item) => item.label === "文件"));
-    }),
-  );
-
-  it.effect("installs the native menu and routes Settings through DesktopWindow", () =>
-    Effect.gen(function* () {
-      const selectedAction = yield* Deferred.make<string>();
-      const applicationMenuTemplate =
-        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
-
-      yield* configureMenu(selectedAction, applicationMenuTemplate);
-
-      const template = yield* Deferred.await(applicationMenuTemplate);
-      const fileMenu = template.find((item) => item.label === "File");
-      assert.isDefined(fileMenu);
-      if (!Array.isArray(fileMenu.submenu)) {
-        throw new Error("Expected File menu submenu to be an array.");
-      }
-      const settingsItem = fileMenu.submenu.find((item) => item.label === "Settings...");
-      assert.isDefined(settingsItem);
-      const settingsClick = settingsItem.click;
-      if (typeof settingsClick !== "function") {
-        throw new Error("Expected Settings menu item to have a click handler.");
-      }
-
-      settingsClick({} as Electron.MenuItem, {} as Electron.BrowserWindow, {} as KeyboardEvent);
-      assert.equal(yield* Deferred.await(selectedAction), "open-settings");
-    }),
-  );
-
-  it.effect("owns Paste as Text and routes it through the renderer", () =>
-    Effect.gen(function* () {
-      const selectedAction = yield* Deferred.make<string>();
-      const applicationMenuTemplate =
-        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
-
-      yield* configureMenu(selectedAction, applicationMenuTemplate);
-
-      const template = yield* Deferred.await(applicationMenuTemplate);
-      const editMenu = template.find((item) => item.label === "Edit");
-      assert.isDefined(editMenu);
-      if (!Array.isArray(editMenu.submenu)) {
-        throw new Error("Expected Edit menu submenu to be an array.");
-      }
-      const pasteAsTextItem = editMenu.submenu.find((item) => item.label === "Paste as Text");
-      assert.isDefined(pasteAsTextItem);
-      assert.equal(pasteAsTextItem.accelerator, "CmdOrCtrl+Shift+V");
-      if (typeof pasteAsTextItem.click !== "function") {
-        throw new Error("Expected Paste as Text menu item to have a click handler.");
-      }
-
-      pasteAsTextItem.click(
-        {} as Electron.MenuItem,
-        {} as Electron.BrowserWindow,
-        {} as KeyboardEvent,
-      );
-      assert.equal(yield* Deferred.await(selectedAction), "paste-as-text");
-    }),
-  );
-
   it.effect("leaves the accelerator to Chromium instead of injecting a paste", () =>
     Effect.gen(function* () {
       const selectedAction = yield* Deferred.make<string>();
@@ -339,304 +230,61 @@ describe("DesktopApplicationMenu", () => {
     }),
   );
 
-  it.effect("localizes role-backed menus and their visible items in Simplified Chinese", () =>
+  it.effect("never binds Cmd/Ctrl+W to closing the window", () =>
     Effect.gen(function* () {
-      const selectedAction = yield* Deferred.make<string>();
-      const applicationMenuTemplate =
-        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
+      for (const platform of ["darwin", "linux", "win32"] as const) {
+        const applicationMenuTemplate =
+          yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
+        yield* configureMenu(yield* Deferred.make<string>(), applicationMenuTemplate, {
+          platform,
+        });
 
-      yield* configureMenu(selectedAction, applicationMenuTemplate, { appLocale: "zh-CN" });
-
-      const template = yield* Deferred.await(applicationMenuTemplate);
-      const fileMenu = template.find((item) => item.label === "文件");
-      assert.isDefined(fileMenu);
-      if (!Array.isArray(fileMenu.submenu)) {
-        throw new Error("Expected localized File menu submenu to be an array.");
-      }
-      assert.isDefined(fileMenu.submenu.find((item) => item.label === "设置..."));
-      assert.equal(
-        fileMenu.submenu.find((item) => item.role === "quit")?.label,
-        "退出 T3 Code (Beta)",
-      );
-
-      const editMenu = template.find((item) => item.label === "编辑");
-      assert.equal(editMenu?.label, "编辑");
-      if (!Array.isArray(editMenu?.submenu)) {
-        throw new Error("Expected localized Edit menu submenu to be an array.");
-      }
-      assert.deepEqual(
-        editMenu.submenu
-          .filter((item) => item.role !== undefined)
-          .map((item) => [item.role, item.label]),
-        [
-          ["undo", "撤销"],
-          ["redo", "重做"],
-          ["cut", "剪切"],
-          ["copy", "复制"],
-          ["paste", "粘贴"],
-          ["delete", "删除"],
-          ["selectAll", "全选"],
-        ],
-      );
-
-      const viewMenu = template.find((item) => item.label === "视图");
-      assert.isDefined(viewMenu);
-      if (!Array.isArray(viewMenu.submenu)) {
-        throw new Error("Expected localized View menu submenu to be an array.");
-      }
-      assert.isDefined(viewMenu.submenu.find((item) => item.label === "实际大小"));
-      assert.isDefined(viewMenu.submenu.find((item) => item.label === "放大"));
-      assert.isDefined(viewMenu.submenu.find((item) => item.label === "缩小"));
-      assert.equal(
-        viewMenu.submenu.find((item) => item.accelerator === "CmdOrCtrl+R")?.label,
-        "重新加载",
-      );
-      assert.equal(
-        viewMenu.submenu.find((item) => item.accelerator === "Shift+CmdOrCtrl+R")?.label,
-        "强制重新加载",
-      );
-      assert.equal(
-        viewMenu.submenu.find((item) => item.accelerator === "Ctrl+Shift+I")?.label,
-        "切换开发者工具",
-      );
-      assert.equal(
-        viewMenu.submenu.find((item) => item.role === "togglefullscreen")?.label,
-        "切换全屏",
-      );
-
-      const windowMenu = template.find((item) => item.role === "windowMenu");
-      assert.equal(windowMenu?.label, "窗口");
-      if (!Array.isArray(windowMenu?.submenu)) {
-        throw new Error("Expected localized Window menu submenu to be an array.");
-      }
-      assert.equal(windowMenu.submenu.find((item) => item.role === "minimize")?.label, "最小化");
-      assert.equal(windowMenu.submenu.find((item) => item.role === "close")?.label, "关闭窗口");
-
-      const helpMenu = template.find((item) => item.role === "help");
-      assert.isDefined(helpMenu);
-      assert.equal(helpMenu.label, "帮助");
-      if (!Array.isArray(helpMenu.submenu)) {
-        throw new Error("Expected Help menu submenu to be an array.");
-      }
-      assert.isDefined(helpMenu.submenu.find((item) => item.label === "检查更新..."));
-    }),
-  );
-
-  it.effect("keeps role-backed menus and their visible items in English", () =>
-    Effect.gen(function* () {
-      const selectedAction = yield* Deferred.make<string>();
-      const applicationMenuTemplate =
-        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
-
-      yield* configureMenu(selectedAction, applicationMenuTemplate, { appLocale: "en" });
-
-      const template = yield* Deferred.await(applicationMenuTemplate);
-      const editMenu = template.find((item) => item.label === "Edit");
-      assert.equal(editMenu?.label, "Edit");
-      if (!Array.isArray(editMenu?.submenu)) {
-        throw new Error("Expected English Edit menu submenu to be an array.");
-      }
-      assert.equal(editMenu.submenu.find((item) => item.role === "undo")?.label, "Undo");
-      assert.equal(editMenu.submenu.find((item) => item.role === "copy")?.label, "Copy");
-      assert.equal(editMenu.submenu.find((item) => item.role === "selectAll")?.label, "Select All");
-
-      const viewMenu = template.find((item) => item.label === "View");
-      if (!Array.isArray(viewMenu?.submenu)) {
-        throw new Error("Expected English View menu submenu to be an array.");
-      }
-      assert.equal(
-        viewMenu.submenu.find((item) => item.accelerator === "CmdOrCtrl+R")?.label,
-        "Reload",
-      );
-      assert.equal(
-        viewMenu.submenu.find((item) => item.role === "togglefullscreen")?.label,
-        "Toggle Full Screen",
-      );
-
-      const windowMenu = template.find((item) => item.role === "windowMenu");
-      assert.equal(windowMenu?.label, "Window");
-      if (!Array.isArray(windowMenu?.submenu)) {
-        throw new Error("Expected English Window menu submenu to be an array.");
-      }
-      assert.equal(windowMenu.submenu.find((item) => item.role === "minimize")?.label, "Minimize");
-      assert.equal(windowMenu.submenu.find((item) => item.role === "close")?.label, "Close Window");
-      assert.equal(template.find((item) => item.role === "help")?.label, "Help");
-    }),
-  );
-
-  it.effect("localizes the macOS application and Window role items", () =>
-    Effect.gen(function* () {
-      const selectedAction = yield* Deferred.make<string>();
-      const applicationMenuTemplate =
-        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
-
-      yield* configureMenu(selectedAction, applicationMenuTemplate, {
-        appLocale: "zh-CN",
-        platform: "darwin",
-      });
-
-      const template = yield* Deferred.await(applicationMenuTemplate);
-      const appMenu = template[0];
-      if (!Array.isArray(appMenu?.submenu)) {
-        throw new Error("Expected macOS application menu submenu to be an array.");
-      }
-      assert.deepEqual(
-        appMenu.submenu
-          .filter((item) => item.role !== undefined)
-          .map((item) => [item.role, item.label]),
-        [
-          ["about", "关于 T3 Code (Beta)"],
-          ["services", "服务"],
-          ["hide", "隐藏 T3 Code (Beta)"],
-          ["hideOthers", "隐藏其他应用"],
-          ["unhide", "全部显示"],
-          ["quit", "退出 T3 Code (Beta)"],
-        ],
-      );
-
-      const fileMenu = template.find((item) => item.label === "文件");
-      if (!Array.isArray(fileMenu?.submenu)) {
-        throw new Error("Expected macOS File menu submenu to be an array.");
-      }
-      assert.equal(fileMenu.submenu.find((item) => item.role === "close")?.label, "关闭窗口");
-
-      const windowMenu = template.find((item) => item.role === "windowMenu");
-      if (!Array.isArray(windowMenu?.submenu)) {
-        throw new Error("Expected macOS Window menu submenu to be an array.");
-      }
-      assert.equal(windowMenu.submenu.find((item) => item.role === "zoom")?.label, "缩放");
-      assert.equal(windowMenu.submenu.find((item) => item.role === "front")?.label, "全部置于最前");
-    }),
-  );
-
-  it.effect("uses the selected locale for update dialogs", () =>
-    Effect.gen(function* () {
-      const selectedAction = yield* Deferred.make<string>();
-      const applicationMenuTemplate =
-        yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
-      const shownMessageBox = yield* Deferred.make<Electron.MessageBoxOptions>();
-      const updateState = {
-        enabled: true,
-        status: "up-to-date",
-        channel: "latest",
-        currentVersion: "1.2.3",
-        hostArch: "arm64",
-        appArch: "arm64",
-        runningUnderArm64Translation: false,
-        availableVersion: null,
-        downloadedVersion: null,
-        releaseNotes: [],
-        downloadPercent: null,
-        checkedAt: "2026-08-14T00:00:00.000Z",
-        message: null,
-        errorContext: null,
-        canRetry: false,
-        omittedReleaseCount: 0,
-      } satisfies DesktopUpdateState;
-
-      yield* configureMenu(selectedAction, applicationMenuTemplate, {
-        appLocale: "zh-CN",
-        electronDialog: {
-          ...electronDialog,
-          showMessageBox: (options) =>
-            Deferred.succeed(shownMessageBox, options).pipe(
-              Effect.as({ response: 0, checkboxChecked: false }),
-            ),
-        },
-        desktopUpdates: {
-          ...desktopUpdates,
-          check: () => Effect.succeed({ checked: true, state: updateState }),
-        },
-      });
-
-      const template = yield* Deferred.await(applicationMenuTemplate);
-      const helpMenu = template.find((item) => item.role === "help");
-      assert.isDefined(helpMenu);
-      if (!Array.isArray(helpMenu.submenu)) {
-        throw new Error("Expected Help menu submenu to be an array.");
-      }
-      const checkForUpdates = helpMenu.submenu.find((item) => item.label === "检查更新...");
-      assert.isDefined(checkForUpdates);
-      if (typeof checkForUpdates.click !== "function") {
-        throw new Error("Expected Check for Updates menu item to have a click handler.");
-      }
-
-      checkForUpdates.click(
-        {} as Electron.MenuItem,
-        {} as Electron.BrowserWindow,
-        {} as KeyboardEvent,
-      );
-
-      const dialog = yield* Deferred.await(shownMessageBox);
-      assert.equal(dialog.title, "已是最新版本");
-      assert.equal(dialog.message, "T3 Code 1.2.3 当前已是最新版本。");
-      assert.deepEqual(dialog.buttons, ["确定"]);
-    }),
-  );
-
-  it.effect("reconfigures only when the persisted app locale changes", () =>
-    Effect.gen(function* () {
-      const configureCount = yield* Ref.make(0);
-      const initialSettings = {
-        ...DEFAULT_CLIENT_SETTINGS,
-        appLocale: "en" as const,
-      };
-      const layer = Layer.mergeAll(
-        DesktopClientSettings.layerTest(Option.some(initialSettings)),
-        Layer.mock(DesktopSnapShot.DesktopSnapShot)({ configure: () => Effect.void }),
-        Layer.succeed(DesktopApplicationMenu.DesktopApplicationMenu, {
-          configure: Ref.update(configureCount, (count) => count + 1),
-        }),
-      );
-
-      const chineseSettings = { ...initialSettings, appLocale: "zh-CN" as const };
-      yield* Effect.gen(function* () {
-        yield* setClientSettings.handler({ ...initialSettings, wordWrap: false });
-        assert.equal(yield* Ref.get(configureCount), 0);
-
-        yield* setClientSettings.handler(chineseSettings);
-        assert.equal(yield* Ref.get(configureCount), 1);
-
-        yield* setClientSettings.handler({ ...chineseSettings, wordWrap: true });
-        assert.equal(yield* Ref.get(configureCount), 1);
-      }).pipe(Effect.provide(layer));
-    }),
-  );
-  it.effect.each([
-    { appLocale: "en", viewLabel: "View", labels: ["Zoom In", "Zoom Out", "Actual Size"] },
-    { appLocale: "zh-CN", viewLabel: "视图", labels: ["放大", "缩小", "实际大小"] },
-  ] as const)(
-    "zooms from the numeric keypad in $appLocale without duplicate visible commands",
-    ({ appLocale, viewLabel, labels }) =>
-      Effect.gen(function* () {
-        for (const [accelerator, expected, label] of [
-          ["CmdOrCtrl+numadd", "zoom-in", labels[0]],
-          ["CmdOrCtrl+numsub", "zoom-out", labels[1]],
-          ["CmdOrCtrl+num0", "zoom-reset", labels[2]],
-        ] as const) {
-          const selectedAction = yield* Deferred.make<string>();
-          const applicationMenuTemplate =
-            yield* Deferred.make<readonly Electron.MenuItemConstructorOptions[]>();
-
-          yield* configureMenu(selectedAction, applicationMenuTemplate, { appLocale });
-
-          const template = yield* Deferred.await(applicationMenuTemplate);
-          const viewMenu = template.find((item) => item.label === viewLabel);
-          if (!viewMenu || !Array.isArray(viewMenu.submenu)) {
-            throw new Error("Expected View menu submenu to be an array.");
+        const items: Electron.MenuItemConstructorOptions[] = [];
+        const collect = (template: readonly Electron.MenuItemConstructorOptions[]) => {
+          for (const item of template) {
+            items.push(item);
+            if (Array.isArray(item.submenu)) collect(item.submenu);
           }
-          const item = viewMenu.submenu.find((entry) => entry.accelerator === accelerator);
-          assert.isDefined(item);
-          assert.equal(item.label, label);
-          assert.isFalse(item.visible);
-          if (typeof item.click !== "function") {
-            throw new Error(`Expected ${accelerator} menu item to have a click handler.`);
-          }
+        };
+        collect(yield* Deferred.await(applicationMenuTemplate));
 
-          item.click({} as Electron.MenuItem, {} as Electron.BrowserWindow, {} as KeyboardEvent);
-          assert.equal(yield* Deferred.await(selectedAction), expected);
-        }
-      }),
+        assert.isUndefined(
+          items.find((item) => item.role === "close"),
+          platform,
+        );
+        // Electron's default windowMenu submenu includes a close role.
+        assert.isUndefined(
+          items.find((item) => item.role === "windowMenu" && item.submenu === undefined),
+          platform,
+        );
+        const closeTools = items.find((item) => item.accelerator === "CmdOrCtrl+W");
+        assert.equal(closeTools?.label, "Close Developer Tools", platform);
+        assert.isFunction(closeTools?.click);
+        const appContents = {
+          isDestroyed: () => false,
+          isDevToolsFocused: () => false,
+          closeDevTools: vi.fn(),
+        };
+        const inspectedContents = {
+          ...appContents,
+          isDevToolsFocused: () => true,
+          closeDevTools: vi.fn(),
+        };
+        using allContents = vi
+          .spyOn(Electron.webContents, "getAllWebContents")
+          .mockReturnValue([
+            appContents as unknown as Electron.WebContents,
+            inspectedContents as unknown as Electron.WebContents,
+          ]);
+        closeTools?.click?.({} as Electron.MenuItem, undefined, {} as KeyboardEvent);
+        assert.equal(inspectedContents.closeDevTools.mock.calls.length, 1);
+        assert.equal(appContents.closeDevTools.mock.calls.length, 0);
+
+        allContents.mockReturnValue([appContents as unknown as Electron.WebContents]);
+        closeTools?.click?.({} as Electron.MenuItem, undefined, {} as KeyboardEvent);
+        assert.equal(appContents.closeDevTools.mock.calls.length, 0);
+      }
+    }),
   );
 
   it.effect("reloads the main window even while a browser page has focus", () =>

@@ -1,6 +1,8 @@
 import type { ResolvedAppLocale } from "@t3tools/shared/appLocale";
 
-export const EN_MESSAGES = {
+const EN_MESSAGES = {
+  "keybindings.new": "New keybinding",
+  "keybindings.newDescription": "new keybinding",
   "addProjectToMachine.description":
     "Clone {project} and bring the local files git does not track.",
   "addProjectToMachine.fileOne": "+ {count} file",
@@ -208,7 +210,7 @@ export const EN_MESSAGES = {
   "common.dismiss": "Dismiss",
   "common.abort": "Abort",
   "common.none": "None",
-  "common.sidebar.toggle": "Toggle main sidebar",
+  "common.sidebar.toggle": "Toggle Sidebar",
   "common.sidebar.resize": "Resize sidebar",
   "common.sidebar.resizeHint": "Drag to resize sidebar",
   "common.sidebar.mobileTitle": "Sidebar",
@@ -2280,14 +2282,14 @@ export const EN_MESSAGES = {
   "pullRequests.actions.revert": "Revert changes",
   "pullRequests.handoff.addedToComposer": "Added to the composer",
   "pullRequests.handoff.questionInComposer":
-    "The question is in the composer — read it over, then send.",
+    "The question is in the composer, read it over, then send.",
   "pullRequests.handoff.requestInComposer":
-    "The pull request is in the composer — type your question, then send.",
+    "The pull request is in the composer, type your question, then send.",
   "pullRequests.handoff.openThreadFailed": "Could not open a thread",
   "pullRequests.handoff.openThreadFailedDescription":
     "Try again from the project, or open a thread first.",
   "pullRequests.handoff.askedInThread": "Asked in a thread",
-  "pullRequests.handoff.taskInComposer": "The task is in the composer — read it over, then send.",
+  "pullRequests.handoff.taskInComposer": "The task is in the composer, read it over, then send.",
   "pullRequests.handoff.preparingCheckout": "Preparing the pull request checkout...",
   "pullRequests.handoff.openCheckoutThreadFailed": "Could not open a thread for the checkout",
   "pullRequests.handoff.prepareCheckoutFailed": "Could not prepare the pull request checkout",
@@ -2329,7 +2331,7 @@ export const EN_MESSAGES = {
   "pullRequests.code.fileCountMany": "{count} files",
   "pullRequests.code.diffPartiallyHidden": "Some of this diff was not shown",
   "pullRequests.code.diffPartiallyHiddenDescription":
-    "The host withheld part of this diff — a binary file, or a change too large to inline.",
+    "The host withheld part of this diff, a binary file, or a change too large to inline.",
   "pullRequests.code.commentsUseWholeChange": "Line comments are written from the whole change",
   "pullRequests.code.commentsUseWholeChangeDescription":
     "A comment is anchored to the whole change, so switch to All commits to write one.",
@@ -2373,7 +2375,7 @@ export const EN_MESSAGES = {
   "pullRequests.row.matchedDescription": "Matched in the description",
   "pullRequests.reactions.saveFailed": "The reaction could not be saved",
   "pullRequests.reactions.add": "Add a reaction",
-  "pullRequests.review.pendingComment": "Pending — sent when you submit the review",
+  "pullRequests.review.pendingComment": "Pending, sent when you submit the review",
   "pullRequests.review.discardComment": "Discard this comment",
   "pullRequests.review.unresolve": "Unresolve",
   "pullRequests.review.resolve": "Resolve",
@@ -2420,7 +2422,7 @@ export const EN_MESSAGES = {
   "files.breadcrumb.partialEmpty":
     "No entries from this folder are available in the partial workspace index.",
   "files.breadcrumb.emptyFolder": "This folder is empty.",
-  "files.breadcrumb.refreshFailed": "Refresh failed — retry",
+  "files.breadcrumb.refreshFailed": "Refresh failed, retry",
   "files.breadcrumb.truncated": "Some workspace entries are not shown.",
   "files.breadcrumb.browse": "Browse {path}",
   "citation.viewText": "View cited assistant text: {text}",
@@ -3102,7 +3104,7 @@ export const EN_MESSAGES = {
   "chat.wakeFailed": "Failed to wake thread",
   "chat.checkoutSwitchFailed": "Failed to switch checkout",
   "chat.checkoutThreadUpdateFailed": "Checkout switched, but the thread could not be updated",
-  "chat.branchChangedWas": "Branch changed — was",
+  "chat.branchChangedWas": "Branch changed, was",
   "chat.branchChangedDescription":
     "This thread last ran on {previous}. Sending will continue on {current}.",
   "chat.annotationAttached": "Annotation attached to draft",
@@ -3182,7 +3184,9 @@ export type WebMessageKey = keyof typeof EN_MESSAGES;
 export type WebMessages = Readonly<Record<WebMessageKey, string>>;
 export type WebMessageValues = Readonly<Record<string, string | number>>;
 
-export const ZH_CN_MESSAGES = {
+const ZH_CN_MESSAGES = {
+  "keybindings.new": "新快捷键",
+  "keybindings.newDescription": "新快捷键",
   "addProjectToMachine.description": "克隆 {project}，并复制 Git 未跟踪的本地文件。",
   "addProjectToMachine.fileOne": "+ {count} 个文件",
   "addProjectToMachine.fileMany": "+ {count} 个文件",
@@ -6212,7 +6216,7 @@ export const ZH_CN_MESSAGES = {
   "providers.update.failedDescription": "无法启动服务提供方更新命令。",
 } as const satisfies WebMessages;
 
-export const WEB_MESSAGES: Readonly<Record<ResolvedAppLocale, WebMessages>> = {
+const WEB_MESSAGES: Readonly<Record<ResolvedAppLocale, WebMessages>> = {
   en: EN_MESSAGES,
   "zh-CN": ZH_CN_MESSAGES,
 };
@@ -6229,6 +6233,109 @@ for (const [key, source] of Object.entries(EN_MESSAGES) as ReadonlyArray<
 // New upstream settings copy can be localized here before it receives a stable
 // message key. Settings containers and search both consume this same table.
 const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
+  "Thread notifications": "任务通知",
+  "In-app notifications": "应用内通知",
+  "Project order": "项目排序",
+  "Last user message": "最近用户消息",
+  "Order of projects in the sidebar project picker and command palette.":
+    "侧栏项目选择器和命令面板中的项目排列顺序。",
+  "System alerts when a thread finishes, fails, or needs input or approval. Applies to this device while T3 Code is open.":
+    "任务完成、失败或需要输入或批准时，显示系统通知。仅在此设备打开 T3 Code 时生效。",
+  "Show a toast when another thread finishes, fails, or needs input or approval while this app has focus.":
+    "当前应用处于前台时，在其他任务完成、失败或需要输入或批准时显示应用内提示。",
+
+  Connections: "连接",
+  "Confirm thread unpinning": "取消任务置顶前确认",
+  "Confirm thread archiving": "归档任务前确认",
+  "Confirm thread deletion": "删除任务前确认",
+  "Timestamp format": "时间格式",
+  "Notification only": "仅通知",
+  "Sound only": "仅声音",
+  "Notifications and sound": "通知与声音",
+  "Notifications need a supported browser over HTTPS, or the desktop app. Sound only is still available.":
+    "系统通知需要支持的 HTTPS 浏览器或桌面应用。仍可使用仅声音模式。",
+  "Notifications are unavailable in this browser. Sound only is still available.":
+    "此浏览器不支持系统通知。仍可使用仅声音模式。",
+  "Allow notifications in your browser or system settings, then choose this option again. Sound only is still available.":
+    "请在浏览器或系统设置中允许通知，然后重新选择此选项。仍可使用仅声音模式。",
+  Notifications: "通知",
+  Display: "显示",
+  "Toggle thread details panel": "切换任务详情面板",
+  "Toggle terminal drawer": "切换终端面板",
+  "Toggle right panel": "切换右侧面板",
+  "Fold working and monitoring threads into a Working section. They return to the top of the inbox when they need your input.":
+    "将进行中和监控中的任务归入“进行中”分区；需要你处理时，它们会回到收件箱顶部。",
+  "Welcome to T3 Code": "欢迎使用 T3 Code",
+  "Setting up": "正在设置",
+  "Start without an agent": "暂不设置 Agent",
+  "Set up one agent to start.": "先设置一个 Agent 即可开始。",
+  "privacy policy": "隐私政策",
+  "Turn on": "启用",
+  "Set up": "设置",
+  "More agents in the ACP Registry": "在 ACP 注册中心查找更多 Agent",
+  Browse: "浏览",
+  "Looking for projects in your": "正在查找你的",
+  "history…": "历史项目…",
+  "From your": "来自你的",
+  history: "历史记录",
+
+  "Could not check projects again.": "无法重新检查项目。",
+  Phone: "手机",
+  "Use T3 Code on your phone": "在手机上使用 T3 Code",
+  "Scan with your phone to get the app.": "用手机扫描以获取应用。",
+  "T3 Code app for iPhone and Android": "适用于 iPhone 和 Android 的 T3 Code 应用",
+  "Could not check T3 Connect.": "无法检查 T3 Connect。",
+  "Your phone can reach this computer. Sign in to the app with the same account.":
+    "手机可以连接此电脑。请使用同一账户登录手机应用。",
+  "T3 Connect is on for this computer. Sign in to the app with the same account.":
+    "此电脑已启用 T3 Connect。请使用同一账户登录手机应用。",
+  "Sign in to T3 Connect here, then in the app with the same account.":
+    "先在此处登录 T3 Connect，再使用同一账户登录手机应用。",
+  "Added to": "已添加到",
+  "from any terminal. Adds one line to": "即可从任意终端使用。将添加一行到",
+  "Add to PATH": "添加到 PATH",
+  "Checking T3 Connect…": "正在检查 T3 Connect…",
+  "Sign in to T3 Connect": "登录 T3 Connect",
+  "This agent wants to use the threads in every project on":
+    "此 Agent 希望访问以下设备上所有项目的任务：",
+  "· name set by the app": "· 名称由应用设置",
+  "Access goes to": "授权将授予",
+  "on the computer that opened this page": "位于打开此页面的电脑上",
+  "· whoever runs it gets this access": "· 运行该应用的人将获得此访问权限",
+  "Only approve a sign-in you just started.": "只批准你刚刚发起的登录请求。",
+  "Sign-in code": "登录码",
+  "Paste a code": "粘贴登录码",
+  "Get one from Use T3 Code in another app (MCP), Settings → Sharing & access, or":
+    "可从“在其他应用中使用 T3 Code（MCP）”、“设置 → 共享与访问”获取，或运行",
+  "on this machine.": "在此设备上运行。",
+  Use: "使用",
+  "Choose what it may do": "选择允许的操作",
+  "Ask before commands and file changes.": "执行命令和修改文件前询问。",
+  "Auto-approve edits, ask before other actions.": "自动批准文件修改，其他操作前询问。",
+  "Supported providers approve routine actions; others still ask.":
+    "支持的服务提供方自动批准常规操作，其他操作仍会询问。",
+  "Allow commands and edits without prompts.": "允许执行命令和修改文件，无需逐次确认。",
+  "Finishing setup": "正在完成设置",
+  "One moment.": "请稍候。",
+  "Import threads and start": "导入任务并开始",
+  "Import projects and their threads": "导入项目及其任务",
+  "Add more agents": "添加更多 Agent",
+  "Set up an agent": "设置 Agent",
+  "This connection cannot manage agents.": "此连接无权管理 Agent。",
+  "T3 Code collects anonymous usage data to improve the app.":
+    "T3 Code 收集匿名使用数据以改进应用。",
+  "To opt out, see the": "如需退出，请参阅",
+  "See the": "请参阅",
+  "Read only": "只读",
+  Supervised: "监督模式",
+  "Auto-accept edits": "自动接受修改",
+  "Full access": "完全访问",
+  "Import {count} project and start": "导入 {count} 个项目并开始",
+  "Import {count} projects and start": "导入 {count} 个项目并开始",
+  "Import {count} project and their threads": "导入 {count} 个项目及其任务",
+  "Import {count} projects and their threads": "导入 {count} 个项目及其任务",
+  "Review all {count}": "查看全部 {count} 个项目",
+  "Approve {access}": "授权：{access}",
   "Choose a folder on the other machine.": "请选择另一台设备上的文件夹。",
   "Could not start the clone.": "无法开始克隆。",
   "Add to another machine": "添加到另一台设备",
@@ -6429,7 +6536,9 @@ const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
   "Official version (not translated)": "官方原版（未汉化）",
   "Shortcuts are environment-wide. Projects using the same action share its shortcut.":
     "快捷键在整个环境中生效，使用相同操作的项目共用其快捷键。",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "Update timed out — try again.": "更新超时，请重试。",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "This environment isn’t connected — try again once it reconnects.":
     "此环境尚未连接，请在重新连接后重试。",
   Updated: "已更新",
@@ -6631,6 +6740,7 @@ const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
   "The URL appears after you save.": "保存后将显示 URL。",
   "Webhook URL": "Webhook URL",
   "Change in Connections": "在连接设置中更改",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "Run a prompt automatically — on an interval, at a fixed time, or when a webhook is called.":
     "按指定间隔、固定时间或收到 Webhook 请求时自动运行提示词。",
   "Reconnect this environment before saving.": "请重新连接此环境后再保存。",
@@ -6971,7 +7081,9 @@ const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
   "Terminal write failed": "终端写入失败",
   "Unable to initialize libghostty-vt": "无法初始化 libghostty-vt",
   "Go to source": "转到来源",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "Plan mode — click to return to normal build mode": "计划模式：点击返回普通构建模式",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "Default mode — click to enter plan mode": "默认模式：点击进入计划模式",
   "Update this server to send files with question answers":
     "请更新此服务器，以在回答问题时发送文件",
@@ -7073,6 +7185,7 @@ const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
   "View agents": "查看智能体",
   View: "查看",
   Compact: "压缩上下文",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "Branch changed — was": "分支已更改，原分支为",
   "This thread last ran on": "此任务上次运行于",
   ". Sending will continue on": "。发送消息后将继续使用",
@@ -7101,6 +7214,7 @@ const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
   "Open in": "打开方式",
   "Open in…": "选择打开方式…",
   Add: "添加",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "Mesh your devices together — publish this environment and connect the rest, all in one place.":
     "将设备连接起来：在此发布当前环境并连接其他设备。",
   "Don't show this again": "不再显示",
@@ -7178,6 +7292,7 @@ const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
   "Pull request closed": "拉取请求已关闭",
   "Pull request reopened": "拉取请求已重新打开",
   "Branch updated with the base branch": "分支已根据基础分支更新",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "Auto-merge turned on — merges as soon as this is ready, sooner if it already is":
     "已启用自动合并；准备就绪后会立即合并，若当前已就绪则会马上合并",
   "Auto-merge turned off": "已停用自动合并",
@@ -7203,6 +7318,7 @@ const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
     "托管服务拒绝了操作。请确认你拥有写入权限，或此请求由你创建。",
   "The host refused it. Check that you have write access, and that the branch still exists.":
     "托管服务拒绝了操作。请确认你拥有写入权限且分支仍然存在。",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "The host refused it. Check that you have write access to the branch — one from a fork also needs its author to allow edits from maintainers — and that it does not conflict with the base.":
     "托管服务拒绝了操作。请确认你拥有该分支的写入权限；来自复刻仓库的分支还需作者允许维护者编辑，并确保它与基础分支没有冲突。",
   "The host refused it. Check that this repository allows auto-merge, that you have write access, and that there is something left for it to wait on.":
@@ -7361,6 +7477,7 @@ const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
     "连接 CLIProxyAPI Hub，在“用量 → 限额”中显示其账号。",
   "Not installed on this machine.": "此设备上未安装。",
   "Needs Keychain access to read its cookies.": "需要访问系统钥匙串才能读取 Cookie。",
+  // oxlint-disable-next-line t3code/no-em-dash-copy -- translation keys match upstream English text exactly
   "No encryption key in your Keychain — sign in to that browser once, then retry.":
     "系统钥匙串中没有加密密钥。请先在该浏览器中登录一次，然后重试。",
   "Quit the browser first so its cookie database can be read.":

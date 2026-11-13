@@ -18,12 +18,9 @@ import type { SubscriptionUsageSnapshot as SubscriptionUsageProps } from "./subs
 
 export function SubscriptionUsage(props: SubscriptionUsageProps, environment: WidgetEnvironment) {
   "widget";
-  // The widget runtime evaluates this function without the app's module scope.
-  // Android has no timeline, so freshness is decided on every render; the
-  // expiry alarm and each tap trigger one while the app is closed.
-  // Expo inlines this build setting before serializing the widget function.
-  // Keep all translation helpers inside it: the OS has no app module scope.
-  const isChinese = process.env.EXPO_PUBLIC_APP_LOCALE === "zh-CN";
+  // Expo serializes this layout without app module scope; keep helpers local.
+  // Expiry alarms and taps re-render it to refresh Android widget freshness.
+  const isChinese = process.env.EXPO_PUBLIC_APP_LOCALE !== "en";
   const copy = (english: string, chinese: string) => (isChinese ? chinese : english);
   const localizeValue = (value: string) => {
     if (!isChinese) return value;
@@ -72,8 +69,7 @@ export function SubscriptionUsage(props: SubscriptionUsageProps, environment: Wi
     { name: "Claude", detail: "Open T3 to connect", windows: [], expiresAt: 0, totalWindows: 0 },
   ];
   return (
-    // The card is one Button so a tap reaches the app's interaction listener,
-    // which opens props.url. expo-widgets has no Android counterpart to widgetURL.
+    // Android lacks widgetURL; one card Button routes taps to the app listener opening props.url.
     <Button
       colors={{ containerColor: colors.surface }}
       modifiers={[fillMaxSize()]}

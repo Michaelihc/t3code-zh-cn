@@ -1,3 +1,5 @@
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { useScopedSettingsWriteAllowed } from "./useScopedSettings";
 import { AuthSettingsWriteScope } from "@t3tools/contracts";
 import { EnvironmentId, type T3ProjectFileScript } from "@t3tools/contracts";
@@ -34,6 +36,7 @@ import { SettingsRow, SettingsSection } from "./settingsLayout";
 import { useSettingsScope } from "./SettingsScopeContext";
 
 export function ProjectActionsSettings() {
+  const { locale: translationLocale } = useI18n();
   const { scope, targets, target } = useSettingsScope();
   const { environments } = useEnvironments();
   const isProjectScope = scope.kind === "project" || scope.kind === "checkout";
@@ -59,15 +62,6 @@ export function ProjectActionsSettings() {
       );
       if (!environment?.serverConfig) return [];
       const member = candidate.projectId ? memberById.get(candidate.projectId) : undefined;
-      // An older server ignores the override record, so a project edit there
-      // would report success and vanish; such environments are left out and
-      // the legacy per-project map keeps serving them.
-      if (
-        member &&
-        environment.serverConfig.environment?.capabilities.projectSettingsOverrides !== true
-      ) {
-        return [];
-      }
       return [
         {
           environmentId: candidate.environmentId,
@@ -100,6 +94,7 @@ export function ProjectActionsSettings() {
       runOnWorktreeCreate: fileScript.runOnWorktreeCreate ?? false,
       waitForSetup: fileScript.runOnWorktreeCreate === true && fileScript.async === false,
       runOnSettle: fileScript.runOnSettle ?? false,
+      stopOnSettle: fileScript.stopOnSettle ?? false,
       keybinding: null,
       previewUrl: fileScript.previewUrl ?? null,
       autoOpenPreview: fileScript.previewUrl ? (fileScript.autoOpenPreview ?? false) : false,
@@ -116,12 +111,12 @@ export function ProjectActionsSettings() {
   };
 
   return (
-    <SettingsSection id="project-actions" title="Actions">
+    <SettingsSection id="project-actions" title={translateWebSource(translationLocale, "Actions")}>
       <SettingsRow
         serverScoped
         settingKeys={["defaultProjectScripts"]}
         mixed={mixed}
-        title="Actions"
+        title={translateWebSource(translationLocale, "Actions")}
         description="Commands that run in this project's checkout or its worktree, with optional shortcuts."
         onResetOverride={() => void persist(() => null)}
         control={
@@ -139,14 +134,19 @@ export function ProjectActionsSettings() {
                     />
                   }
                 >
-                  Import scripts
+                  {translateWebSource(translationLocale, "Import scripts")}{" "}
                   <ChevronDownIcon className="size-3.5" />
                 </MenuTrigger>
                 <MenuPopup align="end">
                   <MenuGroup>
-                    <MenuGroupLabel>Import from t3.json</MenuGroupLabel>
+                    <MenuGroupLabel>
+                      {translateWebSource(translationLocale, "Import from t3.json")}
+                    </MenuGroupLabel>
                     <p className="px-2 pb-2 text-pretty text-sm text-muted-foreground">
-                      Add actions declared by this checkout without editing them first.
+                      {translateWebSource(
+                        translationLocale,
+                        "Add actions declared by this checkout without editing them first.",
+                      )}
                     </p>
                   </MenuGroup>
                   <MenuSeparator />
@@ -174,7 +174,7 @@ export function ProjectActionsSettings() {
               onClick={() => setRequest({ scriptId: null, initial: EMPTY_PROJECT_SCRIPT_INPUT })}
             >
               <PlusIcon className="size-3.5" />
-              Add action
+              {translateWebSource(translationLocale, "Add action")}
             </Button>
           </div>
         }
@@ -195,7 +195,10 @@ export function ProjectActionsSettings() {
       {t3File.status === "invalid" ? (
         <SettingsRow
           title="t3.json is invalid"
-          description="A t3.json exists in this checkout but fails to parse, so every action and icon it declares is ignored. Check the JSON syntax and icon values."
+          description={translateWebSource(
+            translationLocale,
+            "A t3.json exists in this checkout but fails to parse, so every action and icon it declares is ignored. Check the JSON syntax and icon values.",
+          )}
           className="text-warning"
         />
       ) : null}

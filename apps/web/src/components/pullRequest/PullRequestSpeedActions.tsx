@@ -1,7 +1,11 @@
 import { translateWebSource } from "~/i18n/messages";
 import { useI18n } from "~/i18n/WebI18nContext";
 import { useAtomValue } from "@effect/atom-react";
-import type { PullRequestAction } from "@t3tools/contracts";
+import type { PullRequestAction, PullRequestSummary } from "@t3tools/contracts";
+import { createContext, use, type ReactNode } from "react";
+import type { ChangeRequestTerminology } from "@t3tools/client-runtime/source-control-clients";
+
+import { useShortcutModifierState } from "~/shortcutModifierState";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useUiStateStore } from "~/uiStateStore";
 import { Button } from "../ui/button";
@@ -23,12 +27,13 @@ type PullRequestSpeedActionEntry = Pick<
 export interface PullRequestSpeedActionResult<Entry = EnvironmentPullRequestEntry> {
   readonly entry: Entry;
   readonly action: PullRequestAction;
+  readonly reply?: PullRequestSummary | undefined;
 }
 
 export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntry>({
   entry,
   hostActions,
-  visible,
+  terminology,
   onActed,
   closing = false,
   sweeping = false,
@@ -36,7 +41,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
 }: {
   entry: Entry;
   hostActions: ReadonlySet<PullRequestAction>;
-  visible: boolean;
+  terminology: ChangeRequestTerminology;
   onActed?: (result: PullRequestSpeedActionResult<Entry>) => void;
   closing?: boolean;
   sweeping?: boolean;
@@ -59,7 +64,8 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
   const { actionPending, perform } = usePullRequestActionRunner({
     environmentId: entry.environmentId,
     reference,
-    onSuccess: (action) => onActed?.({ entry, action }),
+    terminology,
+    onSuccess: (action, reply) => onActed?.({ entry, action, reply }),
     resolveMergeMethod: (detail) => {
       const allowed = detail.capabilities.mergeMethods.filter(
         (method) => detail.mergeCapabilities[method],
@@ -80,12 +86,10 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
   const busy = actionPending || closing || sweeping;
   if (actions.length === 0) return null;
   return (
-    <div
-      className="shrink-0 items-center gap-1 pr-3"
-      style={{ display: visible || busy ? "flex" : "none" }}
-      role="group"
-      aria-label={t("pullRequests.speed.aria", { number: entry.number })}
-      data-pull-request-action-pending={actionPending || closing}
+    <SpeedModeGroup
+      busy={busy}
+      pending={actionPending || closing}
+      label={`Quick actions for ${terminology.singular} #${entry.number}`}
     >
       {actions.map((action) => {
         const label = translateWebSource(uiLocale, ACTIONS[action].label);
@@ -113,7 +117,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
             </TooltipTrigger>
             <TooltipPopup>
               {action === "merge" && entry.stack
-                ? translateWebSource(uiLocale, "Open this pull request to merge its stack")
+                ? `Open this ${terminology.singular} to merge its stack`
                 : action === "close" && onCloseSweepStart
                   ? translateWebSource(
                       uiLocale,
@@ -124,6 +128,45 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
           </Tooltip>
         );
       })}
+    </SpeedModeGroup>
+  );
+}
+
+/**
+ * Whether Shift is held, as context rather than a row prop: a Shift press then re-renders each
+ * row's action group, not the rows or their buttons, in one commit.
+ */
+export const PullRequestSpeedModeContext = createContext(false);
+
+/** Tracks Shift for the quick actions below it. */
+export function PullRequestSpeedModeProvider({ children }: { children: ReactNode }) {
+  const modifiers = useShortcutModifierState(true);
+  const speedMode =
+    modifiers.shiftKey && !modifiers.metaKey && !modifiers.ctrlKey && !modifiers.altKey;
+  return <PullRequestSpeedModeContext value={speedMode}>{children}</PullRequestSpeedModeContext>;
+}
+
+function SpeedModeGroup({
+  busy,
+  pending,
+  label,
+  children,
+}: {
+  busy: boolean;
+  pending: boolean;
+  label: string;
+  children: ReactNode;
+}) {
+  const speedMode = use(PullRequestSpeedModeContext);
+  return (
+    <div
+      className="shrink-0 items-center gap-1 pr-3"
+      style={{ display: speedMode || busy ? "flex" : "none" }}
+      role="group"
+      aria-label={label}
+      data-pull-request-action-pending={pending}
+    >
+      {children}
     </div>
   );
 }

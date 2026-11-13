@@ -1,12 +1,19 @@
-"use client";
-
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
+import { ControlledOpenContext, renderRetainedPopup } from "~/components/ui/dialog";
 
-const Sheet = SheetPrimitive.Root;
+function Sheet<Payload>(props: SheetPrimitive.Root.Props<Payload>) {
+  return (
+    <ControlledOpenContext value={props.open}>
+      <SheetPrimitive.Root {...props} />
+    </ControlledOpenContext>
+  );
+}
 
 const SheetPortal = SheetPrimitive.Portal;
 
@@ -66,6 +73,7 @@ function SheetPopup({
   side?: "right" | "left" | "top" | "bottom";
   variant?: "default" | "inset";
 }) {
+  const { locale: translationLocale } = useI18n();
   const transitionStyle =
     transitionDurationMs === undefined
       ? undefined
@@ -101,13 +109,14 @@ function SheetPopup({
             className,
           )}
           data-slot="sheet-popup"
+          render={keepMounted ? undefined : renderRetainedPopup}
           style={{ ...transitionStyle, ...style }}
           {...props}
         >
           {children}
           {showCloseButton && (
             <SheetPrimitive.Close
-              aria-label="Close"
+              aria-label={translateWebSource(translationLocale, "Close")}
               className="absolute end-2 top-2"
               render={<Button size="icon" variant="ghost" />}
             >
@@ -136,7 +145,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
 function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
   return (
     <SheetPrimitive.Title
-      className={cn("font-semibold text-xl leading-none", className)}
+      className={cn("font-semibold text-xl leading-snug", className)}
       data-slot="sheet-title"
       {...props}
     />

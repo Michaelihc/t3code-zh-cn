@@ -78,10 +78,7 @@ export function BrowserImportWizard({
   );
   const [targetError, setTargetError] = useState<string>();
   const newProfileId = useRef(`profile-${randomUUID()}`);
-  // A second Import click before React has left the configure screen would
-  // start a second run; the parent refuses it, and applying that refusal here
-  // would drop the wizard out of the importing step while the first write is
-  // still going. The ref settles synchronously where state does not.
+  // Guard synchronously so a second click's refusal cannot leave the importing step during the first write.
   const importInFlight = useRef(false);
 
   const runImport = () => {
@@ -157,8 +154,11 @@ export function BrowserImportWizard({
           <BlockedStep
             source={source}
             reason={step.reason}
+            message={step.message}
             onClose={onClose}
-            onRetry={isRetryableReason(step.reason) ? runImport : undefined}
+            onRetry={
+              step.message === undefined && isRetryableReason(step.reason) ? runImport : undefined
+            }
           />
         ) : (
           <ConfigureStep
@@ -192,6 +192,7 @@ function QuitStep({
   readonly onCancel: () => void;
   readonly onRechecked: () => void;
 }) {
+  const { locale: translationLocale } = useI18n();
   const { t } = useI18n();
   return (
     <>
@@ -203,7 +204,7 @@ function QuitStep({
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          {t("common.cancel")}
+          {translateWebSource(translationLocale, "Cancel")}
         </Button>
         <Button onClick={onRechecked}>{t("browserImport.quit.confirm")}</Button>
       </DialogFooter>
@@ -254,6 +255,7 @@ function FullDiskAccessStep({
   readonly onGranted: () => void;
   readonly stillRequired: boolean;
 }) {
+  const { locale: translationLocale } = useI18n();
   const [opening, setOpening] = useState(false);
   const [openingError, setOpeningError] = useState<string | null>(null);
   const permission = usePermissionStatus(async () => ({ fullDiskAccess: await onCheck() }), {
@@ -274,7 +276,7 @@ function FullDiskAccessStep({
         <DialogTitle>Let T3 Code read {source.name}&rsquo;s cookies</DialogTitle>
         <DialogDescription>
           To import cookies from {source.name}, T3 Code needs Full Disk Access. Turn it on in System
-          Settings, then come back to finish the import — you can revoke it again once the import is
+          Settings, then come back to finish the import. You can revoke it again once the import is
           done.
         </DialogDescription>
       </DialogHeader>
@@ -312,14 +314,14 @@ function FullDiskAccessStep({
       </DialogPanel>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          Cancel
+          {translateWebSource(translationLocale, "Cancel")}
         </Button>
         <PermissionContinueButton
           ready={permission.isReady(["fullDiskAccess"])}
           busy={opening}
           onClick={onGranted}
         >
-          Continue
+          {translateWebSource(translationLocale, "Continue")}
         </PermissionContinueButton>
       </DialogFooter>
     </>
@@ -492,10 +494,13 @@ function CheckingStep({
   readonly sourceName: string;
   readonly check: "browser" | "fullDiskAccess";
 }) {
+  const { locale: translationLocale } = useI18n();
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Checking {sourceName}</DialogTitle>
+        <DialogTitle>
+          {translateWebSource(translationLocale, "Checking")} {sourceName}
+        </DialogTitle>
         <DialogDescription>
           {check === "fullDiskAccess"
             ? "Checking Full Disk Access."
@@ -575,22 +580,22 @@ function DoneStep({
 function BlockedStep({
   source,
   reason,
+  message,
   onClose,
   onRetry,
 }: {
   readonly source: BrowserImportSource;
   readonly reason: keyof typeof BROWSER_IMPORT_FAILURE_COPY;
+  readonly message: string | undefined;
   readonly onClose: () => void;
   readonly onRetry: (() => void) | undefined;
 }) {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{t("browserImport.blocked.title", { browser: source.name })}</DialogTitle>
-        <DialogDescription>
-          {translateWebSource(locale, BROWSER_IMPORT_FAILURE_COPY[reason])}
-        </DialogDescription>
+        <DialogTitle>Couldn&rsquo;t import from {source.name}</DialogTitle>
+        <DialogDescription>{message ?? BROWSER_IMPORT_FAILURE_COPY[reason]}</DialogDescription>
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>
