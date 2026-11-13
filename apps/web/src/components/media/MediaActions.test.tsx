@@ -184,3 +184,16 @@ it.each(["save", "copy-image", "open-file"])(
     expect(state.openFile).not.toHaveBeenCalled();
   },
 );
+
+vi.mock("../../i18n/WebI18nContext", async () => {
+  const { translateWebMessage } = await import("../../i18n/messages");
+  return {
+    useI18n: () => ({
+      locale: "en",
+      t: (
+        key: Parameters<typeof translateWebMessage>[1],
+        values?: Parameters<typeof translateWebMessage>[2],
+      ) => translateWebMessage("en", key, values),
+    }),
+  };
+});

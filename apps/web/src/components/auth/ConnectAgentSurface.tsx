@@ -318,7 +318,7 @@ export function McpConsent({
         {acceptsCode ? (
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="connect-agent-pairing-code">
-              {translateWebSource(translationLocale, "Sign-in code")}{" "}
+              {translateWebSource(translationLocale, "Sign-in code")}
             </label>
             <Input
               id="connect-agent-pairing-code"
@@ -372,7 +372,7 @@ export function McpConsent({
               {translateWebSource(
                 translationLocale,
                 "Beyond read only, it can start, message and stop threads, and none of them can run with more than the mode you pick.",
-              )}{" "}
+              )}
             </p>
           </div>
         )}

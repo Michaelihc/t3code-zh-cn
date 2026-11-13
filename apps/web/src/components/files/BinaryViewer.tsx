@@ -294,7 +294,7 @@ export default function BinaryViewer(props: {
             <thead className="sticky top-0 bg-background text-muted-foreground">
               <tr>
                 <th scope="col" className="px-3 py-2 text-left font-normal">
-                  {translateWebSource(translationLocale, "Name")}{" "}
+                  {translateWebSource(translationLocale, "Name")}
                 </th>
                 <th scope="col" className="px-3 py-2 text-right font-normal">
                   Size

@@ -425,7 +425,7 @@ export function AddEnvironmentDialog({
           {translateWebSource(
             translationLocale,
             "Paste a full pairing URL here to fill both fields automatically.",
-          )}{" "}
+          )}
         </span>
       </div>
     </div>
@@ -500,7 +500,7 @@ export function AddEnvironmentDialog({
             htmlFor="saved-backend-ssh-host"
             className="mb-1.5 block text-xs font-medium text-foreground"
           >
-            {translateWebSource(translationLocale, "SSH host or alias")}{" "}
+            {translateWebSource(translationLocale, "SSH host or alias")}
           </label>
           <Autocomplete
             items={filteredDiscoveredSshHosts}

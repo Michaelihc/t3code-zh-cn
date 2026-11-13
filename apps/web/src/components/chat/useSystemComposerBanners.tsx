@@ -173,7 +173,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
             )
           }
         >
-          {translateWebSource(translationLocale, "Disconnect server")}{" "}
+          {translateWebSource(translationLocale, "Disconnect server")}
         </Button>
       ) : undefined;
     const environmentReconnecting =
@@ -208,7 +208,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
                   )
                 }
               >
-                {translateWebSource(translationLocale, "Reconnect")}{" "}
+                {translateWebSource(translationLocale, "Reconnect")}
               </Button>
             ) : null}
             {disconnectAction}

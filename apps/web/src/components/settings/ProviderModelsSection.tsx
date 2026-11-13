@@ -354,7 +354,7 @@ export function ProviderModelsSection({
             onClick={() => setIsAdding(true)}
           >
             <PlusIcon className="size-3" />
-            {translateWebSource(translationLocale, "Add custom model")}{" "}
+            {translateWebSource(translationLocale, "Add custom model")}
           </Button>
         ) : null}
       </div>

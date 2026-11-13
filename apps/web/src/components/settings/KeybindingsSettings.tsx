@@ -260,7 +260,7 @@ function UnknownWhenVariableWarning({
       {translateWebSource(
         translationLocale,
         "T3 Code does not recognize this condition yet. It can still be saved, but it may not match unless the runtime provides it.",
-      )}{" "}
+      )}
     </WarningTooltipIcon>
   );
 }
@@ -682,7 +682,7 @@ function WhenExpressionBuilder({
             {translateWebSource(
               translationLocale,
               "Fix the expression above to continue editing visually.",
-            )}{" "}
+            )}
           </div>
         ) : null}
       </div>
@@ -1092,7 +1092,9 @@ function useNewKeybindingDraft({
     key: keyDraft,
     when: whenDraftExpression,
   });
-  const commandLabelText = commandDraft ? commandLabel(commandDraft) : t("keybindings.add");
+  const commandLabelText = commandDraft
+    ? commandLabel(commandDraft)
+    : t("keybindings.newDescription");
   const canSave = Boolean(commandDraft) && keyDraft.trim().length > 0 && isWhenDraftValid;
 
   const save = () => {
@@ -1262,7 +1264,7 @@ function NewKeybindingSettingsRow(props: NewKeybindingProps) {
   return (
     <SettingsRow
       className="bg-muted/15"
-      title={t("keybindings.add")}
+      title={t("keybindings.new")}
       description={
         <span className="flex h-6 items-center gap-1.5">
           <span className="text-xs leading-none text-muted-foreground/70">
@@ -1529,7 +1531,7 @@ export function KeybindingsSettingsPanel() {
             onClick={() => setIsAddingBinding(true)}
           >
             <PlusIcon aria-hidden className="size-4" />
-            {translateWebSource(translationLocale, "Add keybinding")}{" "}
+            {translateWebSource(translationLocale, "Add keybinding")}
           </Button>
           <Tooltip>
             <TooltipTrigger
@@ -1584,7 +1586,7 @@ export function KeybindingsSettingsPanel() {
         ) : (
           <SettingsGroup>
             <div className="px-4 py-12 text-center text-sm text-muted-foreground">
-              {translateWebSource(translationLocale, "No keybindings match your search.")}{" "}
+              {translateWebSource(translationLocale, "No keybindings match your search.")}
             </div>
           </SettingsGroup>
         )}

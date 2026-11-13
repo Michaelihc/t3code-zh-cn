@@ -145,7 +145,7 @@ export function ApproveAgentSurface() {
       >
         <div className="mt-6">
           <Button type="button" onClick={openSignIn}>
-            {translateWebSource(translationLocale, "Sign in")}{" "}
+            {translateWebSource(translationLocale, "Sign in")}
           </Button>
         </div>
       </Message>

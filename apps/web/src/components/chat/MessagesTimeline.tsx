@@ -1,3 +1,4 @@
+import { useI18n } from "~/i18n/WebI18nContext";
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
 import type { ToolCallDiffTarget } from "../../diffPanelStore";
@@ -408,6 +409,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
   topFadeEnabled = false,
   historyControls,
 }: MessagesTimelineProps) {
+  const { t } = useI18n();
   const listIdentityKey = displayThreadKey ?? routeThreadKey;
   // Snapshot restore positions on identity changes; ongoing scroll writes must not move them.
   // Find open at the opening is part of the snapshot: opening find later
@@ -1290,7 +1292,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
           className="flex h-full items-center justify-center ps-(--chat-lane-inset-start) pe-(--chat-lane-inset-end)"
           style={{ paddingBottom: emptyPlaceholderInset }}
         >
-          <p className="text-sm text-muted-foreground">Send a message to start the conversation.</p>
+          <p className="text-sm text-muted-foreground">{t("timeline.empty")}</p>
         </div>
       </>
     );

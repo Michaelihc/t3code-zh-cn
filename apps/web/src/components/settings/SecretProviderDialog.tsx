@@ -146,7 +146,7 @@ export function SecretProviderDialog({
         </DialogPanel>
         <DialogFooter variant="bare">
           <Button variant="outline" onClick={onClose}>
-            {translateWebSource(translationLocale, "Cancel")}{" "}
+            {translateWebSource(translationLocale, "Cancel")}
           </Button>
           <Button
             type="submit"

@@ -239,7 +239,7 @@ function UpdateEverythingDialogContent({
           </p>
         ) : null}
         <AlertDialogClose ref={cancelRef} render={<Button variant="outline" disabled={busy} />}>
-          {translateWebSource(translationLocale, "Cancel")}{" "}
+          {translateWebSource(translationLocale, "Cancel")}
         </AlertDialogClose>
         <Button disabled={disabledReason !== null || busy} onClick={onConfirm}>
           {confirmLabel}

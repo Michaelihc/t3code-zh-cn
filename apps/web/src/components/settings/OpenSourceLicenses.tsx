@@ -218,7 +218,7 @@ function LicenseManifestError({ message, onRetry }: { message: string; onRetry: 
         </p>
       </div>
       <Button type="button" size="xs" variant="outline" onClick={onRetry}>
-        {translateWebSource(translationLocale, "Try again")}{" "}
+        {translateWebSource(translationLocale, "Try again")}
       </Button>
     </div>
   );

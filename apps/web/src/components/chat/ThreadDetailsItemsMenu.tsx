@@ -41,7 +41,7 @@ export function ThreadDetailsItemsMenuItems() {
         disabled={isDefaultThreadDetailsVisibility(visibility)}
         onClick={() => updateClientSettings(RESET_THREAD_DETAILS_ITEMS)}
       >
-        {translateWebSource(translationLocale, "Reset to default")}{" "}
+        {translateWebSource(translationLocale, "Reset to default")}
       </MenuItem>
     </>
   );

@@ -277,7 +277,7 @@ function ModelCard(props: ModelCardProps) {
         ) : model.state === "downloadable" ? (
           <Button size="sm" variant="outline" disabled={props.busy} onClick={props.onDownload}>
             <DownloadIcon className="mr-1.5 size-3.5" />
-            {translateWebSource(translationLocale, "Download")}{" "}
+            {translateWebSource(translationLocale, "Download")}
           </Button>
         ) : model.active ? (
           <Button size="sm" variant="secondary" disabled>
@@ -376,7 +376,7 @@ function DictionaryEditor(props: {
           }}
         />
         <Button type="button" disabled={!canAddTerm} onClick={addTerm}>
-          {translateWebSource(translationLocale, "Add")}{" "}
+          {translateWebSource(translationLocale, "Add")}
         </Button>
       </div>
       {words.length > 0 ? (
@@ -538,10 +538,7 @@ function CleanupModelRow() {
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             {dedicated && (!hasProvider || !instanceEntry) ? (
               <span className="text-sm text-muted-foreground">
-                {translateWebSource(
-                  translationLocale,
-                  "No text generation providers available.",
-                )}{" "}
+                {translateWebSource(translationLocale, "No text generation providers available.")}
               </span>
             ) : null}
             {dedicated && hasProvider && instanceEntry ? (
@@ -1417,7 +1414,7 @@ export function VoiceSettingsPanel() {
                   <SelectItem value={OFF}>
                     <span className="flex items-center gap-2">
                       <MicOffIcon aria-hidden className="size-4" />
-                      {translateWebSource(translationLocale, "Off")}{" "}
+                      {translateWebSource(translationLocale, "Off")}
                     </span>
                   </SelectItem>
                   {environmentChoices.length > 0 && (

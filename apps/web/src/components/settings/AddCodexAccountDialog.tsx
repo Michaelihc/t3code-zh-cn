@@ -137,7 +137,7 @@ export function AddCodexAccountDialog({
           ) : (
             <>
               <Button variant="outline" disabled={pending} onClick={onClose}>
-                {translateWebSource(translationLocale, "Cancel")}{" "}
+                {translateWebSource(translationLocale, "Cancel")}
               </Button>
               <Button
                 type="submit"

@@ -46,7 +46,7 @@ export function PreviewFileNotShown({
           </Button>
           {downloadUrl ? (
             <Button type="button" size="sm" render={<a href={downloadUrl} download={fileName} />}>
-              {translateWebSource(translationLocale, "Download")}{" "}
+              {translateWebSource(translationLocale, "Download")}
             </Button>
           ) : null}
         </div>
@@ -107,7 +107,7 @@ export function PreviewUnreachable({ url, code, description, onReload, move }: P
             </Button>
           ) : null}
           <Button type="button" size="sm" onClick={onReload}>
-            {translateWebSource(translationLocale, "Reload")}{" "}
+            {translateWebSource(translationLocale, "Reload")}
           </Button>
         </div>
       </div>

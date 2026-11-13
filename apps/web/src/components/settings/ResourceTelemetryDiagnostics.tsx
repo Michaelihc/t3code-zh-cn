@@ -455,7 +455,7 @@ function ResourceHistoryChart({
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="h-1.5 w-3 rounded-full bg-warning/80" />{" "}
-          {translateWebSource(translationLocale, "I/O writes")}{" "}
+          {translateWebSource(translationLocale, "I/O writes")}
         </span>
       </div>
       <div className="flex h-32 items-end gap-1 overflow-hidden rounded-lg border border-border/40 bg-muted/8 px-2 pt-3 pb-2">
@@ -1112,7 +1112,7 @@ function ResourceTelemetryDiagnosticsBody({
           <div className="flex flex-col gap-3 border-b border-border/60 bg-linear-to-r from-muted/45 via-muted/20 to-transparent px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
               <div className="text-3xs font-semibold uppercase tracking-widest text-muted-foreground/70">
-                {translateWebSource(translationLocale, "T3 system footprint")}{" "}
+                {translateWebSource(translationLocale, "T3 system footprint")}
               </div>
               <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
                 {t("diagnostics.resource.systemDescription")}
@@ -1249,7 +1249,7 @@ function ResourceTelemetryDiagnosticsBody({
           collectorNeedsRetry ? (
             <Button size="xs" variant="outline" disabled={isRetrying} onClick={retryCollector}>
               <RefreshIcon size="xs" refreshing={isRetrying} />
-              {translateWebSource(translationLocale, "Retry monitor")}{" "}
+              {translateWebSource(translationLocale, "Retry monitor")}
             </Button>
           ) : null
         }
@@ -1320,7 +1320,7 @@ function ResourceTelemetryDiagnosticsBody({
                   {translateWebSource(
                     translationLocale,
                     "Power, idle, lock, and thermal state are supplied by the desktop host. Process telemetry remains fully active in this browser session.",
-                  )}{" "}
+                  )}
                 </p>
               </div>
             )}
@@ -1452,7 +1452,7 @@ function ResourceTelemetryDiagnosticsBody({
             {translateWebSource(
               translationLocale,
               "Native counters identify which process is reading or writing. These application-level counters identify known T3 operations so process spikes can be correlated with specific persistence and logging paths.",
-            )}{" "}
+            )}
           </div>
           <AttributionTable entries={snapshot?.attribution.entries ?? []} />
         </div>

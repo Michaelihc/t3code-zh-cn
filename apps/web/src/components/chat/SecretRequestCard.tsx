@@ -249,7 +249,7 @@ function PendingSecretRequestForm(props: {
           disabled={submitting}
           onClick={() => void send({ type: "decline" })}
         >
-          {translateWebSource(translationLocale, "Decline")}{" "}
+          {translateWebSource(translationLocale, "Decline")}
         </Button>
       </div>
     </form>

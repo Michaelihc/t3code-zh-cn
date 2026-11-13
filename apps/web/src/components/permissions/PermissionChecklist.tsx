@@ -33,7 +33,7 @@ export function PermissionChecklist({
           {permission.granted ? (
             <span role="status" className="flex items-center gap-1 text-xs text-success">
               <CircleCheckIcon className="size-4" aria-hidden="true" />
-              {translateWebSource(translationLocale, "Allowed")}{" "}
+              {translateWebSource(translationLocale, "Allowed")}
             </span>
           ) : (
             <Button size="xs" variant="outline" disabled={busy} onClick={permission.onAllow}>

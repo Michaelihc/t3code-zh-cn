@@ -371,7 +371,7 @@ export function WorktreeSetupCard({
           onClick={() => setDetailsOpen((open) => !open)}
         >
           {detailsOpen ? <ChevronDownIcon aria-hidden /> : <ChevronRightIcon aria-hidden />}
-          {translateWebSource(translationLocale, "Details")}{" "}
+          {translateWebSource(translationLocale, "Details")}
         </Button>
         {showTerminal ? (
           <Button type="button" size="xs" variant="ghost-muted" onClick={onOpenTerminal}>
@@ -388,7 +388,7 @@ export function WorktreeSetupCard({
         {onCancel && running ? (
           <Button type="button" size="xs" variant="ghost-muted" onClick={onCancel}>
             <XIcon aria-hidden />
-            {translateWebSource(translationLocale, "Cancel")}{" "}
+            {translateWebSource(translationLocale, "Cancel")}
           </Button>
         ) : null}
       </div>

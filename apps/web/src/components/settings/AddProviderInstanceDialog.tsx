@@ -483,7 +483,7 @@ export function AddProviderInstanceDialog({
             <WizardPanel className={cn(isAcpRegistry && wizardStep === identityStep && "min-h-72")}>
               <div className={cn("grid gap-2", wizardStep !== 0 && "hidden")}>
                 <div id="add-instance-driver-label" className="text-sm font-medium text-foreground">
-                  {translateWebSource(translationLocale, "Provider")}{" "}
+                  {translateWebSource(translationLocale, "Provider")}
                 </div>
                 <ProviderOptionGrid
                   options={featuredDriverOptions}
@@ -607,7 +607,7 @@ export function AddProviderInstanceDialog({
                         rel="noreferrer"
                         target="_blank"
                       >
-                        {translateWebSource(translationLocale, "Docs")}{" "}
+                        {translateWebSource(translationLocale, "Docs")}
                       </a>
                     ) : null}
                     {selectedAcp.repository ? (
@@ -618,7 +618,7 @@ export function AddProviderInstanceDialog({
                         rel="noreferrer"
                         target="_blank"
                       >
-                        {translateWebSource(translationLocale, "Source")}{" "}
+                        {translateWebSource(translationLocale, "Source")}
                       </a>
                     ) : null}
                   </div>
@@ -728,7 +728,7 @@ export function AddProviderInstanceDialog({
                     {translateWebSource(
                       translationLocale,
                       "This driver has no required configuration. You can add the instance now.",
-                    )}{" "}
+                    )}
                   </p>
                 </div>
               ) : null}
@@ -767,7 +767,7 @@ export function AddProviderInstanceDialog({
                   disabled={isPreparingRegistryAgent}
                   onClick={() => navigateToStep(wizardStep + 1)}
                 >
-                  {translateWebSource(translationLocale, "Next")}{" "}
+                  {translateWebSource(translationLocale, "Next")}
                 </Button>
               ) : (
                 <Button

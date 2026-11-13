@@ -245,7 +245,7 @@ export function PullRequestActionsMenu({
         />
         <MenuItem disabled={refreshing} onClick={() => void refreshFromHost()}>
           <RefreshIcon size="sm" refreshing={refreshing} />
-          {translateWebSource(translationLocale, "Refresh")}{" "}
+          {translateWebSource(translationLocale, "Refresh")}
         </MenuItem>
         <MenuItem disabled={handoff !== null} onClick={askAboutPullRequest}>
           <MessageCircleQuestionIcon className="mt-1 size-3.5 shrink-0 self-start" />
@@ -268,7 +268,7 @@ export function PullRequestActionsMenu({
               {translateWebSource(
                 translationLocale,
                 "A walk through the diff and what to read closely.",
-              )}{" "}
+              )}
             </span>
           </span>
         </MenuItem>
@@ -310,7 +310,7 @@ export function PullRequestActionsMenu({
                 </span>
                 {maintainerEditsSaving ? (
                   <span role="status" className="text-xs text-muted-foreground">
-                    {translateWebSource(translationLocale, "Saving…")}{" "}
+                    {translateWebSource(translationLocale, "Saving…")}
                   </span>
                 ) : null}
               </span>
@@ -347,7 +347,7 @@ export function PullRequestActionsMenu({
             {autoMergeArmed && can("disable-auto-merge") ? (
               <MenuItem disabled={actionPending} onClick={() => void perform("disable-auto-merge")}>
                 <PullRequestGlyph.merged className="size-3.5" />
-                {translateWebSource(translationLocale, "Disable auto-merge")}{" "}
+                {translateWebSource(translationLocale, "Disable auto-merge")}
               </MenuItem>
             ) : showsAutoMerge ? (
               <MenuItem

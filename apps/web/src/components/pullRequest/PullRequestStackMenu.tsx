@@ -270,7 +270,7 @@ export function PullRequestStackMenu({
           </DialogPanel>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmation(null)}>
-              {translateWebSource(translationLocale, "Cancel")}{" "}
+              {translateWebSource(translationLocale, "Cancel")}
             </Button>
             <Button onClick={() => void run()}>
               {confirmation === "merge" ? "Merge stack" : "Rebase stack"}

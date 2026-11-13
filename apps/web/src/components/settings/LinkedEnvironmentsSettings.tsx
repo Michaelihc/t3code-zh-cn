@@ -359,7 +359,7 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
         </DialogPanel>
         <DialogFooter variant="bare">
           <DialogClose disabled={busy} render={<Button variant="outline" type="button" />}>
-            {translateWebSource(translationLocale, "Cancel")}{" "}
+            {translateWebSource(translationLocale, "Cancel")}
           </DialogClose>
           <Button form={formId} type="submit" disabled={busy || !ready}>
             {busy ? "Linking…" : "Link"}

@@ -204,7 +204,7 @@ function QuitStep({
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          {translateWebSource(translationLocale, "Cancel")}{" "}
+          {translateWebSource(translationLocale, "Cancel")}
         </Button>
         <Button onClick={onRechecked}>{t("browserImport.quit.confirm")}</Button>
       </DialogFooter>
@@ -314,14 +314,14 @@ function FullDiskAccessStep({
       </DialogPanel>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          {translateWebSource(translationLocale, "Cancel")}{" "}
+          {translateWebSource(translationLocale, "Cancel")}
         </Button>
         <PermissionContinueButton
           ready={permission.isReady(["fullDiskAccess"])}
           busy={opening}
           onClick={onGranted}
         >
-          {translateWebSource(translationLocale, "Continue")}{" "}
+          {translateWebSource(translationLocale, "Continue")}
         </PermissionContinueButton>
       </DialogFooter>
     </>

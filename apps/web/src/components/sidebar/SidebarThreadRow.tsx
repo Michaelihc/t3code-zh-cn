@@ -309,7 +309,7 @@ function SidebarThreadTooltip({
               {translateWebSource(
                 translationLocale,
                 "You're currently checked out on another branch.",
-              )}{" "}
+              )}
             </div>
           </div>
         ) : null}
@@ -432,7 +432,7 @@ function SnoozeMenuButton(props: {
             if (choice) onSnooze(choice);
           }}
         >
-          {translateWebSource(translationLocale, "Custom…")}{" "}
+          {translateWebSource(translationLocale, "Custom…")}
         </MenuItem>
       </MenuPopup>
     </Menu>
@@ -648,6 +648,7 @@ function ThreadRenameInput(props: {
 }
 
 const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowProps) {
+  const { locale: translationLocale } = useI18n();
   const {
     isRenaming,
     onCancelRename,
@@ -1388,7 +1389,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                         render={
                           <button
                             type="button"
-                            aria-label="Settle thread"
+                            aria-label={translateWebSource(translationLocale, "Settle thread")}
                             onClick={handleSettleClick}
                             onPointerDown={handleActionPointerDown}
                             className={cn(
@@ -1400,7 +1401,9 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                       >
                         <CheckIcon className="size-3" />
                       </TooltipTrigger>
-                      <TooltipPopup side="top">Settle thread</TooltipPopup>
+                      <TooltipPopup side="top">
+                        {translateWebSource(translationLocale, "Settle thread")}
+                      </TooltipPopup>
                     </Tooltip>
                   )}
                   {jumpHintLabel ? <JumpHintBadge label={jumpHintLabel} /> : null}
@@ -1580,7 +1583,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                             render={
                               <button
                                 type="button"
-                                aria-label="Settle thread"
+                                aria-label={translateWebSource(translationLocale, "Settle thread")}
                                 onClick={handleSettleClick}
                                 onPointerDown={handleActionPointerDown}
                                 className="-mr-1 inline-flex cursor-pointer items-center gap-1 rounded-md bg-transparent px-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -1590,7 +1593,9 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                             <CheckIcon className="size-3.5" />
                             Settle
                           </TooltipTrigger>
-                          <TooltipPopup>Settle thread</TooltipPopup>
+                          <TooltipPopup>
+                            {translateWebSource(translationLocale, "Settle thread")}
+                          </TooltipPopup>
                         </Tooltip>
                       ) : null}
                     </span>

@@ -190,7 +190,7 @@ function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
           onBackdrop ? "text-white/70" : "text-muted-foreground",
         )}
       >
-        {translateWebSource(translationLocale, "Code")}{" "}
+        {translateWebSource(translationLocale, "Code")}
       </span>
     </span>
   );
@@ -278,7 +278,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
           {pullRequestsSupported ? (
             <SidebarUtilityItem
               icon={<PullRequestGlyph.pullRequest />}
-              label="Pull requests"
+              label={t("sidebar.pullRequests")}
               onClick={handlePullRequestsClick}
             />
           ) : null}

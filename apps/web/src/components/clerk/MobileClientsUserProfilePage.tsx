@@ -135,7 +135,7 @@ export function MobileClientsUserProfilePage() {
               <p className="mt-0.5 text-xs text-muted-foreground">{devicesState.error}</p>
             </div>
             <Button size="xs" variant="outline" onClick={devicesState.refresh}>
-              {translateWebSource(translationLocale, "Try again")}{" "}
+              {translateWebSource(translationLocale, "Try again")}
             </Button>
           </div>
         ) : null}

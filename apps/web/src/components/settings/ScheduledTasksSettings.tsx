@@ -1968,7 +1968,7 @@ function ScheduledTaskEditorForm({
                   value="webhook"
                   disabled={webhookDenial !== undefined && draft.scheduleMode !== "webhook"}
                 >
-                  {translateWebSource(translationLocale, "On webhook")}{" "}
+                  {translateWebSource(translationLocale, "On webhook")}
                 </Toggle>
               </ToggleGroup>
             </div>

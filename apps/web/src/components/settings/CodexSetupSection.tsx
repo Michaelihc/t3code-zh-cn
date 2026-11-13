@@ -154,7 +154,7 @@ export function CodexSetupSection(props: CodexSetupSectionProps) {
           existingReady ? (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-foreground">
               <CheckIcon className="size-3.5" />
-              {translateWebSource(translationLocale, "Ready")}{" "}
+              {translateWebSource(translationLocale, "Ready")}
             </span>
           ) : existingChecking ? (
             <span className="text-xs text-muted-foreground">
@@ -197,12 +197,12 @@ export function CodexSetupSection(props: CodexSetupSectionProps) {
           description={<CodexSignInDescription />}
           control={
             <Button size="sm" variant="outline" className="min-w-44" disabled>
-              {translateWebSource(translationLocale, "Open sign-in page")}{" "}
+              {translateWebSource(translationLocale, "Open sign-in page")}
             </Button>
           }
           secondaryControl={
             <Button size="sm" variant="ghost-muted" disabled>
-              {translateWebSource(translationLocale, "Cancel")}{" "}
+              {translateWebSource(translationLocale, "Cancel")}
             </Button>
           }
         />
@@ -740,7 +740,7 @@ function ManagedCodexSetup({
             type="submit"
             disabled={pending || readOnly || !callbackUrl.trim()}
           >
-            {translateWebSource(translationLocale, "Connect")}{" "}
+            {translateWebSource(translationLocale, "Connect")}
           </Button>
         </form>
         {!remoteWeb ? (
@@ -865,7 +865,7 @@ function ManagedCodexSetup({
             authenticated && !busy ? (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-foreground">
                 <CheckIcon className="size-3.5" />
-                {translateWebSource(translationLocale, "Ready")}{" "}
+                {translateWebSource(translationLocale, "Ready")}
               </span>
             ) : authActive ? (
               waitingControl
@@ -908,7 +908,7 @@ function ManagedCodexSetup({
                     );
                 }}
               >
-                {translateWebSource(translationLocale, "Cancel")}{" "}
+                {translateWebSource(translationLocale, "Cancel")}
               </Button>
             ) : !authActive && !authenticated && hasSavedAccount ? (
               <Button
@@ -965,7 +965,7 @@ function ManagedCodexSetup({
                       onSignInCancelled?.();
                     }}
                   >
-                    {translateWebSource(translationLocale, "Cancel")}{" "}
+                    {translateWebSource(translationLocale, "Cancel")}
                   </Button>
                 )}
               </>
@@ -985,7 +985,7 @@ function ManagedCodexSetup({
                   );
                 }}
               >
-                {translateWebSource(translationLocale, "Cancel")}{" "}
+                {translateWebSource(translationLocale, "Cancel")}
               </Button>
             ) : authenticated ? (
               <>
@@ -1003,7 +1003,7 @@ function ManagedCodexSetup({
                   disabled={unavailable || busy}
                   onClick={() => void run(() => logoutAuth(target))}
                 >
-                  {translateWebSource(translationLocale, "Disconnect")}{" "}
+                  {translateWebSource(translationLocale, "Disconnect")}
                 </Button>
               </>
             ) : (

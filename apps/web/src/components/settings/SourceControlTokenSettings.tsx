@@ -156,7 +156,7 @@ export function SourceControlTokenSettings({
                 disabled={saving}
                 onClick={() => void save(normalizedHost, "")}
               >
-                {translateWebSource(translationLocale, "Remove")}{" "}
+                {translateWebSource(translationLocale, "Remove")}
               </Button>
             ) : null}
             <Button
@@ -164,7 +164,7 @@ export function SourceControlTokenSettings({
               size="xs"
               disabled={!normalizedHost || submission === "" || saving}
             >
-              {translateWebSource(translationLocale, "Save")}{" "}
+              {translateWebSource(translationLocale, "Save")}
             </Button>
           </div>
         </div>

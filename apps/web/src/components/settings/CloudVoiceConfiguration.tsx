@@ -438,7 +438,7 @@ export function CloudVoiceConfiguration({
             </div>
           )}
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={close}>
-            {translateWebSource(translationLocale, "Cancel")}{" "}
+            {translateWebSource(translationLocale, "Cancel")}
           </Button>
           {connected &&
             (remove ? (

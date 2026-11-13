@@ -161,7 +161,7 @@ export function DiffCommentAnnotation({
         <span className="mr-auto text-3xs text-muted-foreground/70">⌘/Ctrl Enter to send</span>
         {speech ? <TextFieldSpeechControls speech={speech} disabled={pending} /> : null}
         <Button variant="ghost-muted" size="xs" onClick={onCancel}>
-          {translateWebSource(translationLocale, "Cancel")}{" "}
+          {translateWebSource(translationLocale, "Cancel")}
         </Button>
         {secondaryAction ? (
           <Button

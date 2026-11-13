@@ -171,11 +171,11 @@ export function SidebarUpdateCapsule({
             <div className="mt-1 flex justify-end gap-1">
               {view.action === "retry" ? (
                 <Button size="xs" variant="outline" onClick={runAction}>
-                  {translateWebSource(translationLocale, "Retry")}{" "}
+                  {translateWebSource(translationLocale, "Retry")}
                 </Button>
               ) : null}
               <Button size="xs" variant="ghost" onClick={dismissSettledUpdateRunMachines}>
-                {translateWebSource(translationLocale, "Dismiss")}{" "}
+                {translateWebSource(translationLocale, "Dismiss")}
               </Button>
             </div>
           ) : null}

@@ -1,6 +1,8 @@
 import type { ResolvedAppLocale } from "@t3tools/shared/appLocale";
 
 const EN_MESSAGES = {
+  "keybindings.new": "New keybinding",
+  "keybindings.newDescription": "new keybinding",
   "addProjectToMachine.description":
     "Clone {project} and bring the local files git does not track.",
   "addProjectToMachine.fileOne": "+ {count} file",
@@ -3183,6 +3185,8 @@ export type WebMessages = Readonly<Record<WebMessageKey, string>>;
 export type WebMessageValues = Readonly<Record<string, string | number>>;
 
 const ZH_CN_MESSAGES = {
+  "keybindings.new": "新快捷键",
+  "keybindings.newDescription": "新快捷键",
   "addProjectToMachine.description": "克隆 {project}，并复制 Git 未跟踪的本地文件。",
   "addProjectToMachine.fileOne": "+ {count} 个文件",
   "addProjectToMachine.fileMany": "+ {count} 个文件",
@@ -6229,6 +6233,38 @@ for (const [key, source] of Object.entries(EN_MESSAGES) as ReadonlyArray<
 // New upstream settings copy can be localized here before it receives a stable
 // message key. Settings containers and search both consume this same table.
 const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
+  "Thread notifications": "任务通知",
+  "In-app notifications": "应用内通知",
+  "Project order": "项目排序",
+  "Last user message": "最近用户消息",
+  "Order of projects in the sidebar project picker and command palette.":
+    "侧栏项目选择器和命令面板中的项目排列顺序。",
+  "System alerts when a thread finishes, fails, or needs input or approval. Applies to this device while T3 Code is open.":
+    "任务完成、失败或需要输入或批准时，显示系统通知。仅在此设备打开 T3 Code 时生效。",
+  "Show a toast when another thread finishes, fails, or needs input or approval while this app has focus.":
+    "当前应用处于前台时，在其他任务完成、失败或需要输入或批准时显示应用内提示。",
+
+  Connections: "连接",
+  "Confirm thread unpinning": "取消任务置顶前确认",
+  "Confirm thread archiving": "归档任务前确认",
+  "Confirm thread deletion": "删除任务前确认",
+  "Timestamp format": "时间格式",
+  "Notification only": "仅通知",
+  "Sound only": "仅声音",
+  "Notifications and sound": "通知与声音",
+  "Notifications need a supported browser over HTTPS, or the desktop app. Sound only is still available.":
+    "系统通知需要支持的 HTTPS 浏览器或桌面应用。仍可使用仅声音模式。",
+  "Notifications are unavailable in this browser. Sound only is still available.":
+    "此浏览器不支持系统通知。仍可使用仅声音模式。",
+  "Allow notifications in your browser or system settings, then choose this option again. Sound only is still available.":
+    "请在浏览器或系统设置中允许通知，然后重新选择此选项。仍可使用仅声音模式。",
+  Notifications: "通知",
+  Display: "显示",
+  "Toggle thread details panel": "切换任务详情面板",
+  "Toggle terminal drawer": "切换终端面板",
+  "Toggle right panel": "切换右侧面板",
+  "Fold working and monitoring threads into a Working section. They return to the top of the inbox when they need your input.":
+    "将进行中和监控中的任务归入“进行中”分区；需要你处理时，它们会回到收件箱顶部。",
   "Welcome to T3 Code": "欢迎使用 T3 Code",
   "Setting up": "正在设置",
   "Start without an agent": "暂不设置 Agent",

@@ -530,7 +530,7 @@ function LocationSection(props: {
               void props.onClear();
             }}
           >
-            {translateWebSource(translationLocale, "Clear")}{" "}
+            {translateWebSource(translationLocale, "Clear")}
           </Button>
         ) : null}
       </div>
@@ -590,7 +590,7 @@ function PermissionsSection(props: {
           disabled={props.disabled || !resolvedAppId}
           onClick={() => decide("revoke")}
         >
-          {translateWebSource(translationLocale, "Revoke")}{" "}
+          {translateWebSource(translationLocale, "Revoke")}
         </Button>
         {props.canReset ? (
           <Button

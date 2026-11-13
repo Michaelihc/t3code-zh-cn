@@ -474,7 +474,7 @@ function ThemeImportBody({
           <div className="space-y-2">
             <div className="flex items-baseline justify-between gap-3">
               <label className="text-sm font-medium" htmlFor="theme-json-editor">
-                {translateWebSource(translationLocale, "Theme JSON")}{" "}
+                {translateWebSource(translationLocale, "Theme JSON")}
               </label>
             </div>
             <ThemeJsonEditor id="theme-json-editor" onChange={setJson} value={json} />
@@ -493,16 +493,16 @@ function ThemeImportBody({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" onClick={() => resolveConflicts("update")}>
-                  {translateWebSource(translationLocale, "Update existing")}{" "}
+                  {translateWebSource(translationLocale, "Update existing")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => resolveConflicts("copy")}>
-                  {translateWebSource(translationLocale, "Keep both")}{" "}
+                  {translateWebSource(translationLocale, "Keep both")}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setConflicts(null)}>
-                  {translateWebSource(translationLocale, "Back")}{" "}
+                  {translateWebSource(translationLocale, "Back")}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => onClose()}>
-                  {translateWebSource(translationLocale, "Cancel")}{" "}
+                  {translateWebSource(translationLocale, "Cancel")}
                 </Button>
               </div>
             </div>
@@ -531,11 +531,11 @@ function ThemeImportBody({
             {editorSection()}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="ghost" onClick={() => onClose()}>
-                {translateWebSource(translationLocale, "Cancel")}{" "}
+                {translateWebSource(translationLocale, "Cancel")}
               </Button>
               <Button disabled={!json.trim() || isReading} onClick={handleSubmit}>
                 <PlusIcon />
-                {translateWebSource(translationLocale, "Add theme")}{" "}
+                {translateWebSource(translationLocale, "Add theme")}
               </Button>
             </div>
           </div>

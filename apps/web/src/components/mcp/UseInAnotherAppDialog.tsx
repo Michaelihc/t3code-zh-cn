@@ -183,14 +183,14 @@ function Wizard({
         >
           {step === 1 ? (
             <Button variant="outline" onClick={() => setStep(0)}>
-              {translateWebSource(translationLocale, "Back")}{" "}
+              {translateWebSource(translationLocale, "Back")}
             </Button>
           ) : null}
           {step === 2 ? (
             <Button onClick={close}>{translateWebSource(translationLocale, "Done")}</Button>
           ) : (
             <Button disabled={step === 0 ? choice === null : access === null} onClick={next}>
-              {translateWebSource(translationLocale, "Next")}{" "}
+              {translateWebSource(translationLocale, "Next")}
             </Button>
           )}
         </WizardFooter>
@@ -368,7 +368,7 @@ function GateScreen({
   const { openAuthPrompt } = useT3ConnectAuthPrompt();
   const retry = (onClick: () => void) => (
     <Button variant="outline" onClick={onClick}>
-      {translateWebSource(translationLocale, "Check again")}{" "}
+      {translateWebSource(translationLocale, "Check again")}
     </Button>
   );
   const checkAgain = retry(() => void check());

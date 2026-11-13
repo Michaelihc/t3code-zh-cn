@@ -795,7 +795,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
     >
       {folded && senderThreadId ? (
         <InlineButton onClick={() => ctx.onOpenThread(senderThreadId)} tone="muted">
-          {translateWebSource(translationLocale, "Open thread")}{" "}
+          {translateWebSource(translationLocale, "Open thread")}
         </InlineButton>
       ) : null}
       <Tooltip>

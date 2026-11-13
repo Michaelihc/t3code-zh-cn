@@ -305,13 +305,13 @@ function FileViewedToggle({
         {stale ? (
           <Tooltip>
             <TooltipTrigger render={<span className="text-warning-foreground" />}>
-              {translateWebSource(translationLocale, "Changed")}{" "}
+              {translateWebSource(translationLocale, "Changed")}
             </TooltipTrigger>
             <TooltipPopup side="bottom">
               {translateWebSource(
                 translationLocale,
                 "This file has been pushed to since you marked it viewed.",
-              )}{" "}
+              )}
             </TooltipPopup>
           </Tooltip>
         ) : (
@@ -1324,13 +1324,13 @@ function PullRequestCodeTab({
               checked={ignoreWhitespace}
               onCheckedChange={(checked) => changeIgnoreWhitespace(checked)}
             >
-              {translateWebSource(translationLocale, "Hide whitespace changes")}{" "}
+              {translateWebSource(translationLocale, "Hide whitespace changes")}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               checked={wordWrap}
               onCheckedChange={(checked) => setWordWrap(checked)}
             >
-              {translateWebSource(translationLocale, "Wrap lines")}{" "}
+              {translateWebSource(translationLocale, "Wrap lines")}
             </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup
@@ -1342,10 +1342,10 @@ function PullRequestCodeTab({
               }}
             >
               <DropdownMenuRadioItem value="stacked" closeOnClick>
-                {translateWebSource(translationLocale, "Stacked")}{" "}
+                {translateWebSource(translationLocale, "Stacked")}
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="split" closeOnClick>
-                {translateWebSource(translationLocale, "Split")}{" "}
+                {translateWebSource(translationLocale, "Split")}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>

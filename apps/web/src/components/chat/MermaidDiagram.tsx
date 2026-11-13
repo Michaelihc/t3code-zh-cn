@@ -308,7 +308,7 @@ function DiagramError({
         <p className="m-0 text-xs text-destructive">Unable to render diagram: {message}</p>
         {onRetry ? (
           <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
-            {translateWebSource(translationLocale, "Retry")}{" "}
+            {translateWebSource(translationLocale, "Retry")}
           </Button>
         ) : null}
       </div>

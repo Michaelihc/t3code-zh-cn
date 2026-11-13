@@ -49,7 +49,7 @@ export function KeybindingsConfigWarning({
             );
           }}
         >
-          {translateWebSource(translationLocale, "Open keybindings.json")}{" "}
+          {translateWebSource(translationLocale, "Open keybindings.json")}
         </Button>
       </span>
     </>

@@ -79,7 +79,7 @@ export function LocalEnvironmentSetting() {
           {error ? <p className="px-6 pb-4 text-sm text-destructive">{error}</p> : null}
           <AlertDialogFooter>
             <AlertDialogClose disabled={isUpdating} render={<Button variant="outline" />}>
-              {translateWebSource(translationLocale, "Cancel")}{" "}
+              {translateWebSource(translationLocale, "Cancel")}
             </AlertDialogClose>
             <Button
               variant={enabled ? "destructive" : "default"}
@@ -89,7 +89,7 @@ export function LocalEnvironmentSetting() {
               {isUpdating ? (
                 <>
                   <Spinner size="sm" />
-                  {translateWebSource(translationLocale, "Restarting…")}{" "}
+                  {translateWebSource(translationLocale, "Restarting…")}
                 </>
               ) : enabled ? (
                 "Restart and turn off"

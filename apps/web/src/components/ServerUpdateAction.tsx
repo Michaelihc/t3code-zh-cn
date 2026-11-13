@@ -344,7 +344,7 @@ export function ServerUpdateAction({
         {translateWebSource(
           translationLocale,
           "Update the desktop app on that machine to update this server.",
-        )}{" "}
+        )}
       </span>
     );
   }

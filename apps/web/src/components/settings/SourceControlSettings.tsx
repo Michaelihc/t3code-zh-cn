@@ -411,7 +411,7 @@ function EmptySourceControlDiscovery({
         <EmptyContent>
           <Button size="sm" variant="outline" onClick={onScan} disabled={isPending}>
             <RefreshIcon size="sm" refreshing={isPending} />
-            {translateWebSource(translationLocale, "Scan")}{" "}
+            {translateWebSource(translationLocale, "Scan")}
           </Button>
         </EmptyContent>
       </Empty>

@@ -106,7 +106,7 @@ function EnvironmentSecretProviders({
           !readOnly ? (
             <Button size="xs" variant="outline" onClick={() => setDialog({ mode: "add" })}>
               <PlusIcon className="size-3" aria-hidden />
-              {translateWebSource(translationLocale, "Add provider")}{" "}
+              {translateWebSource(translationLocale, "Add provider")}
             </Button>
           ) : null
         }
@@ -164,7 +164,7 @@ function EnvironmentSecretProviders({
                           variant="ghost"
                           onClick={() => setDialog({ mode: "edit", id })}
                         >
-                          {translateWebSource(translationLocale, "Edit")}{" "}
+                          {translateWebSource(translationLocale, "Edit")}
                         </Button>
                       ) : null}
                       <RemoveSecretProviderButton
@@ -210,7 +210,7 @@ function RemoveSecretProviderButton({
   return (
     <>
       <Button size="xs" variant="ghost" onClick={() => setOpen(true)}>
-        {translateWebSource(translationLocale, "Remove")}{" "}
+        {translateWebSource(translationLocale, "Remove")}
       </Button>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogPopup>

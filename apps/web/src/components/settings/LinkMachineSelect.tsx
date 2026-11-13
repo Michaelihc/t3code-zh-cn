@@ -72,7 +72,7 @@ export function LinkMachineSelect({
   return (
     <div className="space-y-1.5">
       <span id={labelId} className="block text-xs font-medium text-foreground">
-        {translateWebSource(translationLocale, "Machine")}{" "}
+        {translateWebSource(translationLocale, "Machine")}
       </span>
       <Select
         value={value}

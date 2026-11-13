@@ -312,7 +312,7 @@ function PullRequestAuthorChoices({
         <MenuRadioItem value="">
           <span className="flex min-w-0 items-center gap-2">
             <LayersIcon aria-hidden className="size-3.5" />
-            {translateWebSource(translationLocale, "Anyone")}{" "}
+            {translateWebSource(translationLocale, "Anyone")}
           </span>
         </MenuRadioItem>
         {visible.map((option) => (

@@ -272,12 +272,12 @@ export function DeviceSetup(props: {
             disabled={busy || pending !== null}
             onClick={() => setStep(step - 1)}
           >
-            {translateWebSource(translationLocale, "Back")}{" "}
+            {translateWebSource(translationLocale, "Back")}
           </Button>
         )}
         {step < 2 ? (
           <Button disabled={!ready || pending !== null} onClick={() => setStep(step + 1)}>
-            {translateWebSource(translationLocale, "Continue")}{" "}
+            {translateWebSource(translationLocale, "Continue")}
           </Button>
         ) : (
           <Button

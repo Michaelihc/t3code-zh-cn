@@ -159,7 +159,7 @@ export function TextGeneratorsSettings({
                           Show models
                         </MenuItem>
                         <MenuItem variant="destructive" onClick={() => setRemoving(id)}>
-                          {translateWebSource(translationLocale, "Remove")}{" "}
+                          {translateWebSource(translationLocale, "Remove")}
                         </MenuItem>
                       </MenuPopup>
                     </Menu>
@@ -227,7 +227,7 @@ export function TextGeneratorsSettings({
                 setRemoving(null);
               }}
             >
-              {translateWebSource(translationLocale, "Remove")}{" "}
+              {translateWebSource(translationLocale, "Remove")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>
@@ -479,7 +479,7 @@ function TextGeneratorWizard({
           leading={
             step > 0 ? (
               <Button variant="ghost" onClick={() => setStep(0)}>
-                {translateWebSource(translationLocale, "Back")}{" "}
+                {translateWebSource(translationLocale, "Back")}
               </Button>
             ) : null
           }
@@ -487,7 +487,7 @@ function TextGeneratorWizard({
           {step === 0 ? (
             <>
               <Button variant="outline" onClick={onClose}>
-                {translateWebSource(translationLocale, "Cancel")}{" "}
+                {translateWebSource(translationLocale, "Cancel")}
               </Button>
               <Button onClick={() => void connect()} disabled={!canConnect || checking}>
                 {checking ? <Spinner /> : null}
@@ -497,7 +497,7 @@ function TextGeneratorWizard({
           ) : (
             // Connect's button unmounts here; without this, focus lands on the step list.
             <Button autoFocus onClick={onClose}>
-              {translateWebSource(translationLocale, "Done")}{" "}
+              {translateWebSource(translationLocale, "Done")}
             </Button>
           )}
         </WizardFooter>
@@ -760,7 +760,7 @@ function TextGeneratorModelsDialog({
             onClick={() => void refresh()}
           >
             <RefreshIcon refreshing={refreshing} />
-            {translateWebSource(translationLocale, "Refresh")}{" "}
+            {translateWebSource(translationLocale, "Refresh")}
           </Button>
           <Button onClick={onClose}>{translateWebSource(translationLocale, "Done")}</Button>
         </DialogFooter>

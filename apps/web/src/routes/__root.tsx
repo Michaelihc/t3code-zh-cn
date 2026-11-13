@@ -247,10 +247,10 @@ function RootRouteErrorView({ error }: ErrorComponentProps) {
 
       <div className="mt-5 flex flex-wrap gap-2">
         <Button size="sm" onClick={() => void router.invalidate()}>
-          {translateWebSource(translationLocale, "Try again")}{" "}
+          {translateWebSource(translationLocale, "Try again")}
         </Button>
         <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
-          {translateWebSource(translationLocale, "Reload app")}{" "}
+          {translateWebSource(translationLocale, "Reload app")}
         </Button>
         <CopyErrorButton report={report} />
       </div>

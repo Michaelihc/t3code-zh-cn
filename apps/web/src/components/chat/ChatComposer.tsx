@@ -84,7 +84,6 @@ import {
   extendReplacementRangeForTrailingSpace,
   replaceTextRange,
 } from "../../composer-logic";
-import { DEFAULT_COMPOSER_PLACEHOLDER } from "../../composerPlaceholder";
 import { deriveComposerSendState, getAntigravitySendBlockReason } from "../ChatView.logic";
 import {
   dataTransferHasComposerMention,
@@ -3505,7 +3504,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                             ? "Choose a project above to start a thread"
                             : showProviderUnavailable
                               ? "Enable a provider in Settings to send a message"
-                              : (offeredPromptSuggestion ?? DEFAULT_COMPOSER_PLACEHOLDER)
+                              : (offeredPromptSuggestion ?? t("composer.placeholder.default"))
                     }
                     placeholderSuffix={
                       offeredPromptSuggestion !== null ? (

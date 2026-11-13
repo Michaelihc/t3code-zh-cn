@@ -146,7 +146,7 @@ export function ProjectActionsSettings() {
                       {translateWebSource(
                         translationLocale,
                         "Add actions declared by this checkout without editing them first.",
-                      )}{" "}
+                      )}
                     </p>
                   </MenuGroup>
                   <MenuSeparator />
@@ -174,7 +174,7 @@ export function ProjectActionsSettings() {
               onClick={() => setRequest({ scriptId: null, initial: EMPTY_PROJECT_SCRIPT_INPUT })}
             >
               <PlusIcon className="size-3.5" />
-              {translateWebSource(translationLocale, "Add action")}{" "}
+              {translateWebSource(translationLocale, "Add action")}
             </Button>
           </div>
         }

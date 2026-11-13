@@ -41,7 +41,7 @@ export function PullRequestsUnavailableState({
               aria-busy={refreshing}
             >
               <RefreshIcon size="sm" refreshing={refreshing} />
-              {t("pullRequests.unavailable.retry")}{" "}
+              {t("pullRequests.unavailable.retry")}
             </Button>
           ) : null}
           {host ? (

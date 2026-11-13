@@ -178,7 +178,7 @@ export function SourceControlAppSignInSettings({
       );
     action = (
       <Button size="xs" variant="outline" disabled={!canSignIn} onClick={() => void signOut()}>
-        {translateWebSource(translationLocale, "Sign out")}{" "}
+        {translateWebSource(translationLocale, "Sign out")}
       </Button>
     );
   } else if (waiting !== null) {
@@ -192,7 +192,7 @@ export function SourceControlAppSignInSettings({
           void cancel({ environmentId, input: { provider: definition.kind, host } });
         }}
       >
-        {translateWebSource(translationLocale, "Cancel")}{" "}
+        {translateWebSource(translationLocale, "Cancel")}
       </Button>
     );
   } else {

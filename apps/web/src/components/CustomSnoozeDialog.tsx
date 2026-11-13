@@ -248,7 +248,7 @@ function CustomSnoozeDialog() {
               Edit snooze options
             </Button>
             <Button type="button" variant="outline" onClick={() => finish(null)}>
-              {translateWebSource(translationLocale, "Cancel")}{" "}
+              {translateWebSource(translationLocale, "Cancel")}
             </Button>
             <Button type="submit">{translateWebSource(translationLocale, "Snooze")}</Button>
           </DialogFooter>

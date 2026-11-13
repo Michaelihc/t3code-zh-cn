@@ -126,7 +126,7 @@ function CheckoutGroupingSelect({ member }: { member: SidebarProjectGroupMember 
       </SelectTrigger>
       <SelectPopup align="end" alignItemWithTrigger={false}>
         <SelectItem hideIndicator value="inherit">
-          {translateWebSource(translationLocale, "Use global default")}{" "}
+          {translateWebSource(translationLocale, "Use global default")}
         </SelectItem>
         <SelectItem hideIndicator value="repository">
           {PROJECT_GROUPING_MODE_LABELS.repository}
@@ -434,7 +434,7 @@ function ProjectDetail({
           onClick={() => void removeMembers([member])}
           aria-label={`Remove checkout ${member.workspaceRoot}`}
         >
-          {translateWebSource(translationLocale, "Remove")}{" "}
+          {translateWebSource(translationLocale, "Remove")}
         </Button>
       ) : null}
     </div>

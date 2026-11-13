@@ -1217,7 +1217,7 @@ export function PullRequestsPage() {
             {translateWebSource(translationLocale, "Showing the last pull requests loaded.")}
           </span>
           <Button size="xs" variant="outline" onClick={() => listQuery.refresh()}>
-            {translateWebSource(translationLocale, "Retry")}{" "}
+            {translateWebSource(translationLocale, "Retry")}
           </Button>
         </div>
       ) : null}
@@ -1235,7 +1235,7 @@ export function PullRequestsPage() {
               onClick={loadMore}
               disabled={listQuery.isPending || showingCarried}
             >
-              {translateWebSource(translationLocale, "Load more pull requests")}{" "}
+              {translateWebSource(translationLocale, "Load more pull requests")}
             </Button>
           ) : (
             <span>

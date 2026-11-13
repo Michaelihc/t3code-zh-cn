@@ -118,7 +118,7 @@ export function PullRequestTitleEditor({
           disabled={titleSaving}
           onClick={() => setTitleScope(null)}
         >
-          {translateWebSource(translationLocale, "Cancel")}{" "}
+          {translateWebSource(translationLocale, "Cancel")}
         </Button>
         <Button
           size="xs"

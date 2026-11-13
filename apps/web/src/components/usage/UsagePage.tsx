@@ -1337,7 +1337,7 @@ function UsageProviderFilter({
           closeOnClick={false}
           onCheckedChange={(checked) => onChange(checked ? [] : PROVIDER_ORDER)}
         >
-          {translateWebSource(translationLocale, "All providers")}{" "}
+          {translateWebSource(translationLocale, "All providers")}
         </MenuCheckboxItem>
         <MenuSeparator />
         {PROVIDER_ORDER.map((provider) => (

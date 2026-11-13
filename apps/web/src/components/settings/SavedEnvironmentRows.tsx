@@ -569,7 +569,7 @@ function ConfiguredCloudLinkRow({
   const signedOut = isSignedIn === false;
   const signInButton = (
     <Button size="sm" variant="outline" onClick={openAuthPrompt}>
-      {translateWebSource(translationLocale, "Sign in")}{" "}
+      {translateWebSource(translationLocale, "Sign in")}
     </Button>
   );
   const refreshLinkState = useEffectEvent(cloudLinkState.refresh);
@@ -595,7 +595,7 @@ function ConfiguredCloudLinkRow({
           rel="noreferrer"
           className="underline underline-offset-2"
         >
-          {translateWebSource(translationLocale, "More info")}{" "}
+          {translateWebSource(translationLocale, "More info")}
         </a>
       </span>
     ) : null;

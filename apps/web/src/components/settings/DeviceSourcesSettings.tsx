@@ -335,7 +335,7 @@ export function DeviceSourcesSettings(props: {
   const rowActions = (onEdit: () => void, onRemove: () => void, extra?: ReactNode) => (
     <>
       <Button size="sm" variant="outline" disabled={disabled} onClick={onEdit}>
-        {translateWebSource(translationLocale, "Edit")}{" "}
+        {translateWebSource(translationLocale, "Edit")}
       </Button>
       <Menu>
         <MenuTrigger
@@ -348,7 +348,7 @@ export function DeviceSourcesSettings(props: {
         <MenuPopup align="end">
           {extra}
           <MenuItem variant="destructive" onClick={onRemove}>
-            {translateWebSource(translationLocale, "Remove")}{" "}
+            {translateWebSource(translationLocale, "Remove")}
           </MenuItem>
         </MenuPopup>
       </Menu>
@@ -557,7 +557,7 @@ export function DeviceSourcesSettings(props: {
               })
             }
           >
-            {translateWebSource(translationLocale, "EAS Simulator")}{" "}
+            {translateWebSource(translationLocale, "EAS Simulator")}
           </MenuItem>
         ) : null}
         {props.supportsSimlock && simlockEnabled ? (

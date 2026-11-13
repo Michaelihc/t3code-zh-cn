@@ -90,7 +90,7 @@ function GuestLinksRowWithSignIn() {
       description="Share a thread with a guest who watches it live in a browser and sends messages you approve. Sign in to T3 Connect to use guest links."
       control={
         <Button size="sm" variant="outline" onClick={openAuthPrompt}>
-          {translateWebSource(translationLocale, "Sign in")}{" "}
+          {translateWebSource(translationLocale, "Sign in")}
         </Button>
       }
     />
@@ -152,7 +152,7 @@ function LinkedEnvironmentsRow() {
           Let agents here work on your other machines, and theirs here. Turn it on for each machine,
           then link them in{" "}
           <Link to="/settings/connections" className="underline underline-offset-2">
-            {translateWebSource(translationLocale, "Connections")}{" "}
+            {translateWebSource(translationLocale, "Connections")}
           </Link>
           . While off, nothing new starts over a link; running tasks finish.
         </>
@@ -216,7 +216,7 @@ function SimlockHostsRow() {
           </a>{" "}
           pool, added in{" "}
           <Link to="/settings/devices" className="underline underline-offset-2">
-            {translateWebSource(translationLocale, "Devices")}{" "}
+            {translateWebSource(translationLocale, "Devices")}
           </Link>
           . An alpha that may change or break. T3 Code never installs Simlock.
         </>

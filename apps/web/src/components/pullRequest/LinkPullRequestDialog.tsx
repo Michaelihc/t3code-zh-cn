@@ -164,7 +164,7 @@ function LinkPullRequestDialog({
             onClick={() => onOpenChange(false)}
             disabled={pending}
           >
-            {translateWebSource(translationLocale, "Cancel")}{" "}
+            {translateWebSource(translationLocale, "Cancel")}
           </Button>
           <Button
             type="button"

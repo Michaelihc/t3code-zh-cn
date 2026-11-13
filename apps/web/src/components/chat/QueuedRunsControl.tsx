@@ -305,7 +305,7 @@ export function QueuedRunsControl({
                 {item.pending ? (
                   <span className="flex items-center gap-1 px-1">
                     <Clock3Icon aria-hidden className="size-3" />
-                    {translateWebSource(translationLocale, "Saving")}{" "}
+                    {translateWebSource(translationLocale, "Saving")}
                   </span>
                 ) : null}
                 {isEditing ? (
@@ -317,7 +317,7 @@ export function QueuedRunsControl({
                       aria-label="Cancel editing queued message"
                       onClick={props.onCancelEdit}
                     >
-                      {translateWebSource(translationLocale, "Cancel")}{" "}
+                      {translateWebSource(translationLocale, "Cancel")}
                     </Button>
                   </>
                 ) : (
@@ -514,7 +514,7 @@ function QueuedMessage(props: {
           <span className="me-1 flex items-center gap-2 px-1 opacity-0 transition-opacity duration-200 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/queued:opacity-100">
             {attribution === "agent" && senderThreadId ? (
               <InlineButton tone="muted" onClick={() => props.onOpenThread(senderThreadId)}>
-                {translateWebSource(translationLocale, "Open thread")}{" "}
+                {translateWebSource(translationLocale, "Open thread")}
               </InlineButton>
             ) : null}
             {scheduledTaskId ? (

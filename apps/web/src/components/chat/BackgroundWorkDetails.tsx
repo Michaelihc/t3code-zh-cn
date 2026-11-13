@@ -88,7 +88,7 @@ export function BackgroundWorkDetails(props: {
                         props.onOpenThread(childThreadId);
                       }}
                     >
-                      {translateWebSource(translationLocale, "Open thread")}{" "}
+                      {translateWebSource(translationLocale, "Open thread")}
                     </InlineButton>
                   ) : null}
                 </section>

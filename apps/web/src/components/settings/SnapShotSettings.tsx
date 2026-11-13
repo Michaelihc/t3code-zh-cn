@@ -454,7 +454,7 @@ export function SnapShotSettings() {
                               setShortcutCheck({ status: "idle", availability: null });
                             }}
                           >
-                            {translateWebSource(translationLocale, "Cancel")}{" "}
+                            {translateWebSource(translationLocale, "Cancel")}
                           </Button>
                         </>
                       ) : state?.mode === "portal" &&
@@ -502,7 +502,7 @@ export function SnapShotSettings() {
                         value={soundSelection}
                       >
                         <MenuRadioItem closeOnClick value="off">
-                          {translateWebSource(translationLocale, "Off")}{" "}
+                          {translateWebSource(translationLocale, "Off")}
                         </MenuRadioItem>
                         <div className={soundOptionRowClassName}>
                           <MenuRadioItem closeOnClick value="soft-pop">

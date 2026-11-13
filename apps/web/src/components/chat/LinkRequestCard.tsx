@@ -142,7 +142,7 @@ function PendingLinkRequest(props: {
             disabled={declining}
             onClick={() => void decline()}
           >
-            {translateWebSource(translationLocale, "Decline")}{" "}
+            {translateWebSource(translationLocale, "Decline")}
           </Button>
           <Button type="button" size="xs" disabled={declining} onClick={() => setOpen(true)}>
             {picksMachine(item) ? "Choose machine…" : "Review link…"}
@@ -372,7 +372,7 @@ function LinkRequestDialog(props: {
                     {canMint ? null : (
                       <label className="block space-y-1.5">
                         <span className="block text-xs font-medium text-foreground">
-                          {translateWebSource(translationLocale, "Pairing code")}{" "}
+                          {translateWebSource(translationLocale, "Pairing code")}
                         </span>
                         <Input
                           value={pairingCode}
@@ -418,11 +418,11 @@ function LinkRequestDialog(props: {
                 setError(null);
               }}
             >
-              {translateWebSource(translationLocale, "Back")}{" "}
+              {translateWebSource(translationLocale, "Back")}
             </Button>
           ) : (
             <Button variant="outline" type="button" disabled={busy} onClick={close}>
-              {translateWebSource(translationLocale, "Cancel")}{" "}
+              {translateWebSource(translationLocale, "Cancel")}
             </Button>
           )}
           <Button
@@ -450,7 +450,7 @@ function MachinePicker(props: {
   return (
     <div className="space-y-2">
       <span id={labelId} className="block text-xs font-medium">
-        {translateWebSource(translationLocale, "Machine")}{" "}
+        {translateWebSource(translationLocale, "Machine")}
       </span>
       <RadioGroup
         aria-labelledby={labelId}

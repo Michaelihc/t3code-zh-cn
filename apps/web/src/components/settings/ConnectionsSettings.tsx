@@ -1504,7 +1504,7 @@ function ConnectionsSettingsContent({
                   {isUpdatingTailscaleServe ? (
                     <>
                       <Spinner size="sm" />
-                      {translateWebSource(translationLocale, "Restarting…")}{" "}
+                      {translateWebSource(translationLocale, "Restarting…")}
                     </>
                   ) : (
                     t("connections.tailscale.restartDisable")
@@ -1580,7 +1580,7 @@ function ConnectionsSettingsContent({
                   {isUpdatingTailscaleServe ? (
                     <>
                       <Spinner size="sm" />
-                      {translateWebSource(translationLocale, "Restarting…")}{" "}
+                      {translateWebSource(translationLocale, "Restarting…")}
                     </>
                   ) : (
                     t("common.enable")

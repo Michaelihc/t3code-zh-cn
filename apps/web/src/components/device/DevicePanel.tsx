@@ -289,7 +289,7 @@ export function DevicePanel(props: {
             >
               {loadError !== null ? (
                 <Button size="sm" variant="outline" onClick={refreshState}>
-                  {translateWebSource(translationLocale, "Retry")}{" "}
+                  {translateWebSource(translationLocale, "Retry")}
                 </Button>
               ) : null}
             </DeviceLoadingView>
@@ -467,7 +467,7 @@ function DeviceDiscoveryWarning(props: {
             aria-label={`Details for ${props.label}`}
             render={<Button size="micro" variant="ghost" />}
           >
-            {translateWebSource(translationLocale, "Details")}{" "}
+            {translateWebSource(translationLocale, "Details")}
           </PopoverTrigger>
           <PopoverPopup side="bottom" align="end" width="lg" padding="compact">
             <p className="whitespace-pre-wrap break-words font-mono text-xs text-muted-foreground">

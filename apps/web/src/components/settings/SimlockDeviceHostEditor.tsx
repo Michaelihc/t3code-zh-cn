@@ -226,11 +226,11 @@ export function SimlockDeviceHostEditor(props: {
           </DialogPanel>
           <DialogFooter>
             <Button type="button" variant="ghost" disabled={props.busy} onClick={props.onClose}>
-              {translateWebSource(translationLocale, "Cancel")}{" "}
+              {translateWebSource(translationLocale, "Cancel")}
             </Button>
             <Button type="submit" disabled={props.busy || problem !== null}>
               {props.busy ? <Spinner size="xs" /> : null}{" "}
-              {translateWebSource(translationLocale, "Save host")}{" "}
+              {translateWebSource(translationLocale, "Save host")}
             </Button>
           </DialogFooter>
         </form>

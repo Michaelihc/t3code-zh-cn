@@ -93,7 +93,7 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
               )
             }
           >
-            {translateWebSource(translationLocale, "Cancel")}{" "}
+            {translateWebSource(translationLocale, "Cancel")}
           </Button>
         ),
       };
@@ -112,7 +112,7 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
             variant="ghost"
             onClick={() => void removeClonedProject({ environmentId, projectId })}
           >
-            {translateWebSource(translationLocale, "Remove project")}{" "}
+            {translateWebSource(translationLocale, "Remove project")}
           </Button>
           <Button
             size="xs"
@@ -123,7 +123,7 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
               )
             }
           >
-            {translateWebSource(translationLocale, "Retry")}{" "}
+            {translateWebSource(translationLocale, "Retry")}
           </Button>
         </>
       ),

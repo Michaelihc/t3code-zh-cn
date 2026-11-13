@@ -214,7 +214,7 @@ export function CaptureShortcutConfig({
               </Button>
             ) : null}
             <Button variant="ghost" disabled={actionBusy} onClick={() => setPreview(null)}>
-              {translateWebSource(translationLocale, "Cancel")}{" "}
+              {translateWebSource(translationLocale, "Cancel")}
             </Button>
           </div>
         </>

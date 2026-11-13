@@ -147,7 +147,7 @@ export function FileSurfaceFailure(props: {
           onClick={props.onRetry}
           className="rounded-md border border-input px-2.5 py-1 text-xs text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
-          {translateWebSource(translationLocale, "Try again")}{" "}
+          {translateWebSource(translationLocale, "Try again")}
         </button>
       ) : null}
     </div>

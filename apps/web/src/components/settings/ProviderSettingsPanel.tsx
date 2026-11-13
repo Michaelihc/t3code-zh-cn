@@ -1084,7 +1084,7 @@ export function EnvironmentProviderSettings({
                     onClick={() => setIsAddInstanceDialogOpen(true)}
                   >
                     <PlusIcon className="size-4 shrink-0" />
-                    {translateWebSource(translationLocale, "Add provider")}{" "}
+                    {translateWebSource(translationLocale, "Add provider")}
                   </button>
                 ) : null}
               </div>

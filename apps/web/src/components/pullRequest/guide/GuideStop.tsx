@@ -263,9 +263,7 @@ export function GuideStop({
                       aria-hidden
                       className="size-3.5 h-lh shrink-0 text-muted-foreground"
                     />
-                    <span className="sr-only">
-                      {translateWebSource(uiLocale, "Ask an agent:")}{" "}
-                    </span>
+                    <span className="sr-only">{translateWebSource(uiLocale, "Ask an agent:")}</span>
                     <span>
                       <GuideProse text={question} plain />
                     </span>

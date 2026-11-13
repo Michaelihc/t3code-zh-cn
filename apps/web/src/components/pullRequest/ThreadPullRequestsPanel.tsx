@@ -327,11 +327,11 @@ function LinkRowImpl({
           >
             <MenuItem onClick={() => void writeTextToClipboard(link.url, "link")}>
               <LinkIcon className="size-3.5" />
-              {translateWebSource(translationLocale, "Copy link")}{" "}
+              {translateWebSource(translationLocale, "Copy link")}
             </MenuItem>
             <MenuItem onClick={(event) => openPrLink(event, link.url, threadRef)}>
               <ArrowUpRightIcon className="size-3.5" />
-              {translateWebSource(translationLocale, "Open")}{" "}
+              {translateWebSource(translationLocale, "Open")}
             </MenuItem>
             {onSetWatching !== null && open ? (
               <MenuItem onClick={() => onSetWatching(link, !watching)}>

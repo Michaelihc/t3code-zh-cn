@@ -298,7 +298,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
               onClick={() => onRetryWorkspacePreparation(retryRunId)}
             >
               <RotateCcwIcon aria-hidden />
-              {translateWebSource(translationLocale, "Retry")}{" "}
+              {translateWebSource(translationLocale, "Retry")}
             </Button>
           </div>
         ) : null}

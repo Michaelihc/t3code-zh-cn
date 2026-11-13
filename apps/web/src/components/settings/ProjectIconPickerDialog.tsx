@@ -249,7 +249,7 @@ function ProjectIconPickerBody({
             </ScrollArea>
             <div>
               <div className="mb-2 text-xs font-medium text-muted-foreground">
-                {translateWebSource(translationLocale, "Or paste any emoji")}{" "}
+                {translateWebSource(translationLocale, "Or paste any emoji")}
               </div>
               <Input
                 value={customEmoji}
@@ -268,10 +268,10 @@ function ProjectIconPickerBody({
       </DialogPanel>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>
-          {translateWebSource(translationLocale, "Cancel")}{" "}
+          {translateWebSource(translationLocale, "Cancel")}
         </Button>
         <Button onClick={save} disabled={mode === "monogram" && !validMonogram}>
-          {translateWebSource(translationLocale, "Save icon")}{" "}
+          {translateWebSource(translationLocale, "Save icon")}
         </Button>
       </DialogFooter>
     </>

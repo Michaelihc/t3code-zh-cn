@@ -502,7 +502,7 @@ export function ThreadDetailsPrRow({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogClose render={<Button variant="outline" size="sm" />}>
-                {translateWebSource(translationLocale, "Cancel")}{" "}
+                {translateWebSource(translationLocale, "Cancel")}
               </AlertDialogClose>
               <Button
                 size="sm"
@@ -512,7 +512,7 @@ export function ThreadDetailsPrRow({
                   void perform("merge", selectedMergeMethod);
                 }}
               >
-                {translateWebSource(translationLocale, "Merge")}{" "}
+                {translateWebSource(translationLocale, "Merge")}
               </Button>
             </AlertDialogFooter>
           </AlertDialogPopup>

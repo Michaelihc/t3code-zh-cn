@@ -277,7 +277,7 @@ export function WelcomePage({
         <div className="min-h-0 flex-1 overflow-y-auto scrollbar-gutter-both">
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-6 pt-12 pb-8 sm:pt-20">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              {translateWebSource(translationLocale, "Welcome to T3 Code")}{" "}
+              {translateWebSource(translationLocale, "Welcome to T3 Code")}
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
               {translateWebSource(translationLocale, "Setting up")}{" "}
@@ -302,7 +302,7 @@ export function WelcomePage({
                 <span />
               ) : (
                 <Button variant="ghost-muted" disabled={isImporting} onClick={start}>
-                  {translateWebSource(translationLocale, "Start without an agent")}{" "}
+                  {translateWebSource(translationLocale, "Start without an agent")}
                 </Button>
               )}
               <div className="flex items-center gap-3">
@@ -575,7 +575,7 @@ function AgentsSection({
           disabled={!canManageProviders || serverConfig === null}
           onClick={() => void turnOn(provider)}
         >
-          {translateWebSource(translationLocale, "Turn on")}{" "}
+          {translateWebSource(translationLocale, "Turn on")}
         </Button>
       );
     }
@@ -591,7 +591,7 @@ function AgentsSection({
           aria-expanded={open}
           onClick={() => setCodexSetupId(open ? null : provider.instanceId)}
         >
-          {translateWebSource(translationLocale, "Set up")}{" "}
+          {translateWebSource(translationLocale, "Set up")}
         </Button>
       );
     }
@@ -692,7 +692,7 @@ function AgentsSection({
                 <ACPRegistryIcon className="size-4" />
               </RowIcon>
               <span className="min-w-0 flex-1 text-sm text-muted-foreground">
-                {translateWebSource(translationLocale, "More agents in the ACP Registry")}{" "}
+                {translateWebSource(translationLocale, "More agents in the ACP Registry")}
               </span>
               <Button
                 size="xs"
@@ -700,7 +700,7 @@ function AgentsSection({
                 disabled={!canManageProviders}
                 onClick={() => setAddingProvider(true)}
               >
-                {translateWebSource(translationLocale, "Browse")}{" "}
+                {translateWebSource(translationLocale, "Browse")}
               </Button>
             </div>
           ) : null}
@@ -805,7 +805,7 @@ function ProjectsSection({
   }
   const retry = (
     <Button variant="ghost" size="sm" onClick={scan.refresh}>
-      {translateWebSource(translationLocale, "Retry")}{" "}
+      {translateWebSource(translationLocale, "Retry")}
     </Button>
   );
   if (scan.error !== null && candidates.length === 0) {
@@ -902,7 +902,7 @@ function ProjectsSection({
                 disabled={selected.length === candidates.length}
                 onClick={() => setSelectedKeys(new Set(allKeys))}
               >
-                {translateWebSource(translationLocale, "Select all")}{" "}
+                {translateWebSource(translationLocale, "Select all")}
               </Button>
               <Button
                 variant="ghost"
@@ -910,7 +910,7 @@ function ProjectsSection({
                 disabled={selected.length === 0}
                 onClick={() => setSelectedKeys(new Set())}
               >
-                {translateWebSource(translationLocale, "Select none")}{" "}
+                {translateWebSource(translationLocale, "Select none")}
               </Button>
             </div>
           </div>
@@ -959,7 +959,7 @@ function PhoneSection({ environmentId }: { readonly environmentId: EnvironmentId
             <SmartphoneIcon className="size-4" />
           </RowIcon>
           <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
-            {translateWebSource(translationLocale, "Use T3 Code on your phone")}{" "}
+            {translateWebSource(translationLocale, "Use T3 Code on your phone")}
           </span>
           <CollapsibleTrigger render={<Button variant="ghost-muted" size="xs" />}>
             {open ? "Hide" : translateWebSource(translationLocale, "Set up")}
@@ -1055,7 +1055,7 @@ function PhoneConnectLink({ environmentId }: { readonly environmentId: Environme
         {translateWebSource(
           translationLocale,
           "Your phone can reach this computer. Sign in to the app with the same account.",
-        )}{" "}
+        )}
       </p>
     );
   }
@@ -1065,7 +1065,7 @@ function PhoneConnectLink({ environmentId }: { readonly environmentId: Environme
         {translateWebSource(
           translationLocale,
           "T3 Connect is on for this computer. Sign in to the app with the same account.",
-        )}{" "}
+        )}
       </p>
     );
   }
@@ -1088,10 +1088,10 @@ function PhoneConnectLink({ environmentId }: { readonly environmentId: Environme
         {translateWebSource(
           translationLocale,
           "Sign in to T3 Connect here, then in the app with the same account.",
-        )}{" "}
+        )}
       </p>
       <Button variant="outline" size="xs" disabled={!isLoaded} onClick={openAuthPrompt}>
-        {translateWebSource(translationLocale, "Sign in to T3 Connect")}{" "}
+        {translateWebSource(translationLocale, "Sign in to T3 Connect")}
       </Button>
     </>
   );
@@ -1244,7 +1244,7 @@ function AgentRow({
         {state === "ready" ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-foreground">
             <CheckIcon className="size-3.5" />
-            {translateWebSource(translationLocale, "Ready")}{" "}
+            {translateWebSource(translationLocale, "Ready")}
           </span>
         ) : state === "checking" ? (
           <span className="text-xs text-muted-foreground">
@@ -1391,11 +1391,11 @@ function AgentInstallTerminal({
                 }
               }}
             >
-              {translateWebSource(translationLocale, "Retry")}{" "}
+              {translateWebSource(translationLocale, "Retry")}
             </Button>
           ) : null}
           <Button size="xs" variant="ghost-muted" onClick={onClose}>
-            {translateWebSource(translationLocale, "Close")}{" "}
+            {translateWebSource(translationLocale, "Close")}
           </Button>
         </div>
       </div>
@@ -1951,7 +1951,7 @@ function CliPathSetup() {
       </p>
       {setup.added ? null : (
         <Button size="xs" variant="outline" disabled={busy} onClick={() => run("addToPath")}>
-          {translateWebSource(translationLocale, "Add to PATH")}{" "}
+          {translateWebSource(translationLocale, "Add to PATH")}
         </Button>
       )}
     </div>

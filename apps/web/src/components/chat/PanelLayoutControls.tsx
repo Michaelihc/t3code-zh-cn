@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import {
   PanelBottomIcon,
   PanelRightIcon,
@@ -53,12 +55,13 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
   onToggleThreadPanel,
   onToggleRightPanel,
 }: PanelLayoutControlsProps) {
+  const { locale } = useI18n();
   const threadPanelToggle = (
     <Toggle
       className="relative shrink-0 [-webkit-app-region:no-drag]"
       pressed={threadPanelOpen}
       onPressedChange={threadPanelPresentation === "popover" ? undefined : onToggleThreadPanel}
-      aria-label="Toggle thread details panel"
+      aria-label={translateWebSource(locale, "Toggle thread details panel")}
       variant="ghost"
       size="sm"
     >
@@ -94,7 +97,7 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
               className="shrink-0 [-webkit-app-region:no-drag]"
               pressed={terminalOpen}
               onPressedChange={onToggleTerminal}
-              aria-label="Toggle terminal drawer"
+              aria-label={translateWebSource(locale, "Toggle terminal drawer")}
               variant="ghost"
               size="sm"
               disabled={!terminalAvailable}
@@ -116,7 +119,7 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
               className="shrink-0 [-webkit-app-region:no-drag]"
               pressed={rightPanelOpen}
               onPressedChange={onToggleRightPanel}
-              aria-label="Toggle right panel"
+              aria-label={translateWebSource(locale, "Toggle right panel")}
               data-right-panel-toggle
               variant="ghost"
               size="sm"

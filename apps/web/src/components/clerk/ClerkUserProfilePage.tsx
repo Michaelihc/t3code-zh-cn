@@ -60,7 +60,7 @@ export function ClerkUserProfileRefreshButton({
       onClick={onClick}
     >
       <RefreshIcon aria-hidden="true" size="sm" refreshing={isPending} />
-      {translateWebSource(translationLocale, "Refresh")}{" "}
+      {translateWebSource(translationLocale, "Refresh")}
     </Button>
   );
 }

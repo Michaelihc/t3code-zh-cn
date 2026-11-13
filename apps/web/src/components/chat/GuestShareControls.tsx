@@ -149,7 +149,7 @@ function GuestShareDialog({
         <DialogFooter>
           {state.status === "created" ? (
             <Button size="sm" onClick={onClose}>
-              {translateWebSource(translationLocale, "Done")}{" "}
+              {translateWebSource(translationLocale, "Done")}
             </Button>
           ) : (
             <>
@@ -159,7 +159,7 @@ function GuestShareDialog({
                 onClick={onClose}
                 disabled={state.status === "creating"}
               >
-                {translateWebSource(translationLocale, "Cancel")}{" "}
+                {translateWebSource(translationLocale, "Cancel")}
               </Button>
               <Button
                 size="sm"
@@ -310,7 +310,7 @@ export function GuestPendingMessages({
                   aria-label={`Dismiss message from ${guestName}`}
                   onClick={() => void resolve(message.id, "dismiss")}
                 >
-                  {translateWebSource(translationLocale, "Dismiss")}{" "}
+                  {translateWebSource(translationLocale, "Dismiss")}
                 </Button>
                 <Button
                   size="xs"

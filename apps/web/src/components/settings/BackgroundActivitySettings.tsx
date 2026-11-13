@@ -124,7 +124,7 @@ function BackgroundActivityAdvancedDialog({
             {translateWebSource(
               translationLocale,
               "Tune the shared power policy and the background intervals that feed it.",
-            )}{" "}
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -141,7 +141,7 @@ function BackgroundActivityAdvancedDialog({
                   {translateWebSource(
                     translationLocale,
                     "Controls whether background work may run after a subscribed interval fires.",
-                  )}{" "}
+                  )}
                 </p>
               </div>
               <Select
@@ -188,7 +188,7 @@ function BackgroundActivityAdvancedDialog({
                   {translateWebSource(
                     translationLocale,
                     "Refresh remote branch status in the background.",
-                  )}{" "}
+                  )}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -221,7 +221,7 @@ function BackgroundActivityAdvancedDialog({
                   {translateWebSource(
                     translationLocale,
                     "Refresh provider availability, versions, and auth state. Model catalog updates follow Provider update checks.",
-                  )}{" "}
+                  )}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -254,7 +254,7 @@ function BackgroundActivityAdvancedDialog({
                   {translateWebSource(
                     translationLocale,
                     "Poll host power state while clients are active.",
-                  )}{" "}
+                  )}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -287,7 +287,7 @@ function BackgroundActivityAdvancedDialog({
                   {translateWebSource(
                     translationLocale,
                     "Poll host power state when no foreground client is active.",
-                  )}{" "}
+                  )}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -344,7 +344,7 @@ function BackgroundActivityAdvancedDialog({
             disabled={!canWriteSettings}
             onClick={() => updateSettings(resetBackgroundActivitySettings())}
           >
-            {translateWebSource(translationLocale, "Reset all")}{" "}
+            {translateWebSource(translationLocale, "Reset all")}
           </Button>
           <Button onClick={() => onOpenChange(false)}>
             {translateWebSource(translationLocale, "Done")}

@@ -131,7 +131,7 @@ export function PullRequestCheckoutMenu({
               {translateWebSource(
                 translationLocale,
                 "Its own folder and thread. Nothing you have open moves.",
-              )}{" "}
+              )}
             </span>
           </span>
         </MenuItem>
@@ -438,10 +438,10 @@ export function PullRequestApproveWorkflowsButton({
               <PlayIcon aria-hidden className="size-3.5" />
               <span className="inline-grid">
                 <span aria-hidden className="invisible col-start-1 row-start-1">
-                  {translateWebSource(translationLocale, "Approve workflows to run")}{" "}
+                  {translateWebSource(translationLocale, "Approve workflows to run")}
                 </span>
                 <span aria-hidden className="invisible col-start-1 row-start-1">
-                  {translateWebSource(translationLocale, "Confirm approve?")}{" "}
+                  {translateWebSource(translationLocale, "Confirm approve?")}
                 </span>
                 <span className="col-start-1 row-start-1">
                   {pendingAction === "approve-workflows"

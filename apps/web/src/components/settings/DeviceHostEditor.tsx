@@ -243,7 +243,7 @@ function DeviceHostEditorForm({
                         {result.status === "pending" ? (
                           <>
                             <Spinner size="xs" />{" "}
-                            {translateWebSource(translationLocale, "Checking…")}{" "}
+                            {translateWebSource(translationLocale, "Checking…")}
                           </>
                         ) : result.status === "local" ? (
                           <>
@@ -252,12 +252,12 @@ function DeviceHostEditorForm({
                         ) : result.status === "failed" ? (
                           <>
                             <XIcon className="size-3" />{" "}
-                            {translateWebSource(translationLocale, "Failed")}{" "}
+                            {translateWebSource(translationLocale, "Failed")}
                           </>
                         ) : (
                           <>
                             <CheckIcon className="size-3" />{" "}
-                            {translateWebSource(translationLocale, "Connected")}{" "}
+                            {translateWebSource(translationLocale, "Connected")}
                           </>
                         )}
                       </span>
@@ -284,11 +284,10 @@ function DeviceHostEditorForm({
       </DialogPanel>
       <DialogFooter>
         <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
-          {translateWebSource(translationLocale, "Cancel")}{" "}
+          {translateWebSource(translationLocale, "Cancel")}
         </Button>
         <Button type="submit" disabled={busy || checking || !valid || !draft.label.trim()}>
-          {busy ? <Spinner size="xs" /> : null}{" "}
-          {translateWebSource(translationLocale, "Save host")}{" "}
+          {busy ? <Spinner size="xs" /> : null} {translateWebSource(translationLocale, "Save host")}
         </Button>
       </DialogFooter>
     </form>

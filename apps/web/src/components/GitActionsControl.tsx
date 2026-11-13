@@ -604,7 +604,7 @@ function PublishRepositoryDialog(props: PublishRepositoryDialogProps) {
         <WizardPanel>
           <div className={cn("space-y-2", publishWizardStep !== 0 && "hidden")}>
             <span id="publish-provider-cards-label" className="text-xs font-medium text-foreground">
-              {translateWebSource(translationLocale, "Provider")}{" "}
+              {translateWebSource(translationLocale, "Provider")}
             </span>
             <RadioGroup
               value={publishProvider}
@@ -640,7 +640,7 @@ function PublishRepositoryDialog(props: PublishRepositoryDialogProps) {
                                 openSourceControlSettings();
                               }}
                             >
-                              {translateWebSource(translationLocale, "Setup Required")}{" "}
+                              {translateWebSource(translationLocale, "Setup Required")}
                             </Button>
                           }
                         />
@@ -681,7 +681,7 @@ function PublishRepositoryDialog(props: PublishRepositoryDialogProps) {
                 htmlFor="publish-repository-path"
                 className="text-xs font-medium text-foreground"
               >
-                {translateWebSource(translationLocale, "Repository")}{" "}
+                {translateWebSource(translationLocale, "Repository")}
               </label>
               <div className="flex items-stretch overflow-hidden rounded-md border border-input bg-background focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-ring">
                 <span className="flex shrink-0 items-center gap-1.5 border-r border-input bg-muted/50 px-2.5 font-mono text-xs text-muted-foreground">
@@ -713,7 +713,7 @@ function PublishRepositoryDialog(props: PublishRepositoryDialogProps) {
                 id="publish-visibility-cards-label"
                 className="text-xs font-medium text-foreground"
               >
-                {translateWebSource(translationLocale, "Visibility")}{" "}
+                {translateWebSource(translationLocale, "Visibility")}
               </span>
               <RadioGroup
                 value={publishVisibility}
@@ -779,7 +779,7 @@ function PublishRepositoryDialog(props: PublishRepositoryDialogProps) {
                     publishAdvancedOpen ? "" : "-rotate-90",
                   )}
                 />
-                {translateWebSource(translationLocale, "Advanced")}{" "}
+                {translateWebSource(translationLocale, "Advanced")}
               </button>
               {publishAdvancedOpen ? (
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -800,7 +800,7 @@ function PublishRepositoryDialog(props: PublishRepositoryDialogProps) {
                       id="publish-protocol-label"
                       className="text-xs font-medium text-foreground"
                     >
-                      {translateWebSource(translationLocale, "Protocol")}{" "}
+                      {translateWebSource(translationLocale, "Protocol")}
                     </span>
                     <ToggleGroup
                       value={[publishProtocol]}
@@ -881,7 +881,7 @@ function PublishRepositoryDialog(props: PublishRepositoryDialogProps) {
               </>
             ) : (
               <div className="rounded-md border border-input bg-background px-3 py-2 text-xs text-muted-foreground dark:border-transparent dark:bg-white/[0.035]">
-                {translateWebSource(translationLocale, "Publish result unavailable.")}{" "}
+                {translateWebSource(translationLocale, "Publish result unavailable.")}
               </div>
             )}
           </div>
@@ -912,14 +912,14 @@ function PublishRepositoryDialog(props: PublishRepositoryDialogProps) {
                   disabled={!hasReadyPublishProvider || !selectedPublishProviderReadiness.ready}
                   onClick={() => setPublishWizardStep((step) => Math.min(1, step + 1))}
                 >
-                  {translateWebSource(translationLocale, "Next")}{" "}
+                  {translateWebSource(translationLocale, "Next")}
                 </Button>
               ) : (
                 <Button disabled={!canSubmitPublishRepository} onClick={submitPublishRepository}>
                   {publishRepositoryAction.isPending ? (
                     <>
                       <Spinner size="sm" aria-hidden />
-                      {translateWebSource(translationLocale, "Publishing...")}{" "}
+                      {translateWebSource(translationLocale, "Publishing...")}
                     </>
                   ) : (
                     "Publish"
@@ -1870,7 +1870,7 @@ export default function GitActionsControl({
                 setIsEditingFiles(false);
               }}
             >
-              {translateWebSource(translationLocale, "Cancel")}{" "}
+              {translateWebSource(translationLocale, "Cancel")}
             </Button>
             <Button
               variant="outline"
@@ -1878,14 +1878,14 @@ export default function GitActionsControl({
               disabled={!canChangeThreadBranch || noneSelected}
               onClick={runDialogActionOnNewBranch}
             >
-              {translateWebSource(translationLocale, "Commit on new branch")}{" "}
+              {translateWebSource(translationLocale, "Commit on new branch")}
             </Button>
             <Button
               size="sm"
               disabled={!canWriteSourceControl || noneSelected}
               onClick={runDialogAction}
             >
-              {translateWebSource(translationLocale, "Commit")}{" "}
+              {translateWebSource(translationLocale, "Commit")}
             </Button>
           </DialogFooter>
         </DialogPopup>
@@ -1925,7 +1925,7 @@ export default function GitActionsControl({
               size="sm"
               onClick={() => setPendingDefaultBranchAction(null)}
             >
-              {translateWebSource(translationLocale, "Abort")}{" "}
+              {translateWebSource(translationLocale, "Abort")}
             </Button>
             <Button
               className="w-full max-w-full sm:w-auto"

@@ -375,7 +375,7 @@ function AboutVersionSection() {
                   disabled={updateRun !== null}
                   onClick={() => setSwitchChannel(selectedUpdateChannel)}
                 >
-                  {translateWebSource(translationLocale, "Review")}{" "}
+                  {translateWebSource(translationLocale, "Review")}
                 </Button>
               </>
             ) : (
@@ -798,7 +798,7 @@ function AutoSettleDaysInput({
 }
 
 export function GeneralSettingsPanel() {
-  const { locale } = useI18n();
+  const { locale, appLocale, setAppLocale, t } = useI18n();
   const { locale: translationLocale } = useI18n();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
@@ -808,6 +808,37 @@ export function GeneralSettingsPanel() {
 
   return (
     <SettingsPageContainer>
+      <SettingsSection id="language" title={t("settings.language.title")}>
+        <SettingsRow
+          id={searchableSetting("app-language").id}
+          title={t("settings.language.label")}
+          description={t("settings.language.description")}
+          control={
+            <Select
+              value={appLocale}
+              onValueChange={(value) => {
+                if (value === "zh-CN" || value === "en" || value === "system") setAppLocale(value);
+              }}
+            >
+              <SelectTrigger aria-label={t("settings.language.label")}>
+                <SelectValue>
+                  {appLocale === "zh-CN"
+                    ? t("settings.language.chineseSimplified")
+                    : appLocale === "en"
+                      ? t("settings.language.english")
+                      : t("settings.language.system")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup>
+                <SelectItem value="zh-CN">{t("settings.language.chineseSimplified")}</SelectItem>
+                <SelectItem value="en">{t("settings.language.english")}</SelectItem>
+                <SelectItem value="system">{t("settings.language.system")}</SelectItem>
+              </SelectPopup>
+            </Select>
+          }
+        />
+      </SettingsSection>
+
       <SettingsSection id="notifications" title="Notifications">
         <NotificationSettings />
         <SettingsRow
@@ -889,13 +920,16 @@ export function GeneralSettingsPanel() {
             >
               <SelectTrigger size="sm" className="w-full sm:w-44" aria-label="Project order">
                 <SelectValue>
-                  {SIDEBAR_PROJECT_SORT_ORDER_LABELS[settings.sidebarProjectSortOrder]}
+                  {translateWebSource(
+                    locale,
+                    SIDEBAR_PROJECT_SORT_ORDER_LABELS[settings.sidebarProjectSortOrder],
+                  )}
                 </SelectValue>
               </SelectTrigger>
               <SelectPopup align="end" alignItemWithTrigger={false}>
                 {SidebarProjectSortOrder.literals.map((sortOrder) => (
                   <SelectItem hideIndicator key={sortOrder} value={sortOrder}>
-                    {SIDEBAR_PROJECT_SORT_ORDER_LABELS[sortOrder]}
+                    {translateWebSource(locale, SIDEBAR_PROJECT_SORT_ORDER_LABELS[sortOrder])}
                   </SelectItem>
                 ))}
               </SelectPopup>
@@ -904,7 +938,7 @@ export function GeneralSettingsPanel() {
         />
         <SettingsRow
           {...searchableSetting("working-shelf")}
-          description="Fold working and monitoring threads into a Working section. They return to the top of the inbox when they need you. The boring sidebar in Labs has no Working section."
+          description="Fold working and monitoring threads into a Working section. They return to the top of the inbox when they need your input."
           resetAction={
             settings.sidebarWorkingShelfEnabled !==
             DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled ? (
@@ -2231,7 +2265,7 @@ export function MaintenanceSettingsPanel() {
               size="sm"
               variant="outline"
             >
-              {translateWebSource(translationLocale, "View diagnostics")}{" "}
+              {translateWebSource(translationLocale, "View diagnostics")}
             </Button>
           }
         />
@@ -2289,7 +2323,7 @@ export function AboutSettingsPanel() {
             description="See your agents, import projects, and set up your phone."
             control={
               <Button size="sm" variant="outline" render={<Link to="/welcome" />}>
-                {translateWebSource(translationLocale, "Open")}{" "}
+                {translateWebSource(translationLocale, "Open")}
               </Button>
             }
           />

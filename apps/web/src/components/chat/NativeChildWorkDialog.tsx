@@ -82,7 +82,7 @@ function NativeChildWorkContent(props: {
       </DialogPanel>
       <DialogFooter variant="bare">
         <Button size="sm" variant="outline" disabled={query.isPending} onClick={query.refresh}>
-          {translateWebSource(translationLocale, "Refresh")}{" "}
+          {translateWebSource(translationLocale, "Refresh")}
         </Button>
       </DialogFooter>
     </>

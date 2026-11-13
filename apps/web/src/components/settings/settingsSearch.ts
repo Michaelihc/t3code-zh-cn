@@ -667,6 +667,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     scope: "project-defaults",
   },
   {
+    id: "app-language",
+    title: "Language",
+    to: "/settings/general",
+    searchTerms: ["locale language Chinese 中文 简体中文 语言"],
+  },
+  {
     id: "thread-notifications",
     title: "Thread notifications",
     to: "/settings/general",

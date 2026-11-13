@@ -91,7 +91,7 @@ export function DatabaseStorageNotice({
             size="xs"
             onClick={() => setDismissed((current) => [...current, environmentId])}
           >
-            {translateWebSource(translationLocale, "Dismiss")}{" "}
+            {translateWebSource(translationLocale, "Dismiss")}
           </Button>
         );
         return reclaimable ? (

@@ -283,7 +283,7 @@ export function ComposerAttachmentMediaRow({
                     {translateWebSource(
                       translationLocale,
                       "Draft attachment could not be saved locally and may be lost on navigation.",
-                    )}{" "}
+                    )}
                   </TooltipPopup>
                 </Tooltip>
               )}

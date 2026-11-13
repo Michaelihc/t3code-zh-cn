@@ -849,7 +849,7 @@ export function ServerBrowserSurface(props: {
             />
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => answerFileChooser([])}>
-                {translateWebSource(translationLocale, "Cancel")}{" "}
+                {translateWebSource(translationLocale, "Cancel")}
               </Button>
               <Button size="sm" onClick={() => fileInputRef.current?.click()}>
                 Choose {fileChooser.multiple ? "files" : "file"}
@@ -879,7 +879,7 @@ export function ServerBrowserSurface(props: {
                     size="sm"
                     onClick={() => send({ type: "dialog", accept: false })}
                   >
-                    {translateWebSource(translationLocale, "Dismiss")}{" "}
+                    {translateWebSource(translationLocale, "Dismiss")}
                   </Button>
                   <Button
                     size="sm"
@@ -908,7 +908,7 @@ export function ServerBrowserSurface(props: {
           </p>
           <CommandBlock command={hostSetup.command} className="w-full max-w-md text-left" />
           <Button variant="outline" size="sm" onClick={() => setHostSetup(null)}>
-            {translateWebSource(translationLocale, "Try again")}{" "}
+            {translateWebSource(translationLocale, "Try again")}
           </Button>
         </div>
       ) : null}
@@ -927,7 +927,7 @@ export function ServerBrowserSurface(props: {
               refreshPreviewStreamAccess(environmentId);
             }}
           >
-            {translateWebSource(translationLocale, "Reconnect")}{" "}
+            {translateWebSource(translationLocale, "Reconnect")}
           </Button>
         </div>
       ) : null}

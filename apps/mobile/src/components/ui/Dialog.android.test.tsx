@@ -115,7 +115,7 @@ it("presents a dialog requested before any Host mounted", () => {
 
   const { container } = mountHost();
 
-  expect(container.textContent).toContain("Could not import shared content");
+  expect(container.textContent).toContain("无法导入共享内容");
 });
 
 it("keeps a dialog raised while the activity is replaced", () => {

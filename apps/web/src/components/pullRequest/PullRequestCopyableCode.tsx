@@ -58,7 +58,7 @@ export function PullRequestCopyableCode({
             isCopied ? "opacity-100" : "opacity-0",
           )}
         >
-          {translateWebSource(translationLocale, "Copied")}{" "}
+          {translateWebSource(translationLocale, "Copied")}
         </span>
       </TooltipTrigger>
       <TooltipPopup variant="code" side={tooltipSide}>

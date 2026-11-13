@@ -44,7 +44,7 @@ export function MultipleAccountsNote({
             rel="noreferrer"
             className="underline underline-offset-2 hover:text-foreground"
           >
-            {translateWebSource(translationLocale, "More info")}{" "}
+            {translateWebSource(translationLocale, "More info")}
           </a>
         </p>
       </AlertDescription>

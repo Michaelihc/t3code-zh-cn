@@ -495,7 +495,7 @@ export function DeviceStreamView(props: {
                     session?.reconnect();
                   }}
                 >
-                  {translateWebSource(translationLocale, "Reconnect")}{" "}
+                  {translateWebSource(translationLocale, "Reconnect")}
                 </Button>
               ) : null}
             </DeviceLoadingView>

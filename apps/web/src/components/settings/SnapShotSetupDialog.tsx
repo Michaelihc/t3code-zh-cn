@@ -387,7 +387,7 @@ export function SnapShotSetupDialog({
         <WizardFooter>
           {step !== "access" ? (
             <Button variant="ghost" disabled={busy} onClick={() => changeStep("access")}>
-              {translateWebSource(translationLocale, "Back")}{" "}
+              {translateWebSource(translationLocale, "Back")}
             </Button>
           ) : null}
           <Button variant="ghost" disabled={busy} onClick={() => void onClose(false)}>

@@ -404,7 +404,9 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                     <div
                       key={group.heading ?? index}
                       role="group"
-                      aria-label={group.heading ?? undefined}
+                      aria-label={
+                        group.heading ? translateWebSource(locale, group.heading) : undefined
+                      }
                       className="flex flex-col gap-1 max-md:border-t max-md:border-sidebar-border max-md:pt-4 max-md:first:border-t-0 max-md:first:pt-0"
                     >
                       {group.heading ? (
@@ -416,7 +418,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                             !compactSearchOpen && "max-md:hidden",
                           )}
                         >
-                          {group.heading}
+                          {translateWebSource(locale, group.heading)}
                         </h3>
                       ) : null}
                       <SidebarMenu role="presentation">
@@ -438,7 +440,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                                 <span
                                   className={cn("truncate", !compactSearchOpen && "max-md:sr-only")}
                                 >
-                                  {SETTINGS_SECTION_LABELS[to]}
+                                  {translateWebSource(locale, SETTINGS_SECTION_LABELS[to])}
                                 </span>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
