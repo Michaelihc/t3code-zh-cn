@@ -319,7 +319,9 @@ export function WelcomePage({
                     : newCount > 0
                       ? translateWebSource(
                           translationLocale,
-                          "Import {count} projects and start",
+                          newCount === 1
+                            ? "Import {count} project and start"
+                            : "Import {count} projects and start",
                         ).replace("{count}", String(newCount))
                       : selected.length > 0
                         ? translateWebSource(translationLocale, "Import threads and start")
@@ -862,7 +864,9 @@ function ProjectsSection({
               {canWrite && selected.length > 0
                 ? translateWebSource(
                     translationLocale,
-                    "Import {count} projects and their threads",
+                    selected.length === 1
+                      ? "Import {count} project and their threads"
+                      : "Import {count} projects and their threads",
                   ).replace("{count}", String(selected.length))
                 : translateWebSource(translationLocale, "Import projects and their threads")}
             </span>
